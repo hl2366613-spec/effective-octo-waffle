@@ -1,0 +1,299 @@
+--[[
+    Script: Menu Ngồi Lên Đầu (Phiên bản Mobile/Delta)
+    Cách dùng: Copy toàn bộ code này, dán vào Delta Executor và Execute.
+--]]
+
+-- Tìm LocalPlayer và các dịch vụ cần thiết
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+-- Biến trạng thái toàn cục
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local isRiding = false
+local targetPlayer = nil
+local rideConnection = nil
+local menuVisible = false
+
+-- // ========== TẠO GIAO DIỆN (GUI) ==========
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "RideOnHeadMenu"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Tạo Frame chính cho Menu (nền tối, bo góc)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 350, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+mainFrame.BackgroundTransparency = 0.15
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = false
+mainFrame.Parent = screenGui
+-- Làm đẹp: bo góc
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+-- Tiêu đề Menu
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 50)
+title.BackgroundTransparency = 1
+title.Text = "🎯 MENU NGỒI LÊN ĐẦU"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 20
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+-- Nút đóng Menu (X)
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -40, 0, 10)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+closeBtn.BackgroundTransparency = 0.3
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextSize = 18
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = mainFrame
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1, 0)
+
+-- Khung cuộn để chứa danh sách người chơi
+local playerListFrame = Instance.new("ScrollingFrame")
+playerListFrame.Size = UDim2.new(1, -20, 0, 220)
+playerListFrame.Position = UDim2.new(0, 10, 0, 60)
+playerListFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+playerListFrame.BackgroundTransparency = 0.5
+playerListFrame.BorderSizePixel = 0
+playerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+playerListFrame.ScrollBarThickness = 6
+playerListFrame.Parent = mainFrame
+Instance.new("UICorner", playerListFrame).CornerRadius = UDim.new(0, 8)
+
+-- Khung cài đặt nâng cao
+local settingsFrame = Instance.new("Frame")
+settingsFrame.Size = UDim2.new(1, -20, 0, 70)
+settingsFrame.Position = UDim2.new(0, 10, 0, 290)
+settingsFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+settingsFrame.BackgroundTransparency = 0.5
+settingsFrame.BorderSizePixel = 0
+settingsFrame.Parent = mainFrame
+Instance.new("UICorner", settingsFrame).CornerRadius = UDim.new(0, 8)
+
+-- Slider điều chỉnh độ cao
+local heightLabel = Instance.new("TextLabel")
+heightLabel.Size = UDim2.new(0.5, -10, 0, 25)
+heightLabel.Position = UDim2.new(0, 5, 0, 5)
+heightLabel.BackgroundTransparency = 1
+heightLabel.Text = "Độ cao:"
+heightLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+heightLabel.TextSize = 14
+heightLabel.Font = Enum.Font.Gotham
+heightLabel.TextXAlignment = Enum.TextXAlignment.Left
+heightLabel.Parent = settingsFrame
+
+local heightSlider = Instance.new("TextBox")
+heightSlider.Size = UDim2.new(0.4, -10, 0, 25)
+heightSlider.Position = UDim2.new(0.5, 10, 0, 5)
+heightSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+heightSlider.BorderSizePixel = 0
+heightSlider.Text = "2.5"
+heightSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+heightSlider.TextSize = 14
+heightSlider.Font = Enum.Font.Gotham
+heightSlider.Parent = settingsFrame
+Instance.new("UICorner", heightSlider).CornerRadius = UDim.new(0, 4)
+
+-- Nút Refresh
+local refreshBtn = Instance.new("TextButton")
+refreshBtn.Size = UDim2.new(0.4, -10, 0, 25)
+refreshBtn.Position = UDim2.new(0, 5, 0, 35)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+refreshBtn.BorderSizePixel = 0
+refreshBtn.Text = "🔄 Refresh"
+refreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+refreshBtn.TextSize = 14
+refreshBtn.Font = Enum.Font.GothamBold
+refreshBtn.Parent = settingsFrame
+Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0, 4)
+
+-- Nút "Xuống" (Dừng ngồi)
+local stopBtn = Instance.new("TextButton")
+stopBtn.Size = UDim2.new(0.4, -10, 0, 25)
+stopBtn.Position = UDim2.new(0.5, 10, 0, 35)
+stopBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+stopBtn.BorderSizePixel = 0
+stopBtn.Text = "⬇️ Xuống"
+stopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopBtn.TextSize = 14
+stopBtn.Font = Enum.Font.GothamBold
+stopBtn.Parent = settingsFrame
+Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0, 4)
+
+-- Nút bấm nổi để Mở/Đóng Menu
+local toggleBtn = Instance.new("ImageButton")
+toggleBtn.Name = "ToggleBtn"
+toggleBtn.Size = UDim2.new(0, 60, 0, 60)
+toggleBtn.Position = UDim2.new(1, -80, 0.8, -30)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+toggleBtn.BorderSizePixel = 0
+toggleBtn.Image = "rbxassetid://1316043523"
+toggleBtn.ImageColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.ImageTransparency = 0.7
+toggleBtn.Parent = screenGui
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
+
+-- Icon cho nút toggle
+local toggleIcon = Instance.new("TextLabel")
+toggleIcon.Size = UDim2.new(1, 0, 1, 0)
+toggleIcon.BackgroundTransparency = 1
+toggleIcon.Text = "👤"
+toggleIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleIcon.TextSize = 28
+toggleIcon.Font = Enum.Font.GothamBold
+toggleIcon.Parent = toggleBtn
+
+-- // ========== CÁC HÀM CHỨC NĂNG ==========
+
+-- Hàm cập nhật danh sách người chơi
+local function updatePlayerList()
+    for _, child in pairs(playerListFrame:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+
+    local yOffset = 0
+    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+        if otherPlayer ~= player then
+            local otherChar = otherPlayer.Character
+            local isAlive = otherChar and otherChar:FindFirstChildOfClass("Humanoid") and otherChar.Humanoid.Health > 0
+
+            local playerBtn = Instance.new("TextButton")
+            playerBtn.Size = UDim2.new(1, -10, 0, 35)
+            playerBtn.Position = UDim2.new(0, 5, 0, yOffset)
+            playerBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+            playerBtn.BackgroundTransparency = 0.3
+            playerBtn.BorderSizePixel = 0
+            playerBtn.Text = otherPlayer.Name .. (isAlive and " ✅" or " ❌")
+            playerBtn.TextColor3 = isAlive and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+            playerBtn.TextSize = 14
+            playerBtn.Font = Enum.Font.Gotham
+            playerBtn.TextXAlignment = Enum.TextXAlignment.Left
+            playerBtn.Parent = playerListFrame
+            Instance.new("UICorner", playerBtn).CornerRadius = UDim.new(0, 4)
+            
+            -- Padding cho text
+            local padding = Instance.new("UIPadding")
+            padding.PaddingLeft = UDim.new(0, 10)
+            padding.Parent = playerBtn
+
+            -- Sự kiện click để ngồi lên đầu
+            playerBtn.MouseButton1Click:Connect(function()
+                if not isAlive then return end
+                rideOnHead(otherPlayer)
+                updatePlayerList()
+            end)
+            yOffset = yOffset + 40
+        end
+    end
+    playerListFrame.CanvasSize = UDim2.new(0, 0, 0, math.max(yOffset + 10, 220))
+end
+
+-- Hàm ngồi lên đầu
+local function rideOnHead(target)
+    if not target or not target.Character then return end
+    if isRiding then stopRiding() end
+
+    local targetChar = target.Character
+    local head = targetChar:FindFirstChild("Head")
+    if not head then return end
+
+    isRiding = true
+    targetPlayer = target
+    local heightOffset = tonumber(heightSlider.Text) or 2.5
+
+    character.HumanoidRootPart.CanCollide = false
+    humanoid.Sit = true
+    humanoid.AutoRotate = false
+
+    if rideConnection then rideConnection:Disconnect() end
+    rideConnection = RunService.Heartbeat:Connect(function()
+        if not isRiding or not target or not target.Character then
+            stopRiding()
+            return
+        end
+        local targetHead = target.Character:FindFirstChild("Head")
+        if targetHead then
+            local targetPos = targetHead.Position + Vector3.new(0, heightOffset, 0)
+            character:SetPrimaryPartCFrame(CFrame.new(targetPos))
+        end
+    end)
+
+    stopBtn.Text = "⬇️ Đang ngồi..."
+    stopBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+end
+
+-- Hàm dừng ngồi
+local function stopRiding()
+    isRiding = false
+    targetPlayer = nil
+    if character then
+        character.HumanoidRootPart.CanCollide = true
+        humanoid.Sit = false
+        humanoid.AutoRotate = true
+    end
+    if rideConnection then
+        rideConnection:Disconnect()
+        rideConnection = nil
+    end
+    stopBtn.Text = "⬇️ Xuống"
+    stopBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+    updatePlayerList()
+end
+
+-- Hàm mở/đóng menu
+local function toggleMenu()
+    menuVisible = not menuVisible
+    mainFrame.Visible = menuVisible
+    if menuVisible then updatePlayerList() end
+end
+
+-- // ========== GÁN SỰ KIỆN CHO CÁC NÚT ==========
+toggleBtn.MouseButton1Click:Connect(toggleMenu)
+closeBtn.MouseButton1Click:Connect(toggleMenu)
+refreshBtn.MouseButton1Click:Connect(updatePlayerList)
+
+stopBtn.MouseButton1Click:Connect(function()
+    if isRiding then stopRiding() end
+end)
+
+-- Phím tắt "G" để mở menu
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.G then toggleMenu() end
+end)
+
+-- Xử lý khi nhân vật mới xuất hiện (hồi sinh)
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    stopRiding()
+end)
+
+-- Xử lý khi nhân vật chết
+humanoid.StateChanged:Connect(function(oldState, newState)
+    if newState == Enum.HumanoidStateType.Dead then stopRiding() end
+end)
+
+-- Cập nhật danh sách khi có người chơi mới vào
+Players.PlayerAdded:Connect(function()
+    if menuVisible then updatePlayerList() end
+end)
+Players.PlayerRemoving:Connect(function()
+    if menuVisible then updatePlayerList() end
+end)
+
+-- Thông báo khởi tạo thành công
+print("🎯 Menu Ngồi Lên Đầu đã sẵn sàng! Nhấn G để mở.")
