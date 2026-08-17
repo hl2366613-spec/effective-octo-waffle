@@ -1,0 +1,680 @@
+-- Đặt script này trong StarterGui hoặc LocalScript
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local rootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Biến trạng thái
+local isFlingEnabled = false
+local isFlinging = false
+local targetPlayer = nil
+local flingCoroutine = nil
+local isChoosingPlayer = false
+local mainMenuVisible = false
+
+-- Tạo ScreenGui chính
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Name = "FlingMenu"
+screenGui.ResetOnSpawn = false
+screenGui.Enabled = true
+
+-- ===== TẠO NÚT TRÒN =====
+local toggleButtonMain = Instance.new("ImageButton")
+toggleButtonMain.Size = UDim2.new(0, 60, 0, 60)
+toggleButtonMain.Position = UDim2.new(0.02, 0, 0.85, 0)
+toggleButtonMain.BackgroundColor3 = Color3.fromRGB(0, 80, 200)
+toggleButtonMain.BackgroundTransparency = 0.2
+toggleButtonMain.Image = "rbxassetid://6023426925"
+toggleButtonMain.ImageColor3 = Color3.fromRGB(0, 200, 255)
+toggleButtonMain.BorderSizePixel = 0
+toggleButtonMain.Parent = screenGui
+toggleButtonMain.ZIndex = 10
+
+-- Bo tròn nút
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(1, 0)
+btnCorner.Parent = toggleButtonMain
+
+-- Viền sáng
+local glow = Instance.new("ImageLabel")
+glow.Size = UDim2.new(1.4, 0, 1.4, 0)
+glow.Position = UDim2.new(-0.2, 0, -0.2, 0)
+glow.BackgroundTransparency = 1
+glow.Image = "rbxassetid://13152748072"
+glow.ImageTransparency = 0.6
+glow.Parent = toggleButtonMain
+
+-- Text "ライト" (Raito - Katakana)
+local iconText = Instance.new("TextLabel")
+iconText.Size = UDim2.new(1, 0, 1, 0)
+iconText.Position = UDim2.new(0, 0, 0, 0)
+iconText.Text = "ライト"
+iconText.TextColor3 = Color3.fromRGB(100, 200, 255)
+iconText.BackgroundTransparency = 1
+iconText.Font = Enum.Font.GothamBold
+iconText.TextSize = 20
+iconText.TextScaled = true
+iconText.Parent = toggleButtonMain
+iconText.ZIndex = 11
+
+-- Tooltip
+local tooltip = Instance.new("TextLabel")
+tooltip.Size = UDim2.new(0, 120, 0, 25)
+tooltip.Position = UDim2.new(0.5, -60, 1.2, 0)
+tooltip.Text = "FLING MENU"
+tooltip.TextColor3 = Color3.fromRGB(255, 255, 255)
+tooltip.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+tooltip.BackgroundTransparency = 0.4
+tooltip.Font = Enum.Font.Gotham
+tooltip.TextSize = 12
+tooltip.Visible = false
+tooltip.Parent = toggleButtonMain
+
+local tooltipCorner = Instance.new("UICorner")
+tooltipCorner.CornerRadius = UDim.new(0, 4)
+tooltipCorner.Parent = tooltip
+
+-- Hover effects
+toggleButtonMain.MouseEnter:Connect(function()
+    tooltip.Visible = true
+    toggleButtonMain.BackgroundTransparency = 0.05
+    toggleButtonMain.Size = UDim2.new(0, 65, 0, 65)
+end)
+toggleButtonMain.MouseLeave:Connect(function()
+    tooltip.Visible = false
+    toggleButtonMain.BackgroundTransparency = 0.2
+    toggleButtonMain.Size = UDim2.new(0, 60, 0, 60)
+end)
+
+-- ===== MAIN MENU =====
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 280, 0, 220)
+mainFrame.Position = UDim2.new(0.5, -140, 0.5, -110)
+mainFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
+mainFrame.BackgroundTransparency = 0.05
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Visible = false
+mainFrame.Parent = screenGui
+mainFrame.ZIndex = 5
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 12)
+mainCorner.Parent = mainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(0, 150, 255)
+mainStroke.Thickness = 1.5
+mainStroke.Parent = mainFrame
+
+-- Tiêu đề
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 35)
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
+titleLabel.Text = "✦ FLING CONTROLLER ✦"
+titleLabel.TextColor3 = Color3.fromRGB(0, 180, 255)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 14
+titleLabel.Parent = mainFrame
+
+-- Nút đóng
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 22, 0, 22)
+closeButton.Position = UDim2.new(1, -28, 0, 6)
+closeButton.Text = "✕"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeButton.BackgroundTransparency = 0.3
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 12
+closeButton.Parent = mainFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 4)
+closeCorner.Parent = closeButton
+
+closeButton.MouseEnter:Connect(function()
+    closeButton.BackgroundTransparency = 0.1
+end)
+closeButton.MouseLeave:Connect(function()
+    closeButton.BackgroundTransparency = 0.3
+end)
+
+-- Toggle Frame
+local toggleFrame = Instance.new("Frame")
+toggleFrame.Size = UDim2.new(1, -20, 0, 40)
+toggleFrame.Position = UDim2.new(0, 10, 0, 40)
+toggleFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+toggleFrame.BackgroundTransparency = 0.3
+toggleFrame.BorderSizePixel = 0
+toggleFrame.Parent = mainFrame
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 6)
+toggleCorner.Parent = toggleFrame
+
+local toggleLabel = Instance.new("TextLabel")
+toggleLabel.Size = UDim2.new(0.6, 0, 1, 0)
+toggleLabel.Position = UDim2.new(0, 12, 0, 0)
+toggleLabel.Text = "FLING"
+toggleLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+toggleLabel.BackgroundTransparency = 1
+toggleLabel.Font = Enum.Font.GothamBold
+toggleLabel.TextSize = 14
+toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+toggleLabel.Parent = toggleFrame
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 65, 0, 30)
+toggleButton.Position = UDim2.new(1, -75, 0.5, -15)
+toggleButton.Text = "OFF"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 13
+toggleButton.Parent = toggleFrame
+
+local toggleCornerBtn = Instance.new("UICorner")
+toggleCornerBtn.CornerRadius = UDim.new(0, 5)
+toggleCornerBtn.Parent = toggleButton
+
+-- Player Select Frame
+local playerFrame = Instance.new("Frame")
+playerFrame.Size = UDim2.new(1, -20, 0, 40)
+playerFrame.Position = UDim2.new(0, 10, 0, 85)
+playerFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+playerFrame.BackgroundTransparency = 0.3
+playerFrame.BorderSizePixel = 0
+playerFrame.Parent = mainFrame
+
+local playerCorner = Instance.new("UICorner")
+playerCorner.CornerRadius = UDim.new(0, 6)
+playerCorner.Parent = playerFrame
+
+local playerLabel = Instance.new("TextLabel")
+playerLabel.Size = UDim2.new(0.6, 0, 1, 0)
+playerLabel.Position = UDim2.new(0, 12, 0, 0)
+playerLabel.Text = "TARGET"
+playerLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+playerLabel.BackgroundTransparency = 1
+playerLabel.Font = Enum.Font.GothamBold
+playerLabel.TextSize = 14
+playerLabel.TextXAlignment = Enum.TextXAlignment.Left
+playerLabel.Parent = playerFrame
+
+local selectButton = Instance.new("TextButton")
+selectButton.Size = UDim2.new(0, 85, 0, 30)
+selectButton.Position = UDim2.new(1, -95, 0.5, -15)
+selectButton.Text = "Chọn Player"
+selectButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+selectButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+selectButton.Font = Enum.Font.GothamBold
+selectButton.TextSize = 12
+selectButton.Parent = playerFrame
+
+local selectCorner = Instance.new("UICorner")
+selectCorner.CornerRadius = UDim.new(0, 5)
+selectCorner.Parent = selectButton
+
+selectButton.MouseEnter:Connect(function()
+    selectButton.BackgroundColor3 = Color3.fromRGB(0, 130, 230)
+end)
+selectButton.MouseLeave:Connect(function()
+    selectButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+end)
+
+-- Status
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -20, 0, 25)
+statusLabel.Position = UDim2.new(0, 10, 0, 130)
+statusLabel.Text = "◆ Đang chờ"
+statusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 12
+statusLabel.Parent = mainFrame
+
+-- Current target display
+local targetDisplay = Instance.new("TextLabel")
+targetDisplay.Size = UDim2.new(1, -20, 0, 25)
+targetDisplay.Position = UDim2.new(0, 10, 0, 155)
+targetDisplay.Text = "Chưa chọn"
+targetDisplay.TextColor3 = Color3.fromRGB(150, 150, 150)
+targetDisplay.BackgroundTransparency = 1
+targetDisplay.Font = Enum.Font.Gotham
+targetDisplay.TextSize = 11
+targetDisplay.TextXAlignment = Enum.TextXAlignment.Center
+targetDisplay.Parent = mainFrame
+
+-- ===== MENU CON CHỌN PLAYER =====
+local selectMenu = Instance.new("Frame")
+selectMenu.Size = UDim2.new(0, 220, 0, 320)
+selectMenu.Position = UDim2.new(0.5, -110, 0.5, -160)
+selectMenu.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
+selectMenu.BackgroundTransparency = 0.05
+selectMenu.BorderSizePixel = 0
+selectMenu.Visible = false
+selectMenu.Parent = screenGui
+selectMenu.ZIndex = 15
+
+local selectCorner2 = Instance.new("UICorner")
+selectCorner2.CornerRadius = UDim.new(0, 12)
+selectCorner2.Parent = selectMenu
+
+local selectStroke = Instance.new("UIStroke")
+selectStroke.Color = Color3.fromRGB(0, 150, 255)
+selectStroke.Thickness = 1.5
+selectStroke.Parent = selectMenu
+
+local selectTitle = Instance.new("TextLabel")
+selectTitle.Size = UDim2.new(1, 0, 0, 35)
+selectTitle.Position = UDim2.new(0, 0, 0, 0)
+selectTitle.Text = "▶ CHỌN NGƯỜI CHƠI"
+selectTitle.TextColor3 = Color3.fromRGB(0, 180, 255)
+selectTitle.BackgroundTransparency = 1
+selectTitle.Font = Enum.Font.GothamBold
+selectTitle.TextSize = 14
+selectTitle.Parent = selectMenu
+
+local closeSelect = Instance.new("TextButton")
+closeSelect.Size = UDim2.new(0, 22, 0, 22)
+closeSelect.Position = UDim2.new(1, -28, 0, 6)
+closeSelect.Text = "✕"
+closeSelect.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeSelect.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeSelect.BackgroundTransparency = 0.3
+closeSelect.Font = Enum.Font.GothamBold
+closeSelect.TextSize = 12
+closeSelect.Parent = selectMenu
+
+local closeSelectCorner = Instance.new("UICorner")
+closeSelectCorner.CornerRadius = UDim.new(0, 4)
+closeSelectCorner.Parent = closeSelect
+
+-- Search box
+local searchBox = Instance.new("TextBox")
+searchBox.Size = UDim2.new(1, -20, 0, 32)
+searchBox.Position = UDim2.new(0, 10, 0, 40)
+searchBox.PlaceholderText = "🔍 Tìm kiếm..."
+searchBox.Text = ""
+searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+searchBox.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
+searchBox.Font = Enum.Font.Gotham
+searchBox.TextSize = 13
+searchBox.ClearTextOnFocus = false
+searchBox.Parent = selectMenu
+
+local searchCorner = Instance.new("UICorner")
+searchCorner.CornerRadius = UDim.new(0, 5)
+searchCorner.Parent = searchBox
+
+-- Player list
+local playerList = Instance.new("ScrollingFrame")
+playerList.Size = UDim2.new(1, -20, 0, 230)
+playerList.Position = UDim2.new(0, 10, 0, 78)
+playerList.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+playerList.BackgroundTransparency = 0.3
+playerList.BorderSizePixel = 0
+playerList.CanvasSize = UDim2.new(0, 0, 0, 0)
+playerList.ScrollBarThickness = 3
+playerList.Parent = selectMenu
+
+local listCorner = Instance.new("UICorner")
+listCorner.CornerRadius = UDim.new(0, 5)
+listCorner.Parent = playerList
+
+-- ===== HÀM CẬP NHẬT =====
+local function updateToggleButton()
+    if isFlingEnabled then
+        toggleButton.Text = "ON"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 50)
+        toggleButtonMain.ImageColor3 = Color3.fromRGB(0, 255, 100)
+        iconText.TextColor3 = Color3.fromRGB(0, 255, 100)
+        toggleButtonMain.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+    else
+        toggleButton.Text = "OFF"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        toggleButtonMain.ImageColor3 = Color3.fromRGB(0, 200, 255)
+        iconText.TextColor3 = Color3.fromRGB(100, 200, 255)
+        toggleButtonMain.BackgroundColor3 = Color3.fromRGB(0, 80, 200)
+    end
+end
+
+local function updatePlayerList()
+    for _, child in pairs(playerList:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    local players = game.Players:GetPlayers()
+    local yPos = 0
+    
+    for _, p in pairs(players) do
+        if p ~= player then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, 0, 0, 30)
+            btn.Position = UDim2.new(0, 0, 0, yPos)
+            btn.Text = p.Name
+            btn.TextColor3 = Color3.fromRGB(200, 220, 255)
+            btn.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 13
+            btn.Parent = playerList
+            
+            local btnCorner = Instance.new("UICorner")
+            btnCorner.CornerRadius = UDim.new(0, 4)
+            btnCorner.Parent = btn
+            
+            btn.MouseButton1Click:Connect(function()
+                targetPlayer = p
+                targetDisplay.Text = "🎯 " .. p.Name
+                targetDisplay.TextColor3 = Color3.fromRGB(0, 255, 200)
+                statusLabel.Text = "✅ Đã chọn: " .. p.Name
+                statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+                selectMenu.Visible = false
+                isChoosingPlayer = false
+            end)
+            
+            btn.MouseEnter:Connect(function()
+                btn.BackgroundColor3 = Color3.fromRGB(0, 80, 150)
+            end)
+            btn.MouseLeave:Connect(function()
+                btn.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+            end)
+            
+            yPos = yPos + 35
+        end
+    end
+    
+    if yPos == 0 then
+        local emptyLabel = Instance.new("TextLabel")
+        emptyLabel.Size = UDim2.new(1, 0, 1, 0)
+        emptyLabel.Text = "Không có người chơi"
+        emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        emptyLabel.BackgroundTransparency = 1
+        emptyLabel.Font = Enum.Font.Gotham
+        emptyLabel.TextSize = 13
+        emptyLabel.Parent = playerList
+        yPos = 30
+    end
+    
+    playerList.CanvasSize = UDim2.new(0, 0, 0, yPos)
+end
+
+-- ===== HÀM FLING =====
+local function flingTarget(target)
+    if not target or not target.Character then 
+        statusLabel.Text = "❌ Không tìm thấy"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return false
+    end
+    
+    local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+    local targetHumanoid = target.Character:FindFirstChild("Humanoid")
+    
+    if not targetRoot or not targetHumanoid then 
+        statusLabel.Text = "❌ Lỗi target"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return false
+    end
+    
+    isFlinging = true
+    
+    -- Tàng hình nhẹ
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Transparency = 0.7
+        end
+    end
+    
+    -- Tạo BodyVelocity
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bv.Parent = rootPart
+    
+    local startTime = tick()
+    local duration = 5
+    
+    -- Camera
+    local camera = game.Workspace.CurrentCamera
+    local originalCFrame = camera.CFrame
+    
+    while tick() - startTime < duration and isFlingEnabled do
+        if targetRoot and targetRoot.Position then
+            local targetPos = targetRoot.Position
+            local currentPos = rootPart.Position
+            local direction = (targetPos - currentPos).Unit
+            local distance = (targetPos - currentPos).Magnitude
+            
+            local speed = math.min(distance * 2 + 150, 500)
+            bv.Velocity = direction * speed + Vector3.new(0, 20, 0)
+            
+            local lookAt = CFrame.lookAt(camera.CFrame.Position, targetPos)
+            camera.CFrame = camera.CFrame:Lerp(lookAt, 0.1)
+            
+            local timeLeft = math.ceil(duration - (tick() - startTime))
+            statusLabel.Text = "🔄 Bay đến " .. target.Name .. " " .. timeLeft .. "s"
+        end
+        task.wait(0.03)
+    end
+    
+    -- Đá player
+    if targetRoot and isFlingEnabled then
+        statusLabel.Text = "💥 FLING " .. target.Name .. "!!!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        
+        local flingVelocity = Instance.new("BodyVelocity")
+        flingVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        flingVelocity.Velocity = Vector3.new(
+            math.random(-10000, 10000),
+            math.random(6000, 12000),
+            math.random(-10000, 10000)
+        )
+        flingVelocity.Parent = targetRoot
+        
+        local bf1 = Instance.new("BodyForce")
+        bf1.Force = Vector3.new(0, 1500000, 0)
+        bf1.Parent = targetRoot
+        
+        local bf2 = Instance.new("BodyForce")
+        bf2.Force = Vector3.new(
+            math.random(-800000, 800000),
+            800000,
+            math.random(-800000, 800000)
+        )
+        bf2.Parent = targetRoot
+        
+        local bp = Instance.new("BodyPosition")
+        bp.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        bp.P = 200000
+        bp.Position = Vector3.new(
+            math.random(-99999, 99999),
+            math.random(80000, 99999),
+            math.random(-99999, 99999)
+        )
+        bp.Parent = targetRoot
+        
+        game:GetService("Debris"):AddItem(flingVelocity, 3)
+        game:GetService("Debris"):AddItem(bf1, 3)
+        game:GetService("Debris"):AddItem(bf2, 3)
+        game:GetService("Debris"):AddItem(bp, 3)
+        
+        for i = 1, 10 do
+            if targetRoot then
+                local part = Instance.new("Part")
+                part.Size = Vector3.new(1, 1, 1)
+                part.Position = targetRoot.Position + Vector3.new(math.random(-20, 20), math.random(-20, 20), math.random(-20, 20))
+                part.BrickColor = BrickColor.new("Bright blue")
+                part.Material = Enum.Material.Neon
+                part.Anchored = true
+                part.CanCollide = false
+                part.Parent = game.Workspace
+                game:GetService("Debris"):AddItem(part, 0.3)
+            end
+            task.wait(0.05)
+        end
+        
+        statusLabel.Text = "✅ Đã fling " .. target.Name
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+    
+    -- Phục hồi
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Transparency = 0
+        end
+    end
+    
+    camera.CFrame = originalCFrame
+    bv:Destroy()
+    isFlinging = false
+    
+    return true
+end
+
+-- ===== SỰ KIỆN =====
+-- Click nút tròn để mở menu
+toggleButtonMain.MouseButton1Click:Connect(function()
+    mainMenuVisible = not mainMenuVisible
+    mainFrame.Visible = mainMenuVisible
+    if mainMenuVisible then
+        updatePlayerList()
+        selectMenu.Visible = false
+        isChoosingPlayer = false
+    end
+end)
+
+-- Cập nhật danh sách
+updatePlayerList()
+
+-- Cập nhật khi có player mới
+game.Players.PlayerAdded:Connect(function()
+    updatePlayerList()
+end)
+game.Players.PlayerRemoving:Connect(function()
+    updatePlayerList()
+end)
+
+-- Search function
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local searchText = searchBox.Text:lower()
+    for _, child in pairs(playerList:GetChildren()) do
+        if child:IsA("TextButton") then
+            if child.Text:lower():find(searchText) then
+                child.Visible = true
+            else
+                child.Visible = false
+            end
+        end
+    end
+end)
+
+-- Toggle button
+toggleButton.MouseButton1Click:Connect(function()
+    isFlingEnabled = not isFlingEnabled
+    updateToggleButton()
+    
+    if isFlingEnabled then
+        if not targetPlayer then
+            statusLabel.Text = "⚠️ Chọn người chơi trước!"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+            isFlingEnabled = false
+            updateToggleButton()
+            return
+        end
+        
+        statusLabel.Text = "🟢 Đã bật"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+        
+        if flingCoroutine then
+            coroutine.close(flingCoroutine)
+        end
+        
+        flingCoroutine = coroutine.create(function()
+            while isFlingEnabled do
+                if targetPlayer then
+                    local success = flingTarget(targetPlayer)
+                    if not success then
+                        for _, p in pairs(game.Players:GetPlayers()) do
+                            if p ~= player and p.Character then
+                                targetPlayer = p
+                                targetDisplay.Text = "🎯 " .. p.Name
+                                statusLabel.Text = "🔄 Chuyển sang: " .. p.Name
+                                break
+                            end
+                        end
+                    end
+                end
+                task.wait(5)
+            end
+        end)
+        
+        coroutine.resume(flingCoroutine)
+        
+    else
+        statusLabel.Text = "🔴 Đã tắt"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        isFlinging = false
+        
+        if flingCoroutine then
+            coroutine.close(flingCoroutine)
+            flingCoroutine = nil
+        end
+        
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0
+            end
+        end
+    end
+end)
+
+-- Select button
+selectButton.MouseButton1Click:Connect(function()
+    if isChoosingPlayer then
+        selectMenu.Visible = false
+        isChoosingPlayer = false
+    else
+        updatePlayerList()
+        selectMenu.Visible = true
+        isChoosingPlayer = true
+        searchBox.Text = ""
+        searchBox:CaptureFocus()
+    end
+end)
+
+-- Đóng menu con
+closeSelect.MouseButton1Click:Connect(function()
+    selectMenu.Visible = false
+    isChoosingPlayer = false
+end)
+
+-- Đóng menu chính
+closeButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    mainMenuVisible = false
+    selectMenu.Visible = false
+    isChoosingPlayer = false
+end)
+
+-- Update status
+game:GetService("RunService").Heartbeat:Connect(function()
+    if isFlingEnabled and targetPlayer and targetPlayer.Character then
+        local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if targetRoot and rootPart then
+            local dist = (targetRoot.Position - rootPart.Position).Magnitude
+            if dist < 30 then
+                statusLabel.Text = "🎯 Đến nơi!"
+                statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            end
+        end
+    end
+end)
+
+print("✅ Script Fling Pro đã tải thành công!")
+print("💡 Click nút ライト để mở menu")
