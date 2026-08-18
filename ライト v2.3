@@ -1,0 +1,641 @@
+-- ライト V2.3 (Raito V2.3) - Delta X VNG Style
+-- UI: Circle with white fill & blue border
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Camera = workspace.CurrentCamera
+local TeleportService = game:GetService("TeleportService")
+
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+-- Variables
+local flying = false
+local noclip = false
+local flyJump = false
+local speed = 50
+local jumpPower = 50
+local selectedPlayer = nil
+local espEnabled = false
+local espObjects = {}
+local followPlayer = false
+local followConnection = nil
+
+-- Create Main Circle Button
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Name = "RaitoUI"
+
+local circleButton = Instance.new("ImageButton")
+circleButton.Size = UDim2.new(0, 60, 0, 60)
+circleButton.Position = UDim2.new(0.5, -30, 0.5, -30)
+circleButton.BackgroundColor3 = Color3.new(1, 1, 1)
+circleButton.BackgroundTransparency = 0.2
+circleButton.BorderColor3 = Color3.new(0, 0.5, 1)
+circleButton.BorderSizePixel = 3
+circleButton.Image = "rbxassetid://1234567890"
+circleButton.Parent = screenGui
+circleButton.Name = "MainButton"
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim2.new(1, 0, 1, 0)
+corner.Parent = circleButton
+
+-- Main Menu
+local mainMenu = Instance.new("Frame")
+mainMenu.Size = UDim2.new(0, 340, 0, 550)
+mainMenu.Position = UDim2.new(0.5, -170, 0.5, -275)
+mainMenu.BackgroundColor3 = Color3.new(0.1, 0.1, 0.15)
+mainMenu.BorderColor3 = Color3.new(0, 0.5, 1)
+mainMenu.BorderSizePixel = 2
+mainMenu.Visible = false
+mainMenu.Parent = screenGui
+mainMenu.Name = "MainMenu"
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim2.new(0, 10, 0, 10)
+mainCorner.Parent = mainMenu
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "ライト V2.3"
+title.TextColor3 = Color3.new(0, 0.5, 1)
+title.TextSize = 22
+title.Font = Enum.Font.GothamBold
+title.Parent = mainMenu
+
+-- Subtitle
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, 0, 0, 20)
+subtitle.Position = UDim2.new(0, 0, 0, 35)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Raito V2.3"
+subtitle.TextColor3 = Color3.new(1, 1, 1)
+subtitle.TextSize = 14
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextTransparency = 0.5
+subtitle.Parent = mainMenu
+
+-- Close Button
+local closeBtn = Instance.new("ImageButton")
+closeBtn.Size = UDim2.new(0, 25, 0, 25)
+closeBtn.Position = UDim2.new(1, -30, 0, 8)
+closeBtn.BackgroundColor3 = Color3.new(1, 0.2, 0.2)
+closeBtn.BorderSizePixel = 0
+closeBtn.Parent = mainMenu
+closeBtn.Name = "CloseBtn"
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim2.new(1, 0, 1, 0)
+closeCorner.Parent = closeBtn
+
+closeBtn.MouseButton1Click:Connect(function()
+    mainMenu.Visible = false
+end)
+
+-- Scroll frame
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -10, 1, -65)
+scrollFrame.Position = UDim2.new(0, 5, 0, 60)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 700)
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.Parent = mainMenu
+
+local uiList = Instance.new("UIListLayout")
+uiList.Padding = UDim.new(0, 5)
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
+uiList.Parent = scrollFrame
+
+-- Helper: Create Button
+function createButton(text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 35)
+    btn.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Text = text
+    btn.TextSize = 16
+    btn.Font = Enum.Font.Gotham
+    btn.BorderSizePixel = 0
+    btn.Parent = uiList
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim2.new(0, 5, 0, 5)
+    btnCorner.Parent = btn
+    
+    return btn
+end
+
+-- Helper: Create Slider
+function createSlider(text, min, max, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -10, 0, 50)
+    frame.BackgroundTransparency = 1
+    frame.Parent = uiList
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.5, 0, 0, 20)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text .. ": " .. tostring(default)
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.TextSize = 14
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    
+    local slider = Instance.new("Frame")
+    slider.Size = UDim2.new(0.6, 0, 0, 20)
+    slider.Position = UDim2.new(0.4, 0, 0.6, 0)
+    slider.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    slider.Parent = frame
+    
+    local sliderCorner = Instance.new("UICorner")
+    sliderCorner.CornerRadius = UDim2.new(0, 10, 0, 10)
+    sliderCorner.Parent = slider
+    
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.new(0, 0.5, 1)
+    fill.Parent = slider
+    
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim2.new(0, 10, 0, 10)
+    fillCorner.Parent = fill
+    
+    local drag = Instance.new("TextButton")
+    drag.Size = UDim2.new(0, 16, 0, 16)
+    drag.Position = UDim2.new((default - min) / (max - min), -8, 0.5, -8)
+    drag.BackgroundColor3 = Color3.new(1, 1, 1)
+    drag.BorderSizePixel = 0
+    drag.Text = ""
+    drag.Parent = slider
+    
+    local dragCorner = Instance.new("UICorner")
+    dragCorner.CornerRadius = UDim2.new(1, 0, 1, 0)
+    dragCorner.Parent = drag
+    
+    local value = default
+    
+    drag.MouseButton1Down:Connect(function()
+        local connection
+        connection = RunService.RenderStepped:Connect(function()
+            local mousePos = mouse.X
+            local sliderPos = slider.AbsolutePosition.X
+            local sliderSize = slider.AbsoluteSize.X
+            
+            local percent = math.clamp((mousePos - sliderPos) / sliderSize, 0, 1)
+            value = min + (max - min) * percent
+            value = math.round(value)
+            
+            fill.Size = UDim2.new(percent, 0, 1, 0)
+            drag.Position = UDim2.new(percent, -8, 0.5, -8)
+            label.Text = text .. ": " .. tostring(value)
+            
+            callback(value)
+        end)
+        
+        local release
+        release = UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                connection:Disconnect()
+                release:Disconnect()
+            end
+        end)
+    end)
+    
+    return frame
+end
+
+-- Feature: Fly
+local flyBtn = createButton("Fly")
+flyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    flyBtn.BackgroundColor3 = flying and Color3.new(0, 0.8, 0.2) or Color3.new(0.2, 0.2, 0.2)
+    if flying then
+        enableFly()
+    else
+        disableFly()
+    end
+end)
+
+-- Feature: Fly Jump
+local flyJumpBtn = createButton("Fly Jump")
+flyJumpBtn.MouseButton1Click:Connect(function()
+    flyJump = not flyJump
+    flyJumpBtn.BackgroundColor3 = flyJump and Color3.new(0, 0.8, 0.2) or Color3.new(0.2, 0.2, 0.2)
+end)
+
+-- Feature: Noclip
+local noclipBtn = createButton("Noclip")
+noclipBtn.MouseButton1Click:Connect(function()
+    noclip = not noclip
+    noclipBtn.BackgroundColor3 = noclip and Color3.new(0, 0.8, 0.2) or Color3.new(0.2, 0.2, 0.2)
+    if noclip then
+        enableNoclip()
+    else
+        disableNoclip()
+    end
+end)
+
+-- Feature: ESP
+local espBtn = createButton("ESP")
+espBtn.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    espBtn.BackgroundColor3 = espEnabled and Color3.new(0, 0.8, 0.2) or Color3.new(0.2, 0.2, 0.2)
+    if espEnabled then
+        enableESP()
+    else
+        disableESP()
+    end
+end)
+
+-- Speed Slider
+createSlider("Speed", 10, 200, 50, function(val)
+    speed = val
+end)
+
+-- Jump Power Slider
+createSlider("Jump Power", 10, 200, 50, function(val)
+    jumpPower = val
+end)
+
+-- Feature: Follow Player
+local followBtn = createButton("Follow Player")
+followBtn.MouseButton1Click:Connect(function()
+    followPlayer = not followPlayer
+    followBtn.BackgroundColor3 = followPlayer and Color3.new(0, 0.8, 0.2) or Color3.new(0.2, 0.2, 0.2)
+    
+    if followPlayer then
+        if not selectedPlayer then
+            followPlayer = false
+            followBtn.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+            return
+        end
+        startFollowing()
+    else
+        stopFollowing()
+    end
+end)
+
+-- Feature: Player Select
+local selectPlayerBtn = createButton("Select Player")
+selectPlayerBtn.MouseButton1Click:Connect(function()
+    showPlayerList()
+end)
+
+-- Feature: Teleport to Player
+local teleportBtn = createButton("Teleport to Player")
+teleportBtn.MouseButton1Click:Connect(function()
+    if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+        end
+    end
+end)
+
+-- Feature: Bring Player
+local bringBtn = createButton("Bring Player")
+bringBtn.MouseButton1Click:Connect(function()
+    if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            selectedPlayer.Character.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+        end
+    end
+end)
+
+-- Feature: Kill Player
+local killBtn = createButton("Kill Player")
+killBtn.MouseButton1Click:Connect(function()
+    if selectedPlayer and selectedPlayer.Character then
+        local humanoid = selectedPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.Health = 0
+        end
+    end
+end)
+
+-- Feature: Reset Player
+local resetBtn = createButton("Reset Player")
+resetBtn.MouseButton1Click:Connect(function()
+    if selectedPlayer then
+        if selectedPlayer.Character then
+            selectedPlayer.Character:BreakJoints()
+        end
+        local spawns = workspace:FindFirstChild("Spawns")
+        if spawns then
+            local spawnsList = spawns:GetChildren()
+            if #spawnsList > 0 then
+                local spawn = spawnsList[math.random(1, #spawnsList)]
+                if spawn and spawn:IsA("BasePart") then
+                    selectedPlayer.Character.HumanoidRootPart.CFrame = spawn.CFrame
+                end
+            end
+        end
+    end
+end)
+
+-- Feature: Sit on Player Head
+local sitBtn = createButton("Sit on Head")
+sitBtn.MouseButton1Click:Connect(function()
+    if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("Head") then
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.Sit = true
+            char.HumanoidRootPart.CFrame = selectedPlayer.Character.Head.CFrame * CFrame.new(0, 0.5, 0)
+        end
+    end
+end)
+
+-- Player Selection Submenu
+local playerListFrame = Instance.new("Frame")
+playerListFrame.Size = UDim2.new(0, 200, 0, 250)
+playerListFrame.Position = UDim2.new(0.5, -100, 0.5, -125)
+playerListFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.15)
+playerListFrame.BorderColor3 = Color3.new(0, 0.5, 1)
+playerListFrame.BorderSizePixel = 2
+playerListFrame.Visible = false
+playerListFrame.Parent = screenGui
+
+local playerCorner = Instance.new("UICorner")
+playerCorner.CornerRadius = UDim2.new(0, 8, 0, 8)
+playerCorner.Parent = playerListFrame
+
+local playerScroll = Instance.new("ScrollingFrame")
+playerScroll.Size = UDim2.new(1, -10, 1, -10)
+playerScroll.Position = UDim2.new(0, 5, 0, 5)
+playerScroll.BackgroundTransparency = 1
+playerScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
+playerScroll.ScrollBarThickness = 3
+playerScroll.Parent = playerListFrame
+
+local playerList = Instance.new("UIListLayout")
+playerList.Padding = UDim.new(0, 3)
+playerList.SortOrder = Enum.SortOrder.LayoutOrder
+playerList.Parent = playerScroll
+
+function showPlayerList()
+    for _, child in ipairs(playerScroll:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -10, 0, 30)
+            btn.BackgroundColor3 = Color3.new(0.2, 0.2, 0.25)
+            btn.Text = plr.Name
+            btn.TextColor3 = Color3.new(1, 1, 1)
+            btn.TextSize = 14
+            btn.Font = Enum.Font.Gotham
+            btn.BorderSizePixel = 0
+            btn.Parent = playerScroll
+            
+            local btnCorner = Instance.new("UICorner")
+            btnCorner.CornerRadius = UDim2.new(0, 4, 0, 4)
+            btnCorner.Parent = btn
+            
+            btn.MouseButton1Click:Connect(function()
+                selectedPlayer = plr
+                playerListFrame.Visible = false
+                selectPlayerBtn.Text = "Selected: " .. plr.Name
+                
+                if followPlayer then
+                    startFollowing()
+                end
+            end)
+        end
+    end
+    
+    playerListFrame.Visible = true
+end
+
+playerListFrame.MouseButton1Click:Connect(function()
+    playerListFrame.Visible = false
+end)
+
+-- Circle button toggle menu
+circleButton.MouseButton1Click:Connect(function()
+    mainMenu.Visible = not mainMenu.Visible
+    if mainMenu.Visible then
+        playerListFrame.Visible = false
+    end
+end)
+
+-- Fly functions
+local bodyVelocity = nil
+local bodyGyro = nil
+
+function enableFly()
+    local char = player.Character
+    if not char then return end
+    
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true
+    end
+    
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = char:FindFirstChild("HumanoidRootPart")
+    
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+    bodyGyro.CFrame = char.HumanoidRootPart.CFrame
+    bodyGyro.Parent = char:FindFirstChild("HumanoidRootPart")
+end
+
+function disableFly()
+    if bodyVelocity then bodyVelocity:Destroy() end
+    if bodyGyro then bodyGyro:Destroy() end
+    
+    local char = player.Character
+    if char then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+    flying = false
+end
+
+-- Fly movement
+RunService.RenderStepped:Connect(function()
+    if flying and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = player.Character.HumanoidRootPart
+        local moveDir = Vector3.new()
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            moveDir = moveDir + (Camera.CFrame.LookVector * Vector3.new(1, 0, 1))
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            moveDir = moveDir - (Camera.CFrame.LookVector * Vector3.new(1, 0, 1))
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            moveDir = moveDir - (Camera.CFrame.RightVector * Vector3.new(1, 0, 1))
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            moveDir = moveDir + (Camera.CFrame.RightVector * Vector3.new(1, 0, 1))
+        end
+        
+        if flyJump and UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            moveDir = moveDir + Vector3.new(0, jumpPower/10, 0)
+        end
+        
+        if moveDir.Magnitude > 0 then
+            moveDir = moveDir.Unit * speed
+            bodyVelocity.Velocity = moveDir
+        else
+            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        end
+        
+        bodyGyro.CFrame = CFrame.new(hrp.Position, hrp.Position + Camera.CFrame.LookVector)
+    end
+end)
+
+-- Noclip
+local noclipConnection = nil
+
+function enableNoclip()
+    if noclipConnection then return end
+    noclipConnection = RunService.Stepped:Connect(function()
+        for _, part in ipairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end)
+end
+
+function disableNoclip()
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+    for _, part in ipairs(player.Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = true
+        end
+    end
+end
+
+-- Follow Player
+function startFollowing()
+    stopFollowing()
+    
+    if not selectedPlayer or not selectedPlayer.Character then
+        followPlayer = false
+        followBtn.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+        return
+    end
+    
+    followConnection = RunService.RenderStepped:Connect(function()
+        if not selectedPlayer or not selectedPlayer.Character or not selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            return
+        end
+        
+        local char = player.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then
+            return
+        end
+        
+        local targetPos = selectedPlayer.Character.HumanoidRootPart.Position
+        local currentPos = char.HumanoidRootPart.Position
+        local distance = (targetPos - currentPos).Magnitude
+        
+        if distance > 5 then
+            local direction = (targetPos - currentPos).Unit
+            char.HumanoidRootPart.CFrame = CFrame.new(currentPos + direction * math.min(distance, speed/2))
+        end
+        
+        char.HumanoidRootPart.CFrame = CFrame.new(char.HumanoidRootPart.Position, targetPos)
+    end)
+end
+
+function stopFollowing()
+    if followConnection then
+        followConnection:Disconnect()
+        followConnection = nil
+    end
+end
+
+-- ESP
+function enableESP()
+    disableESP()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player and plr.Character then
+            local highlight = Instance.new("Highlight")
+            highlight.Parent = plr.Character
+            highlight.FillColor = Color3.new(0, 0.5, 1)
+            highlight.FillTransparency = 0.5
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.OutlineTransparency = 0
+            table.insert(espObjects, highlight)
+        end
+    end
+end
+
+function disableESP()
+    for _, obj in ipairs(espObjects) do
+        obj:Destroy()
+    end
+    espObjects = {}
+end
+
+-- Player added/removed for ESP
+Players.PlayerAdded:Connect(function(plr)
+    if espEnabled then
+        plr.CharacterAdded:Connect(function(char)
+            wait(0.5)
+            if espEnabled and plr ~= player then
+                local highlight = Instance.new("Highlight")
+                highlight.Parent = char
+                highlight.FillColor = Color3.new(0, 0.5, 1)
+                highlight.FillTransparency = 0.5
+                highlight.OutlineColor = Color3.new(1, 1, 1)
+                highlight.OutlineTransparency = 0
+                table.insert(espObjects, highlight)
+            end
+        end)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    for i, obj in ipairs(espObjects) do
+        if obj.Parent == plr.Character then
+            obj:Destroy()
+            table.remove(espObjects, i)
+        end
+    end
+end)
+
+-- Cleanup on respawn
+player.CharacterAdded:Connect(function()
+    if flying then
+        disableFly()
+        flying = false
+        flyBtn.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    end
+    if noclip then
+        disableNoclip()
+        noclip = false
+        noclipBtn.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    end
+    if followPlayer then
+        followPlayer = false
+        followBtn.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+        stopFollowing()
+    end
+end)
+
+screenGui.ResetOnSpawn = false
