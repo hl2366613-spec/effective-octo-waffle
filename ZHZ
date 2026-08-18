@@ -1,0 +1,457 @@
+--[[
+  Delta X Mobile Script – Zenny Mods V13 style
+  Features:
+    - Fly (toggle, horizontal movement with joystick)
+    - Fly Jump (tap jump while flying to boost upward)
+    - Noclip (toggle)
+    - Player selection popup (auto-hides after choosing)
+    - ESP (boxes + names, uses Drawing)
+    - Teleport to selected player
+    - Sit on selected player's head
+    - Fling selected player
+    - Adjustable Speed (WalkSpeed)
+    - Adjustable JumpPower
+  GUI matches the mockup style (dark, draggable, with toggle colors)
+--]]
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local localPlayer = Players.LocalPlayer
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- State
+local flyEnabled = false
+local flyJumpEnabled = false
+local noclipEnabled = false
+local espEnabled = false
+local selectedPlayer = nil
+local speedValue = 16
+local jumpPowerValue = 50
+local bodyVelocity = nil
+local espObjects = {}
+local playerListFrame = nil
+local mainGui = nil
+
+-- Helpers
+local function getTargetCharacter()
+    if not selectedPlayer then return nil end
+    local targetChar = selectedPlayer.Character
+    if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+        return targetChar
+    end
+    return nil
+end
+
+-- Fly
+local function updateFly()
+    if not flyEnabled then
+        if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+        return
+    end
+    if not bodyVelocity then
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
+        bodyVelocity.Parent = rootPart
+    end
+    local moveDir = humanoid.MoveDirection
+    local speed = speedValue * 1.5
+    local horizontal = Vector3.new(moveDir.X, 0, moveDir.Z) * speed
+    bodyVelocity.Velocity = Vector3.new(horizontal.X, 0, horizontal.Z)
+end
+
+local function flyJump()
+    if flyEnabled and rootPart then
+        rootPart.Velocity = rootPart.Velocity + Vector3.new(0, 50, 0)
+    end
+end
+
+-- Noclip
+local function updateNoclip()
+    if not character then return end
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = not noclipEnabled
+        end
+    end
+end
+
+-- ESP (Drawing library)
+local function createESPObjects(player)
+    if espObjects[player] then return end
+    local box = Drawing.new("Box")
+    box.Thickness = 1
+    box.Color = Color3.fromRGB(255, 0, 0)
+    box.Transparency = 0.5
+    box.Filled = false
+
+    local nameText = Drawing.new("Text")
+    nameText.Color = Color3.fromRGB(255, 255, 255)
+    nameText.Size = 16
+    nameText.Center = true
+    nameText.Outline = true
+    nameText.OutlineColor = Color3.fromRGB(0, 0, 0)
+
+    espObjects[player] = {box = box, text = nameText}
+end
+
+local function removeESPObjects(player)
+    local obj = espObjects[player]
+    if obj then
+        obj.box:Remove()
+        obj.text:Remove()
+        espObjects[player] = nil
+    end
+end
+
+local function updateESP()
+    if not espEnabled then
+        for player, obj in pairs(espObjects) do
+            obj.box:Remove()
+            obj.text:Remove()
+        end
+        espObjects = {}
+        return
+    end
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer then
+            local targetChar = player.Character
+            if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+                local hrp = targetChar.HumanoidRootPart
+                local pos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(hrp.Position)
+                if onScreen then
+                    if not espObjects[player] then createESPObjects(player) end
+                    local size = hrp.Size
+                    local box = espObjects[player].box
+                    local text = espObjects[player].text
+                    box.Size = Vector2.new(size.X * 4, size.Y * 4)
+                    box.Position = Vector2.new(pos.X - box.Size.X/2, pos.Y - box.Size.Y/2)
+                    text.Text = player.Name
+                    text.Position = Vector2.new(pos.X, pos.Y - box.Size.Y/2 - 10)
+                    box.Visible = true
+                    text.Visible = true
+                else
+                    if espObjects[player] then
+                        espObjects[player].box.Visible = false
+                        espObjects[player].text.Visible = false
+                    end
+                end
+            else
+                if espObjects[player] then
+                    espObjects[player].box.Visible = false
+                    espObjects[player].text.Visible = false
+                end
+            end
+        end
+    end
+    for player in pairs(espObjects) do
+        if not Players:FindFirstChild(player.Name) then
+            removeESPObjects(player)
+        end
+    end
+end
+
+-- Teleport, Sit, Fling
+local function teleportToTarget()
+    local targetChar = getTargetCharacter()
+    if targetChar then
+        rootPart.CFrame = targetChar.HumanoidRootPart.CFrame
+    end
+end
+
+local function sitOnHead()
+    local targetChar = getTargetCharacter()
+    if targetChar then
+        local head = targetChar:FindFirstChild("Head")
+        if head then
+            rootPart.CFrame = head.CFrame * CFrame.new(0, -2.5, 0)
+        end
+    end
+end
+
+local function flingTarget()
+    local targetChar = getTargetCharacter()
+    if targetChar then
+        local hrp = targetChar:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.Velocity = Vector3.new(0, 200, 0) + hrp.Velocity * 0.5
+        end
+    end
+end
+
+-- Speed & JumpPower
+local function updateSpeed()
+    humanoid.WalkSpeed = speedValue
+end
+local function updateJumpPower()
+    humanoid.JumpPower = jumpPowerValue
+end
+
+-- Player list popup (auto‑hides)
+local function createPlayerList()
+    if playerListFrame then playerListFrame:Destroy() end
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 200, 0, 300)
+    frame.Position = UDim2.new(0.5, -100, 0.5, -150)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BackgroundTransparency = 0.1
+    frame.BorderSizePixel = 1
+    frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    frame.Active = true
+    frame.Draggable = true
+    frame.Parent = mainGui
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    title.Text = "Select Player"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 20
+    title.Parent = frame
+
+    local list = Instance.new("ScrollingFrame")
+    list.Size = UDim2.new(1, -10, 1, -40)
+    list.Position = UDim2.new(0, 5, 0, 35)
+    list.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    list.BorderSizePixel = 0
+    list.CanvasSize = UDim2.new(0, 0, 0, 0)
+    list.Parent = frame
+
+    local function refreshPlayers()
+        for _, child in ipairs(list:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
+        local y = 0
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= localPlayer then
+                local btn = Instance.new("TextButton")
+                btn.Size = UDim2.new(1, -10, 0, 30)
+                btn.Position = UDim2.new(0, 5, 0, y)
+                btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                btn.Text = player.Name
+                btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                btn.Font = Enum.Font.SourceSans
+                btn.TextSize = 18
+                btn.MouseButton1Click:Connect(function()
+                    selectedPlayer = player
+                    frame:Destroy()
+                    playerListFrame = nil
+                end)
+                btn.Parent = list
+                y = y + 35
+            end
+        end
+        list.CanvasSize = UDim2.new(0, 0, 0, y + 10)
+    end
+
+    refreshPlayers()
+    local connections = {}
+    connections.PlayerAdded = Players.PlayerAdded:Connect(refreshPlayers)
+    connections.PlayerRemoving = Players.PlayerRemoving:Connect(refreshPlayers)
+    frame.AncestryChanged:Connect(function()
+        if not frame.Parent then
+            for _, conn in pairs(connections) do conn:Disconnect() end
+        end
+    end)
+    playerListFrame = frame
+end
+
+-- Main GUI
+local function createGUI()
+    if mainGui then mainGui:Destroy() end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "VNG_Hub"
+    gui.ResetOnSpawn = false
+    gui.Parent = localPlayer.PlayerGui
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 300, 0, 450)
+    mainFrame.Position = UDim2.new(0.5, -150, 0.5, -225)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    mainFrame.BackgroundTransparency = 0.2
+    mainFrame.BorderSizePixel = 2
+    mainFrame.BorderColor3 = Color3.fromRGB(100, 100, 255)
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.Parent = gui
+    mainGui = gui
+
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 40)
+    title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    title.Text = "Zenny Mods V13"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 24
+    title.Parent = mainFrame
+
+    -- Close button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -35, 0, 5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.SourceSansBold
+    closeBtn.TextSize = 18
+    closeBtn.Parent = mainFrame
+    closeBtn.MouseButton1Click:Connect(function()
+        gui:Destroy()
+        mainGui = nil
+    end)
+
+    -- Button builder
+    local function createButton(text, position, callback, toggle)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 130, 0, 30)
+        btn.Position = position
+        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        btn.Text = text
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Font = Enum.Font.SourceSans
+        btn.TextSize = 16
+        btn.Parent = mainFrame
+        if toggle then
+            btn.MouseButton1Click:Connect(function()
+                local state = not toggle()
+                callback(state)
+                btn.BackgroundColor3 = state and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
+            end)
+            btn.BackgroundColor3 = toggle() and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
+        else
+            btn.MouseButton1Click:Connect(callback)
+        end
+        return btn
+    end
+
+    -- Toggles
+    local function getFlyState() return flyEnabled end
+    local function toggleFly(state) flyEnabled = state; updateFly() end
+
+    local function getFlyJumpState() return flyJumpEnabled end
+    local function toggleFlyJump(state) flyJumpEnabled = state end
+
+    local function getNoclipState() return noclipEnabled end
+    local function toggleNoclip(state) noclipEnabled = state; updateNoclip() end
+
+    local function getEspState() return espEnabled end
+    local function toggleEsp(state) espEnabled = state; if not espEnabled then
+        for player in pairs(espObjects) do removeESPObjects(player) end
+    end end
+
+    -- Row 1
+    createButton("Fly", UDim2.new(0, 10, 0, 50), toggleFly, getFlyState)
+    createButton("Fly Jump", UDim2.new(0, 160, 0, 50), toggleFlyJump, getFlyJumpState)
+    createButton("Noclip", UDim2.new(0, 10, 0, 90), toggleNoclip, getNoclipState)
+    createButton("ESP", UDim2.new(0, 160, 0, 90), toggleEsp, getEspState)
+
+    -- Player select
+    createButton("Select Player", UDim2.new(0, 10, 0, 130), function()
+        if playerListFrame then
+            playerListFrame:Destroy()
+            playerListFrame = nil
+        else
+            createPlayerList()
+        end
+    end, nil)
+
+    -- Actions
+    createButton("Teleport", UDim2.new(0, 10, 0, 170), teleportToTarget, nil)
+    createButton("Sit on Head", UDim2.new(0, 160, 0, 170), sitOnHead, nil)
+    createButton("Fling", UDim2.new(0, 10, 0, 210), flingTarget, nil)
+
+    -- Speed control
+    local speedLabel = Instance.new("TextLabel")
+    speedLabel.Size = UDim2.new(0, 60, 0, 30)
+    speedLabel.Position = UDim2.new(0, 10, 0, 250)
+    speedLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    speedLabel.Text = "Speed: " .. speedValue
+    speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    speedLabel.Font = Enum.Font.SourceSans
+    speedLabel.TextSize = 16
+    speedLabel.Parent = mainFrame
+
+    local speedDown = createButton("-", UDim2.new(0, 80, 0, 250), function()
+        speedValue = math.max(0, speedValue - 1)
+        speedLabel.Text = "Speed: " .. speedValue
+        updateSpeed()
+    end, nil)
+    speedDown.Size = UDim2.new(0, 30, 0, 30)
+
+    local speedUp = createButton("+", UDim2.new(0, 120, 0, 250), function()
+        speedValue = math.min(100, speedValue + 1)
+        speedLabel.Text = "Speed: " .. speedValue
+        updateSpeed()
+    end, nil)
+    speedUp.Size = UDim2.new(0, 30, 0, 30)
+
+    -- JumpPower control
+    local jumpLabel = Instance.new("TextLabel")
+    jumpLabel.Size = UDim2.new(0, 60, 0, 30)
+    jumpLabel.Position = UDim2.new(0, 160, 0, 250)
+    jumpLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    jumpLabel.Text = "Jump: " .. jumpPowerValue
+    jumpLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    jumpLabel.Font = Enum.Font.SourceSans
+    jumpLabel.TextSize = 16
+    jumpLabel.Parent = mainFrame
+
+    local jumpDown = createButton("-", UDim2.new(0, 230, 0, 250), function()
+        jumpPowerValue = math.max(0, jumpPowerValue - 5)
+        jumpLabel.Text = "Jump: " .. jumpPowerValue
+        updateJumpPower()
+    end, nil)
+    jumpDown.Size = UDim2.new(0, 30, 0, 30)
+
+    local jumpUp = createButton("+", UDim2.new(0, 270, 0, 250), function()
+        jumpPowerValue = math.min(500, jumpPowerValue + 5)
+        jumpLabel.Text = "Jump: " .. jumpPowerValue
+        updateJumpPower()
+    end, nil)
+    jumpUp.Size = UDim2.new(0, 30, 0, 30)
+end
+
+-- Init
+createGUI()
+
+-- Loops
+RunService.RenderStepped:Connect(function()
+    if flyEnabled then updateFly() end
+    if noclipEnabled then updateNoclip() end
+    if espEnabled then updateESP() end
+end)
+
+-- Fly Jump on Space
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Space and flyEnabled and flyJumpEnabled then
+        flyJump()
+    end
+end)
+
+-- Character respawn
+localPlayer.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    rootPart = character:WaitForChild("HumanoidRootPart")
+    updateSpeed()
+    updateJumpPower()
+    if flyEnabled then
+        if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+        updateFly()
+    end
+    if noclipEnabled then updateNoclip() end
+end)
+
+-- Apply initial speed/jump
+updateSpeed()
+updateJumpPower()
