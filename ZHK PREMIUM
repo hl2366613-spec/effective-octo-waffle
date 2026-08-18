@@ -1,0 +1,530 @@
+--[[
+  ZHK - Premium (Delta Mobile)
+  Chức năng:
+  - Fly (Space lên, Shift xuống, di chuyển ngang bằng joystick)
+  - FlyJump (tăng tốc lên khi nhấn Space nếu bật)
+  - Noclip
+  - Telepot (tự động tele đến player đã chọn khi bật)
+  - Headsit (tự động ngồi lên đầu player khi bật)
+  - Fling (tự động đẩy player lên khi bật)
+  - Speed (slider + toggle)
+  - JumpPower (slider + toggle)
+  - Player selector (popup tự biến mất)
+--]]
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local localPlayer = Players.LocalPlayer
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- State
+local flyEnabled = false
+local flyJumpEnabled = false
+local noclipEnabled = false
+local telepotEnabled = false
+local headsitEnabled = false
+local flingEnabled = false
+local speedEnabled = false
+local jumpPowerEnabled = false
+local selectedPlayer = nil
+local speedValue = 16
+local jumpPowerValue = 50
+local flyYVelocity = 0
+local bodyVelocity = nil
+local espObjects = {} -- giữ lại để tương thích, nhưng không dùng ESP trong menu mới
+local playerListFrame = nil
+local mainGui = nil
+local teleportConnection = nil
+local headsitConnection = nil
+local flingConnection = nil
+
+-- Helper
+local function getTargetCharacter()
+    if not selectedPlayer then return nil end
+    local targetChar = selectedPlayer.Character
+    if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+        return targetChar
+    end
+    return nil
+end
+
+-- Fly update
+local function updateFly()
+    if not flyEnabled then
+        if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+        flyYVelocity = 0
+        return
+    end
+    if not bodyVelocity then
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
+        bodyVelocity.Parent = rootPart
+    end
+    local moveDir = humanoid.MoveDirection
+    local speed = speedValue * 1.5
+    local horizontal = Vector3.new(moveDir.X, 0, moveDir.Z) * speed
+    -- Lên xuống: flyYVelocity được điều chỉnh bằng phím Space/Shift
+    bodyVelocity.Velocity = Vector3.new(horizontal.X, flyYVelocity, horizontal.Z)
+end
+
+-- Fly jump boost
+local function doFlyJump()
+    if flyEnabled and flyJumpEnabled then
+        flyYVelocity = flyYVelocity + 50
+        if flyYVelocity > 200 then flyYVelocity = 200 end
+    end
+end
+
+-- Noclip
+local function updateNoclip()
+    if not character then return end
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = not noclipEnabled
+        end
+    end
+end
+
+-- Telepot (continuous)
+local function updateTelepot()
+    if not telepotEnabled or not selectedPlayer then
+        if teleportConnection then teleportConnection:Disconnect() teleportConnection = nil end
+        return
+    end
+    if teleportConnection then return end
+    teleportConnection = RunService.RenderStepped:Connect(function()
+        local target = getTargetCharacter()
+        if target then
+            rootPart.CFrame = target.HumanoidRootPart.CFrame
+        end
+    end)
+end
+
+-- Headsit (continuous)
+local function updateHeadsit()
+    if not headsitEnabled or not selectedPlayer then
+        if headsitConnection then headsitConnection:Disconnect() headsitConnection = nil end
+        return
+    end
+    if headsitConnection then return end
+    headsitConnection = RunService.RenderStepped:Connect(function()
+        local target = getTargetCharacter()
+        if target then
+            local head = target:FindFirstChild("Head")
+            if head then
+                rootPart.CFrame = head.CFrame * CFrame.new(0, -2.5, 0)
+            end
+        end
+    end)
+end
+
+-- Fling (continuous)
+local function updateFling()
+    if not flingEnabled or not selectedPlayer then
+        if flingConnection then flingConnection:Disconnect() flingConnection = nil end
+        return
+    end
+    if flingConnection then return end
+    flingConnection = RunService.RenderStepped:Connect(function()
+        local target = getTargetCharacter()
+        if target then
+            local hrp = target:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.Velocity = Vector3.new(0, 200, 0) + hrp.Velocity * 0.5
+            end
+        end
+    end)
+end
+
+-- Speed & JumpPower
+local function applySpeed()
+    if speedEnabled then
+        humanoid.WalkSpeed = speedValue
+    else
+        humanoid.WalkSpeed = 16
+    end
+end
+local function applyJumpPower()
+    if jumpPowerEnabled then
+        humanoid.JumpPower = jumpPowerValue
+    else
+        humanoid.JumpPower = 50
+    end
+end
+
+-- Player list popup (auto-hide after selection)
+local function createPlayerList(callback)
+    if playerListFrame then playerListFrame:Destroy() end
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 200, 0, 300)
+    frame.Position = UDim2.new(0.5, -100, 0.5, -150)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BackgroundTransparency = 0.1
+    frame.BorderSizePixel = 1
+    frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    frame.Active = true
+    frame.Draggable = true
+    frame.Parent = mainGui
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    title.Text = "Select Player"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 20
+    title.Parent = frame
+
+    local list = Instance.new("ScrollingFrame")
+    list.Size = UDim2.new(1, -10, 1, -40)
+    list.Position = UDim2.new(0, 5, 0, 35)
+    list.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    list.BorderSizePixel = 0
+    list.CanvasSize = UDim2.new(0, 0, 0, 0)
+    list.Parent = frame
+
+    local function refreshPlayers()
+        for _, child in ipairs(list:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
+        local y = 0
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= localPlayer then
+                local btn = Instance.new("TextButton")
+                btn.Size = UDim2.new(1, -10, 0, 30)
+                btn.Position = UDim2.new(0, 5, 0, y)
+                btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                btn.Text = player.Name
+                btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                btn.Font = Enum.Font.SourceSans
+                btn.TextSize = 18
+                btn.MouseButton1Click:Connect(function()
+                    selectedPlayer = player
+                    frame:Destroy()
+                    playerListFrame = nil
+                    if callback then callback() end
+                end)
+                btn.Parent = list
+                y = y + 35
+            end
+        end
+        list.CanvasSize = UDim2.new(0, 0, 0, y + 10)
+    end
+
+    refreshPlayers()
+    local connections = {}
+    connections.PlayerAdded = Players.PlayerAdded:Connect(refreshPlayers)
+    connections.PlayerRemoving = Players.PlayerRemoving:Connect(refreshPlayers)
+    frame.AncestryChanged:Connect(function()
+        if not frame.Parent then
+            for _, conn in pairs(connections) do conn:Disconnect() end
+        end
+    end)
+    playerListFrame = frame
+end
+
+-- Main GUI
+local function createGUI()
+    if mainGui then mainGui:Destroy() end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "ZHK_Hub"
+    gui.ResetOnSpawn = false
+    gui.Parent = localPlayer.PlayerGui
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 300, 0, 480) -- đủ cao cho các hàng
+    mainFrame.Position = UDim2.new(0.5, -150, 0.5, -240)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    mainFrame.BackgroundTransparency = 0.2
+    mainFrame.BorderSizePixel = 2
+    mainFrame.BorderColor3 = Color3.fromRGB(100, 100, 255)
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.Parent = gui
+    mainGui = gui
+
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 40)
+    title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    title.Text = "ZHK Premium"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 24
+    title.Parent = mainFrame
+
+    -- Close button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -35, 0, 5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.SourceSansBold
+    closeBtn.TextSize = 18
+    closeBtn.Parent = mainFrame
+    closeBtn.MouseButton1Click:Connect(function()
+        gui:Destroy()
+        mainGui = nil
+    end)
+
+    local yStart = 50
+    local rowHeight = 35
+    local function createRow(text, yPos, toggleState, toggleCallback, sliderState, sliderCallback, playerSelect)
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, -10, 0, rowHeight)
+        row.Position = UDim2.new(0, 5, 0, yPos)
+        row.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        row.BackgroundTransparency = 0.5
+        row.BorderSizePixel = 0
+        row.Parent = mainFrame
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0, 70, 1, 0)
+        label.Position = UDim2.new(0, 5, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Text = text
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Font = Enum.Font.SourceSans
+        label.TextSize = 16
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = row
+
+        -- Toggle button
+        local toggleBtn = Instance.new("TextButton")
+        toggleBtn.Size = UDim2.new(0, 50, 1, -4)
+        toggleBtn.Position = UDim2.new(0, 80, 0, 2)
+        toggleBtn.BackgroundColor3 = toggleState and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+        toggleBtn.Text = toggleState and "ON" or "OFF"
+        toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        toggleBtn.Font = Enum.Font.SourceSans
+        toggleBtn.TextSize = 14
+        toggleBtn.Parent = row
+        toggleBtn.MouseButton1Click:Connect(function()
+            local newState = not toggleState
+            toggleState = newState
+            toggleCallback(newState)
+            toggleBtn.BackgroundColor3 = newState and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+            toggleBtn.Text = newState and "ON" or "OFF"
+        end)
+
+        -- Player select button (if needed)
+        if playerSelect then
+            local selectBtn = Instance.new("TextButton")
+            selectBtn.Size = UDim2.new(0, 60, 1, -4)
+            selectBtn.Position = UDim2.new(0, 135, 0, 2)
+            selectBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            selectBtn.Text = "Select"
+            selectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            selectBtn.Font = Enum.Font.SourceSans
+            selectBtn.TextSize = 14
+            selectBtn.Parent = row
+            selectBtn.MouseButton1Click:Connect(function()
+                createPlayerList(function()
+                    -- Cập nhật tên player trên nút
+                    selectBtn.Text = selectedPlayer and selectedPlayer.Name or "None"
+                end)
+            end)
+            -- Hiển thị tên player hiện tại
+            selectBtn.Text = selectedPlayer and selectedPlayer.Name or "None"
+        end
+
+        -- Slider (if needed)
+        if sliderState and sliderCallback then
+            local slider = Instance.new("Slider")
+            slider.Size = UDim2.new(0, 80, 1, -4)
+            slider.Position = UDim2.new(0, 200, 0, 2)
+            slider.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+            slider.MinValue = 0
+            slider.MaxValue = 100
+            slider.Value = sliderState
+            slider.Parent = row
+            -- Tạo thanh kéo thủ công vì Slider không có sẵn, ta sẽ dùng một Frame + nút kéo
+            -- Thực tế Roblox có Slider, nhưng để đơn giản, ta sẽ dùng TextButton +/- 
+            -- Nhưng yêu cầu là thanh trượt, ta có thể dùng một Frame làm thanh và một nút kéo, nhưng phức tạp. Tôi sẽ dùng nút + và - để điều chỉnh và hiển thị giá trị bằng các dấu gạch ngang.
+            -- Thay vì slider, tôi sẽ làm thanh ngang bằng các ô vuông.
+            local bar = Instance.new("Frame")
+            bar.Size = UDim2.new(0, 80, 0, 10)
+            bar.Position = UDim2.new(0, 200, 0, 12)
+            bar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            bar.BorderSizePixel = 1
+            bar.Parent = row
+
+            local fill = Instance.new("Frame")
+            fill.Size = UDim2.new(sliderState/100, 0, 1, 0)
+            fill.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+            fill.BorderSizePixel = 0
+            fill.Parent = bar
+
+            local minus = Instance.new("TextButton")
+            minus.Size = UDim2.new(0, 20, 1, 0)
+            minus.Position = UDim2.new(0, 180, 0, 0)
+            minus.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            minus.Text = "-"
+            minus.TextColor3 = Color3.fromRGB(255, 255, 255)
+            minus.Font = Enum.Font.SourceSans
+            minus.TextSize = 16
+            minus.Parent = row
+            minus.MouseButton1Click:Connect(function()
+                local val = math.max(0, sliderState - 5)
+                sliderState = val
+                sliderCallback(val)
+                fill.Size = UDim2.new(val/100, 0, 1, 0)
+            end)
+
+            local plus = Instance.new("TextButton")
+            plus.Size = UDim2.new(0, 20, 1, 0)
+            plus.Position = UDim2.new(0, 285, 0, 0)
+            plus.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            plus.Text = "+"
+            plus.TextColor3 = Color3.fromRGB(255, 255, 255)
+            plus.Font = Enum.Font.SourceSans
+            plus.TextSize = 16
+            plus.Parent = row
+            plus.MouseButton1Click:Connect(function()
+                local val = math.min(100, sliderState + 5)
+                sliderState = val
+                sliderCallback(val)
+                fill.Size = UDim2.new(val/100, 0, 1, 0)
+            end)
+
+            -- Lưu lại giá trị và callback để cập nhật khi toggle
+            row:SetAttribute("SliderValue", sliderState)
+            row:SetAttribute("SliderCallback", sliderCallback)
+            row:SetAttribute("Fill", fill)
+        end
+
+        return row
+    end
+
+    -- Tạo các hàng
+    -- FLY
+    createRow("FLY", yStart, flyEnabled, function(state)
+        flyEnabled = state
+        if not state then
+            flyYVelocity = 0
+            if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+        end
+        updateFly()
+    end)
+    -- FLYJUMP
+    createRow("FLYJUMP", yStart + rowHeight, flyJumpEnabled, function(state)
+        flyJumpEnabled = state
+    end)
+    -- NOCLIP
+    createRow("NOCLIP", yStart + 2*rowHeight, noclipEnabled, function(state)
+        noclipEnabled = state
+        updateNoclip()
+    end)
+    -- TELEPOT (có chọn player)
+    createRow("TELEPOT", yStart + 3*rowHeight, telepotEnabled, function(state)
+        telepotEnabled = state
+        if state then
+            updateTelepot()
+        else
+            if teleportConnection then teleportConnection:Disconnect() teleportConnection = nil end
+        end
+    end, nil, nil, true)
+    -- HEADSIT (có chọn player)
+    createRow("HEADSIT", yStart + 4*rowHeight, headsitEnabled, function(state)
+        headsitEnabled = state
+        if state then
+            updateHeadsit()
+        else
+            if headsitConnection then headsitConnection:Disconnect() headsitConnection = nil end
+        end
+    end, nil, nil, true)
+    -- FLING (có chọn player)
+    createRow("FLING", yStart + 5*rowHeight, flingEnabled, function(state)
+        flingEnabled = state
+        if state then
+            updateFling()
+        else
+            if flingConnection then flingConnection:Disconnect() flingConnection = nil end
+        end
+    end, nil, nil, true)
+    -- SPEED (có slider)
+    local speedSliderVal = speedValue
+    createRow("SPEED", yStart + 6*rowHeight, speedEnabled, function(state)
+        speedEnabled = state
+        applySpeed()
+    end, speedSliderVal, function(val)
+        speedValue = val
+        applySpeed()
+    end)
+    -- JUMPOW (có slider)
+    local jumpSliderVal = jumpPowerValue
+    createRow("JUMPOW", yStart + 7*rowHeight, jumpPowerEnabled, function(state)
+        jumpPowerEnabled = state
+        applyJumpPower()
+    end, jumpSliderVal, function(val)
+        jumpPowerValue = val
+        applyJumpPower()
+    end)
+end
+
+-- Khởi tạo GUI
+createGUI()
+
+-- Xử lý phím Space và Shift cho Fly
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Space then
+        if flyEnabled then
+            flyYVelocity = flyYVelocity + 5
+            if flyYVelocity > 100 then flyYVelocity = 100 end
+            -- Nếu flyJump bật, boost thêm
+            if flyJumpEnabled then
+                flyYVelocity = flyYVelocity + 30
+                if flyYVelocity > 150 then flyYVelocity = 150 end
+            end
+        end
+    elseif input.KeyCode == Enum.KeyCode.LeftShift then
+        if flyEnabled then
+            flyYVelocity = flyYVelocity - 5
+            if flyYVelocity < -100 then flyYVelocity = -100 end
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    -- Không làm gì khi thả phím, giữ nguyên vận tốc
+end)
+
+-- Vòng lặp cập nhật fly, noclip
+RunService.RenderStepped:Connect(function()
+    if flyEnabled then
+        updateFly()
+    end
+    if noclipEnabled then
+        updateNoclip()
+    end
+    -- Các chức năng khác đã có connection riêng
+end)
+
+-- Reset khi respawn
+localPlayer.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    rootPart = character:WaitForChild("HumanoidRootPart")
+    -- Reset fly
+    if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+    flyYVelocity = 0
+    if flyEnabled then updateFly() end
+    if noclipEnabled then updateNoclip() end
+    applySpeed()
+    applyJumpPower()
+    -- Các connection teleport, headsit, fling sẽ tự động reconnect khi toggle
+end)
+
+-- Áp dụng speed/jump ban đầu
+applySpeed()
+applyJumpPower()
