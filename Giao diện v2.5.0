@@ -1,0 +1,118 @@
+-- Tạo ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local UIStroke = Instance.new("UIStroke")
+local Title = Instance.new("TextLabel")
+local Scroll = Instance.new("ScrollingFrame")
+local UIListLayout = Instance.new("UIListLayout")
+local OpenBtn = Instance.new("TextButton")
+local OpenCorner = Instance.new("UICorner")
+
+-- Phụ thuộc hệ thống
+ScreenGui.Parent = game:GetService("CoreGui") or game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+-- Nút mở/đóng Menu (Góc màn hình)
+OpenBtn.Name = "OpenBtn"
+OpenBtn.Parent = ScreenGui
+OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 20, 35)
+OpenBtn.Position = UDim2.new(0.02, 0, 0.15, 0)
+OpenBtn.Size = UDim2.new(0, 50, 0, 50)
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.Text = "ライト"
+OpenBtn.TextColor3 = Color3.fromRGB(180, 100, 255)
+OpenBtn.TextSize = 14
+
+OpenCorner.CornerRadius = UDim.new(0, 12)
+OpenCorner.Parent = OpenBtn
+
+-- Khung Menu Chính (Kích thước tối ưu cho Mobile)
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 12, 22)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -110)
+MainFrame.Size = UDim2.new(0, 280, 0, 220)
+MainFrame.Visible = true
+MainFrame.Active = true
+MainFrame.Draggable = true -- Cho phép kéo thả trên điện thoại
+
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+UIStroke.Parent = MainFrame
+UIStroke.Color = Color3.fromRGB(140, 60, 235)
+UIStroke.Thickness = 2
+
+-- Tiêu đề Menu
+Title.Name = "Title"
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "ライト [ RAITO ] v2.5.0"
+Title.TextColor3 = Color3.fromRGB(220, 180, 255)
+Title.TextSize = 15
+
+-- Danh sách nút cuộn được
+Scroll.Name = "Scroll"
+Scroll.Parent = MainFrame
+Scroll.BackgroundTransparency = 1
+Scroll.Position = UDim2.new(0, 10, 0, 40)
+Scroll.Size = UDim2.new(1, -20, 1, -50)
+Scroll.ScrollBarThickness = 3
+
+UIListLayout.Parent = Scroll
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 6)
+
+-- Hàm tạo nút trang trí (Có hiệu ứng bấm)
+local function CreateDummyButton(name)
+    local Btn = Instance.new("TextButton")
+    local BtnCorner = Instance.new("UICorner")
+    local Status = Instance.new("Frame")
+    local StatusCorner = Instance.new("UICorner")
+    local isToggled = false
+
+    Btn.Name = name
+    Btn.Parent = Scroll
+    Btn.BackgroundColor3 = Color3.fromRGB(28, 22, 40)
+    Btn.Size = UDim2.new(1, -6, 0, 32)
+    Btn.Font = Enum.Font.Gotham
+    Btn.Text = "  " .. name
+    Btn.TextColor3 = Color3.fromRGB(200, 200, 220)
+    Btn.TextSize = 12
+    Btn.TextXAlignment = Enum.TextXAlignment.Left
+
+    BtnCorner.CornerRadius = UDim.new(0, 6)
+    BtnCorner.Parent = Btn
+
+    Status.Parent = Btn
+    Status.Position = UDim2.new(1, -28, 0.5, -8)
+    Status.Size = UDim2.new(0, 16, 0, 16)
+    Status.BackgroundColor3 = Color3.fromRGB(60, 50, 80)
+
+    StatusCorner.CornerRadius = UDim.new(1, 0)
+    StatusCorner.Parent = Status
+
+    -- Hiệu ứng khi ấn
+    Btn.MouseButton1Click:Connect(function()
+        isToggled = not isToggled
+        if isToggled then
+            Status.BackgroundColor3 = Color3.fromRGB(160, 80, 255)
+        else
+            Status.BackgroundColor3 = Color3.fromRGB(60, 50, 80)
+        end
+    end)
+end
+
+-- Danh sách các nút hiển thị trang trí
+local features = {"Speed Hack", "Jump Boost", "Fly Script", "Noclip", "ESP Player", "Aimbot", "Teleport"}
+for _, name in ipairs(features) do
+    CreateDummyButton(name)
+end
+
+-- Bật/Tắt Menu khi bấm nút tròn
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
