@@ -1,0 +1,637 @@
+-- Script: ライト Ultimate Menu
+-- Dành cho Roblox Mobile/PC
+-- Tác giả: Custom Script
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+local camera = workspace.CurrentCamera
+
+-- ===== KIỂM TRA VÀ XÓA GUI CŨ =====
+if player.PlayerGui:FindFirstChild("LightMenu") then
+    player.PlayerGui.LightMenu:Destroy()
+end
+
+-- ===== TẠO GUI =====
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "LightMenu"
+screenGui.Parent = player.PlayerGui
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- ===== BIẾN TOÀN CỤC =====
+local char = player.Character
+local hrp = char and char:FindFirstChild("HumanoidRootPart")
+local flyEnabled = false
+local noclipEnabled = false
+local espEnabled = false
+local flyJumpEnabled = false
+local speed = 16
+local jumpPower = 50
+local flySpeed = 50
+local flyJumpActive = false
+local menuVisible = true
+local hideTimer = 0
+local maxIdle = 10
+local isDragging = false
+local dragInput
+local dragStart
+local startPos
+local espObjects = {}
+local selectedPlayer = nil
+
+-- ===== CẬP NHẬT NHÂN VẬT =====
+local function updateChar()
+    char = player.Character
+    hrp = char and char:FindFirstChild("HumanoidRootPart")
+end
+player.CharacterAdded:Connect(updateChar)
+updateChar()
+
+-- ===== HÀM TẠO VIỀN GRADIENT =====
+local function createGradientBorder(size, position, transparency)
+    local outer = Instance.new("Frame")
+    outer.Size = size
+    outer.Position = position
+    outer.BackgroundColor3 = Color3.new(1,1,1)
+    outer.BackgroundTransparency = transparency or 0
+    outer.BorderSizePixel = 0
+    outer.ClipsDescendants = true
+    outer.Active = true
+    outer.Draggable = true
+
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 100, 255)),
+        ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 200, 255)),
+        ColorSequenceKeypoint.new(0.6, Color3.fromRGB(138, 43, 226)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 255))
+    })
+    gradient.Rotation = 45
+    gradient.Parent = outer
+
+    local inner = Instance.new("Frame")
+    inner.Size = UDim2.new(1, -6, 1, -6)
+    inner.Position = UDim2.new(0, 3, 0, 3)
+    inner.BackgroundColor3 = Color3.fromRGB(8, 8, 12)
+    inner.BackgroundTransparency = 0
+    inner.BorderSizePixel = 0
+    inner.Parent = outer
+
+    return outer, inner
+end
+
+-- ===== MENU CHÍNH =====
+local menuSize = UDim2.new(0, 320, 0, 500)
+local menuPos = UDim2.new(0.5, -160, 0.5, -250)
+local mainOuter, mainInner = createGradientBorder(menuSize, menuPos, 0)
+mainOuter.Name = "MainMenu"
+mainOuter.Parent = screenGui
+mainOuter.ZIndex = 10
+mainOuter.BackgroundTransparency = 0
+
+-- ===== TIÊU ĐỀ (chữ ライト đổi màu) =====
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 45)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "ライト"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.TextStrokeTransparency = 0.3
+title.ZIndex = 11
+title.Parent = mainInner
+
+-- Đổi màu chữ liên tục
+local titleColor = 0
+game:GetService("RunService").Heartbeat:Connect(function(dt)
+    titleColor = (titleColor + dt * 2) % (math.pi * 2)
+    local r = math.sin(titleColor) * 0.5 + 0.5
+    local g = math.sin(titleColor + math.pi * 2/3) * 0.5 + 0.5
+    local b = math.sin(titleColor + math.pi * 4/3) * 0.5 + 0.5
+    title.TextColor3 = Color3.new(r, g, b)
+end)
+
+-- ===== KHU VỰC NỘI DUNG CUỘN =====
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -10, 1, -55)
+scrollFrame.Position = UDim2.new(0, 5, 0, 50)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 150, 255)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.Parent = mainInner
+
+local layout = Instance.new("UIListLayout")
+layout.Parent = scrollFrame
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 5)
+
+-- ===== HÀM TẠO NÚT =====
+local function createButton(text, callback, color, size)
+    local btn = Instance.new("TextButton")
+    btn.Size = size or UDim2.new(1, -10, 0, 38)
+    btn.Position = UDim2.new(0, 5, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(18, 18, 25)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextScaled = true
+    btn.Font = Enum.Font.Gotham
+    btn.BorderSizePixel = 0
+    btn.BackgroundTransparency = 0.1
+    btn.AutoButtonColor = false
+    btn.ZIndex = 12
+
+    local border = Instance.new("Frame")
+    border.Size = UDim2.new(1, 0, 1, 0)
+    border.Position = UDim2.new(0, 0, 0, 0)
+    border.BackgroundColor3 = color or Color3.fromRGB(0, 150, 255)
+    border.BackgroundTransparency = 0.5
+    border.BorderSizePixel = 0
+    border.ZIndex = 11
+    border.Parent = btn
+
+    local function onPress()
+        resetTimer()
+        callback()
+    end
+
+    btn.MouseButton1Click:Connect(onPress)
+    btn.TouchTap:Connect(onPress)
+
+    return btn
+end
+
+-- ===== HÀM TẠO MENU CON (chọn người chơi) =====
+local function createPlayerSelection(titleText, callback)
+    local subMenuSize = UDim2.new(0, 250, 0, 350)
+    local subPos = UDim2.new(0.5, -125, 0.5, -175)
+    local subOuter, subInner = createGradientBorder(subMenuSize, subPos, 0)
+    subOuter.Name = "SubMenu"
+    subOuter.Parent = screenGui
+    subOuter.ZIndex = 20
+
+    -- Tiêu đề menu con
+    local subTitle = Instance.new("TextLabel")
+    subTitle.Size = UDim2.new(1, 0, 0, 35)
+    subTitle.Position = UDim2.new(0, 0, 0, 0)
+    subTitle.BackgroundTransparency = 1
+    subTitle.Text = titleText
+    subTitle.TextColor3 = Color3.fromRGB(0, 200, 255)
+    subTitle.TextScaled = true
+    subTitle.Font = Enum.Font.GothamBold
+    subTitle.ZIndex = 21
+    subTitle.Parent = subInner
+
+    -- Nút đóng
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -35, 0, 5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.Text = "✕"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextScaled = true
+    closeBtn.Font = Enum.Font.Gotham
+    closeBtn.BorderSizePixel = 0
+    closeBtn.ZIndex = 21
+    closeBtn.Parent = subInner
+    closeBtn.MouseButton1Click:Connect(function()
+        subOuter:Destroy()
+        resetTimer()
+    end)
+    closeBtn.TouchTap:Connect(function()
+        subOuter:Destroy()
+        resetTimer()
+    end)
+
+    -- Khu vực danh sách người chơi
+    local subScroll = Instance.new("ScrollingFrame")
+    subScroll.Size = UDim2.new(1, -10, 1, -45)
+    subScroll.Position = UDim2.new(0, 5, 0, 40)
+    subScroll.BackgroundTransparency = 1
+    subScroll.BorderSizePixel = 0
+    subScroll.ScrollBarThickness = 3
+    subScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    subScroll.ZIndex = 21
+    subScroll.Parent = subInner
+
+    local subLayout = Instance.new("UIListLayout")
+    subLayout.Parent = subScroll
+    subLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    subLayout.Padding = UDim.new(0, 4)
+
+    local count = 0
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= player then
+            local btn = createButton("👤 " .. plr.Name, function()
+                callback(plr)
+                subOuter:Destroy()
+                resetTimer()
+            end, Color3.fromRGB(100, 150, 255), UDim2.new(1, -10, 0, 32))
+            btn.LayoutOrder = count
+            btn.Parent = subScroll
+            count = count + 1
+        end
+    end
+
+    subScroll.CanvasSize = UDim2.new(0, 0, 0, count * 38 + 10)
+    return subOuter
+end
+
+-- ===== CHỨC NĂNG FLY =====
+local flyConn
+local function toggleFly()
+    flyEnabled = not flyEnabled
+    if flyEnabled then
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(1,1,1) * 1e9
+        bodyVelocity.Velocity = Vector3.new(0,0,0)
+        bodyVelocity.Parent = hrp or char
+
+        flyConn = RunService.Heartbeat:Connect(function()
+            if not flyEnabled or not hrp then return end
+            local moveDir = Vector3.new()
+            local fwd = hrp.CFrame.LookVector
+            local right = hrp.CFrame.RightVector
+            local up = Vector3.new(0,1,0)
+
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + fwd * flySpeed end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - fwd * flySpeed end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - right * flySpeed end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + right * flySpeed end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + up * flySpeed end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - up * flySpeed end
+
+            hrp.Velocity = moveDir
+        end)
+    else
+        if flyConn then flyConn:Disconnect() end
+        if hrp then hrp.Velocity = Vector3.new(0,0,0) end
+    end
+end
+
+-- ===== FLYJUMP (Double Jump + Giữ bay lên) =====
+local flyJumpConn
+local function toggleFlyJump()
+    flyJumpEnabled = not flyJumpEnabled
+    if flyJumpEnabled then
+        local jumpCount = 0
+        local humanoid = char and char:FindFirstChild("Humanoid")
+
+        flyJumpConn = RunService.Heartbeat:Connect(function()
+            if not char or not humanoid then return end
+            if humanoid:GetState() == Enum.HumanoidStateType.Jumping then
+                jumpCount = jumpCount + 1
+                if jumpCount >= 2 then
+                    humanoid.PlatformStand = true
+                    local vel = Instance.new("BodyVelocity")
+                    vel.MaxForce = Vector3.new(0, 1e9, 0)
+                    vel.Velocity = Vector3.new(0, flySpeed, 0)
+                    vel.Parent = hrp
+                    
+                    task.wait(0.1)
+                    vel:Destroy()
+                    humanoid.PlatformStand = false
+                end
+            elseif humanoid:GetState() == Enum.HumanoidStateType.Landed then
+                jumpCount = 0
+            end
+        end)
+    else
+        if flyJumpConn then flyJumpConn:Disconnect() end
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = false
+        end
+    end
+end
+
+-- ===== NOCLIP =====
+local noclipConn
+local function toggleNoclip()
+    noclipEnabled = not noclipEnabled
+    if noclipEnabled then
+        noclipConn = RunService.Heartbeat:Connect(function()
+            if not noclipEnabled or not char then return end
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end)
+    else
+        if noclipConn then noclipConn:Disconnect() end
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end
+
+-- ===== ESP (Nhìn xuyên thấu) =====
+local espConn
+local function toggleESP()
+    espEnabled = not espEnabled
+    if espEnabled then
+        espConn = RunService.Heartbeat:Connect(function()
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local root = plr.Character.HumanoidRootPart
+                    local pos, onScreen = camera:WorldToViewportPoint(root.Position)
+                    
+                    if onScreen then
+                        if not espObjects[plr] then
+                            local espBox = Instance.new("Frame")
+                            espBox.Size = UDim2.new(0, 40, 0, 80)
+                            espBox.Position = UDim2.new(0, pos.X - 20, 0, pos.Y - 40)
+                            espBox.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+                            espBox.BackgroundTransparency = 0.3
+                            espBox.BorderSizePixel = 0
+                            espBox.ZIndex = 5
+                            espBox.Parent = screenGui
+
+                            local espName = Instance.new("TextLabel")
+                            espName.Size = UDim2.new(1, 0, 0, 20)
+                            espName.Position = UDim2.new(0, 0, 1, 0)
+                            espName.BackgroundTransparency = 1
+                            espName.Text = plr.Name
+                            espName.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            espName.TextScaled = true
+                            espName.Font = Enum.Font.GothamBold
+                            espName.ZIndex = 6
+                            espName.Parent = espBox
+
+                            espObjects[plr] = espBox
+                        else
+                            local espBox = espObjects[plr]
+                            espBox.Position = UDim2.new(0, pos.X - 20, 0, pos.Y - 40)
+                        end
+                    else
+                        if espObjects[plr] then
+                            espObjects[plr]:Destroy()
+                            espObjects[plr] = nil
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        if espConn then espConn:Disconnect() end
+        for _, obj in pairs(espObjects) do
+            obj:Destroy()
+        end
+        espObjects = {}
+    end
+end
+
+-- ===== TELEPORT =====
+local function teleportToPlayer(target)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        local pos = target.Character.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = CFrame.new(pos)
+        end
+    end
+end
+
+-- ===== HEADSIT (Ngồi lên đầu người chơi) =====
+local function headSitOnPlayer(target)
+    if target and target.Character and target.Character:FindFirstChild("Head") then
+        local headPos = target.Character.Head.Position + Vector3.new(0, 1.5, 0)
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = CFrame.new(headPos)
+            char.Humanoid.Sit = true
+        end
+    end
+end
+
+-- ===== ĐIỀU CHỈNH TỐC ĐỘ =====
+local function setSpeed(amount)
+    speed = math.clamp(speed + amount, 0, 250)
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = speed
+    end
+end
+
+-- ===== TẠO GIAO DIỆN =====
+local function createMainUI()
+    for _, child in pairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+
+    local order = 0
+    
+    -- 1. Fly
+    local flyBtn = createButton("🛸 Fly [OFF]", function()
+        toggleFly()
+        flyBtn.Text = flyEnabled and "🛸 Fly [ON]" or "🛸 Fly [OFF]"
+        resetTimer()
+    end)
+    flyBtn.LayoutOrder = order
+    flyBtn.Parent = scrollFrame
+    order = order + 1
+
+    -- 2. Noclip
+    local noclipBtn = createButton("🌀 Noclip [OFF]", function()
+        toggleNoclip()
+        noclipBtn.Text = noclipEnabled and "🌀 Noclip [ON]" or "🌀 Noclip [OFF]"
+        resetTimer()
+    end)
+    noclipBtn.LayoutOrder = order
+    noclipBtn.Parent = scrollFrame
+    order = order + 1
+
+    -- 3. FlyJump
+    local flyJumpBtn = createButton("🦘 FlyJump [OFF]", function()
+        toggleFlyJump()
+        flyJumpBtn.Text = flyJumpEnabled and "🦘 FlyJump [ON]" or "🦘 FlyJump [OFF]"
+        resetTimer()
+    end)
+    flyJumpBtn.LayoutOrder = order
+    flyJumpBtn.Parent = scrollFrame
+    order = order + 1
+
+    -- 4. ESP
+    local espBtn = createButton("👁️ ESP [OFF]", function()
+        toggleESP()
+        espBtn.Text = espEnabled and "👁️ ESP [ON]" or "👁️ ESP [OFF]"
+        resetTimer()
+    end)
+    espBtn.LayoutOrder = order
+    espBtn.Parent = scrollFrame
+    order = order + 1
+
+    -- 5. Speed +
+    local speedUpBtn = createButton("⬆ Speed +5", function()
+        setSpeed(5)
+        resetTimer()
+    end, Color3.fromRGB(0, 255, 100))
+    speedUpBtn.LayoutOrder = order
+    speedUpBtn.Parent = scrollFrame
+    order = order + 1
+
+    -- 6. Speed -
+    local speedDownBtn = createButton("⬇ Speed -5", function()
+        setSpeed(-5)
+        resetTimer()
+    end, Color3.fromRGB(255, 100, 0))
+    speedDownBtn.LayoutOrder = order
+    speedDownBtn.Parent = scrollFrame
+    order = order + 1
+
+    -- 7. Teleport
+    local tpBtn = createButton("📍 Teleport [Select Player]", function()
+        createPlayerSelection("🎯 Teleport to:", function(plr)
+            teleportToPlayer(plr)
+        end)
+        resetTimer()
+    end, Color3.fromRGB(0, 200, 255))
+    tpBtn.LayoutOrder = order
+    tpBtn.Parent = scrollFrame
+    order = order + 1
+
+    -- 8. HeadSit
+    local headSitBtn = createButton("👑 HeadSit [Select Player]", function()
+        createPlayerSelection("👑 HeadSit on:", function(plr)
+            headSitOnPlayer(plr)
+        end)
+        resetTimer()
+    end, Color3.fromRGB(255, 200, 0))
+    headSitBtn.LayoutOrder = order
+    headSitBtn.Parent = scrollFrame
+    order = order + 1
+
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, order * 44 + 20)
+end
+
+createMainUI()
+
+-- ===== CƠ CHẾ DI CHUYỂN MENU =====
+local function makeDraggable(frame)
+    local dragging = false
+    local dragStartPos = nil
+    local startMousePos = nil
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStartPos = frame.Position
+            startMousePos = input.Position
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - startMousePos
+            local scaleX = delta.X / screenGui.AbsoluteSize.X
+            local scaleY = delta.Y / screenGui.AbsoluteSize.Y
+            frame.Position = UDim2.new(dragStartPos.X.Scale + scaleX, dragStartPos.X.Offset + delta.X, 
+                                       dragStartPos.Y.Scale + scaleY, dragStartPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+makeDraggable(mainOuter)
+
+-- ===== CƠ CHẾ ẨN/HIỆN MENU =====
+local arrowBtn = Instance.new("TextButton")
+arrowBtn.Size = UDim2.new(0, 45, 0, 45)
+arrowBtn.Position = UDim2.new(1, -55, 0.5, -22.5)
+arrowBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+arrowBtn.Text = "▶"
+arrowBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+arrowBtn.TextScaled = true
+arrowBtn.Font = Enum.Font.Gotham
+arrowBtn.BorderSizePixel = 0
+arrowBtn.Visible = false
+arrowBtn.ZIndex = 15
+arrowBtn.Parent = screenGui
+
+-- Viền cho mũi tên
+local arrowBorder = Instance.new("Frame")
+arrowBorder.Size = UDim2.new(1, 0, 1, 0)
+arrowBorder.Position = UDim2.new(0, 0, 0, 0)
+arrowBorder.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+arrowBorder.BackgroundTransparency = 0.3
+arrowBorder.BorderSizePixel = 0
+arrowBorder.ZIndex = 14
+arrowBorder.Parent = arrowBtn
+
+local function hideMenu()
+    if not menuVisible then return end
+    menuVisible = false
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(mainOuter, tweenInfo, {Position = UDim2.new(1.1, 0, mainOuter.Position.Y.Scale, mainOuter.Position.Y.Offset)})
+    tween:Play()
+    arrowBtn.Visible = true
+    local arrowTween = TweenService:Create(arrowBtn, tweenInfo, {Position = UDim2.new(1, -60, 0.5, -22.5)})
+    arrowTween:Play()
+end
+
+local function showMenu()
+    if menuVisible then return end
+    menuVisible = true
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(mainOuter, tweenInfo, {Position = menuPos})
+    tween:Play()
+    arrowBtn.Visible = false
+    arrowBtn.Position = UDim2.new(1, -55, 0.5, -22.5)
+    resetTimer()
+end
+
+arrowBtn.MouseButton1Click:Connect(showMenu)
+arrowBtn.TouchTap:Connect(showMenu)
+
+function resetTimer()
+    hideTimer = 0
+    if not menuVisible then
+        showMenu()
+    end
+end
+
+-- ===== TIMER ẨN MENU =====
+game:GetService("RunService").Heartbeat:Connect(function(dt)
+    hideTimer = hideTimer + dt
+    if hideTimer >= maxIdle and menuVisible then
+        hideMenu()
+    end
+end)
+
+-- ===== CẬP NHẬT KHI RESPAWN =====
+player.CharacterAdded:Connect(function(newChar)
+    char = newChar
+    hrp = char:FindFirstChild("HumanoidRootPart")
+    wait(0.5)
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = speed
+        char.Humanoid.JumpPower = jumpPower
+    end
+    if flyEnabled then
+        toggleFly()
+        toggleFly()
+    end
+    if flyJumpEnabled then
+        toggleFlyJump()
+        toggleFlyJump()
+    end
+    if noclipEnabled then
+        toggleNoclip()
+        toggleNoclip()
+    end
+end)
+
+print("✨ ライト Ultimate Menu đã tải thành công!")
+resetTimer()
