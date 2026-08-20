@@ -1,0 +1,168 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+-- [ CẤU HÌNH BIẾN ]
+local flyEnabled = false
+local flySpeed = 50
+local targetPlayer = nil
+
+-- [ DỌN DẸP UI CŨ ]
+if game:GetService("CoreGui"):FindFirstChild("Raito_Pro_GUI") then
+    game:GetService("CoreGui")["Raito_Pro_GUI"]:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "Raito_Pro_GUI"
+
+--------------------------------------------------------------------------------
+-- [ MENU CHÍNH (BÊN TRÁI) ]
+--------------------------------------------------------------------------------
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 280, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(255, 200, 50)
+
+local Header = Instance.new("TextLabel", MainFrame)
+Header.Size = UDim2.new(1, 0, 0, 40)
+Header.BackgroundTransparency = 1
+Header.Text = "☀️ ライト [ RAITO ] v2.6.0"
+Header.TextColor3 = Color3.fromRGB(255, 220, 100)
+Header.Font = Enum.Font.GothamBold
+Header.TextSize = 14
+
+local Scroll = Instance.new("ScrollingFrame", MainFrame)
+Scroll.Size = UDim2.new(1, -20, 1, -50)
+Scroll.Position = UDim2.new(0, 10, 0, 45)
+Scroll.BackgroundTransparency = 1
+Scroll.ScrollBarThickness = 2
+Instance.new("UIListLayout", Scroll).Padding = UDim.new(0, 5)
+
+--------------------------------------------------------------------------------
+-- [ MENU CỐ ĐỊNH PHẢI (CHỈNH SỐ) ]
+--------------------------------------------------------------------------------
+local AdjustFrame = Instance.new("Frame", ScreenGui)
+AdjustFrame.Name = "AdjustFrame"
+AdjustFrame.Size = UDim2.new(0, 260, 0, 120)
+AdjustFrame.Position = UDim2.new(0.5, 10, 0.5, -150) -- Ghim ở phải MainFrame
+AdjustFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+AdjustFrame.Visible = false
+Instance.new("UICorner", AdjustFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", AdjustFrame).Color = Color3.fromRGB(255, 200, 50)
+
+local AdjustTitle = Instance.new("TextLabel", AdjustFrame)
+AdjustTitle.Size = UDim2.new(1, 0, 0, 30)
+AdjustTitle.Text = "☀️ Chỉnh thông số"
+AdjustTitle.TextColor3 = Color3.fromRGB(255, 220, 100)
+AdjustTitle.BackgroundTransparency = 1
+
+local SliderInput = Instance.new("TextBox", AdjustFrame)
+SliderInput.Size = UDim2.new(0, 50, 0, 30)
+SliderInput.Position = UDim2.new(0.75, 0, 0.3, 0)
+SliderInput.BackgroundColor3 = Color3.fromRGB(30, 32, 40)
+SliderInput.Text = "50"
+SliderInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", SliderInput)
+
+local ConfirmBtn = Instance.new("TextButton", AdjustFrame)
+ConfirmBtn.Size = UDim2.new(0.8, 0, 0, 30)
+ConfirmBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
+ConfirmBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+ConfirmBtn.Text = "XÁC NHẬN"
+ConfirmBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", ConfirmBtn)
+
+--------------------------------------------------------------------------------
+-- [ MENU CHỌN PLAYER (KHÔNG CẦN XÁC NHẬN) ]
+--------------------------------------------------------------------------------
+local PlayerFrame = Instance.new("Frame", ScreenGui)
+PlayerFrame.Size = UDim2.new(0, 200, 0, 200)
+PlayerFrame.Position = UDim2.new(0.5, -100, 0.5, -100)
+PlayerFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+PlayerFrame.Visible = false
+Instance.new("UICorner", PlayerFrame)
+
+local PlayerScroll = Instance.new("ScrollingFrame", PlayerFrame)
+PlayerScroll.Size = UDim2.new(1, -10, 1, -10)
+PlayerScroll.Position = UDim2.new(0, 5, 0, 5)
+PlayerScroll.BackgroundTransparency = 1
+Instance.new("UIListLayout", PlayerScroll)
+
+--------------------------------------------------------------------------------
+-- [ LOGIC CHỨC NĂNG ]
+--------------------------------------------------------------------------------
+local currentFunc = nil
+
+-- Hàm tạo nút
+local function CreateButton(name, type, callback)
+    local btn = Instance.new("TextButton", Scroll)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 37, 45)
+    btn.Text = name
+    btn.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", btn)
+    
+    btn.MouseButton1Click:Connect(function()
+        if type == "Adjust" then
+            AdjustFrame.Visible = true
+            currentFunc = callback
+        elseif type == "Player" then
+            PlayerFrame.Visible = true
+            -- Load list players
+            for _, c in pairs(PlayerScroll:GetChildren()) do if not c:IsA("UIListLayout") then c:Destroy() end end
+            for _, p in pairs(Players:GetPlayers()) do
+                local pBtn = Instance.new("TextButton", PlayerScroll)
+                pBtn.Size = UDim2.new(1, 0, 0, 30)
+                pBtn.Text = p.Name
+                pBtn.MouseButton1Click:Connect(function()
+                    callback(p) -- Chạy ngay khi bấm (không xác nhận)
+                    PlayerFrame.Visible = false
+                end)
+            end
+        else
+            callback()
+        end
+    end)
+end
+
+-- Chức năng
+ConfirmBtn.MouseButton1Click:Connect(function()
+    if currentFunc then currentFunc(tonumber(SliderInput.Text)) end
+    AdjustFrame.Visible = false
+end)
+
+CreateButton("Fly", "None", function() 
+    flyEnabled = not flyEnabled
+    local hrp = LocalPlayer.Character.HumanoidRootPart
+    if flyEnabled then
+        local bv = Instance.new("BodyVelocity", hrp)
+        bv.Name = "FlyV"
+        bv.MaxForce = Vector3.new(10000, 10000, 10000)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        RunService.RenderStepped:Connect(function()
+            if flyEnabled then bv.Velocity = Mouse.Hit.LookVector * flySpeed end
+        end)
+    else
+        hrp:FindFirstChild("FlyV"):Destroy()
+    end
+end)
+
+CreateButton("Speed", "Adjust", function(val) LocalPlayer.Character.Humanoid.WalkSpeed = val end)
+CreateButton("Jump", "Adjust", function(val) LocalPlayer.Character.Humanoid.JumpPower = val end)
+
+CreateButton("Fling Player", "Player", function(target)
+    if target and target.Character then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        local targetHrp = target.Character.HumanoidRootPart
+        local bv = Instance.new("BodyVelocity", hrp)
+        bv.Velocity = Vector3.new(9e9, 9e9, 9e9)
+        task.wait(0.5)
+        bv:Destroy()
+    end
+end)
