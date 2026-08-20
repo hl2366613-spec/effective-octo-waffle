@@ -1,0 +1,231 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Dọn dẹp UI cũ nếu có
+if game:GetService("CoreGui"):FindFirstChild("Raito_Custom_GUI") then
+    game:GetService("CoreGui")["Raito_Custom_GUI"]:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "Raito_Custom_GUI"
+
+--------------------------------------------------------------------------------
+-- 1. MENU CHÍNH (BÊN TRÁI)
+--------------------------------------------------------------------------------
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 220, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -240, 0.5, -160)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(255, 200, 50)
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "☀️ ライト [ RAITO ]"
+Title.TextColor3 = Color3.fromRGB(255, 200, 50)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+Title.BackgroundTransparency = 1
+
+local MainList = Instance.new("UIListLayout", MainFrame)
+MainList.Padding = UDim.new(0, 8)
+MainList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+MainList.SortOrder = Enum.SortOrder.LayoutOrder
+
+local TitlePadding = Instance.new("Frame", MainFrame)
+TitlePadding.Size = UDim2.new(1, 0, 0, 30)
+TitlePadding.BackgroundTransparency = 1
+TitlePadding.LayoutOrder = 0
+
+--------------------------------------------------------------------------------
+-- 2. MENU NHỎ CỐ ĐỊNH BÊN CẠNH (BÊN PHẢI MENU CHÍNH)
+--------------------------------------------------------------------------------
+local SubFrame = Instance.new("Frame", MainFrame)
+SubFrame.Name = "SubFrame"
+SubFrame.Size = UDim2.new(0, 200, 0, 260)
+SubFrame.Position = UDim2.new(1, 10, 0, 0) -- Ghim dính liền bên phải MainFrame
+SubFrame.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+SubFrame.Visible = false
+Instance.new("UICorner", SubFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", SubFrame).Color = Color3.fromRGB(255, 200, 50)
+
+local SubTitle = Instance.new("TextLabel", SubFrame)
+SubTitle.Size = UDim2.new(1, 0, 0, 35)
+SubTitle.Text = "Bảng Thao Tác"
+SubTitle.TextColor3 = Color3.fromRGB(255, 220, 100)
+SubTitle.Font = Enum.Font.GothamBold
+SubTitle.BackgroundTransparency = 1
+
+-- Ô nhập số (Speed/Jump)
+local InputBox = Instance.new("TextBox", SubFrame)
+InputBox.Size = UDim2.new(0.8, 0, 0, 35)
+InputBox.Position = UDim2.new(0.1, 0, 0.2, 0)
+InputBox.BackgroundColor3 = Color3.fromRGB(40, 42, 50)
+InputBox.PlaceholderText = "Nhập giá trị..."
+InputBox.TextColor3 = Color3.new(1, 1, 1)
+InputBox.Visible = false
+Instance.new("UICorner", InputBox)
+
+-- Danh sách Player (Teleport / Sit on Head / Fling)
+local PlayerScroll = Instance.new("ScrollingFrame", SubFrame)
+PlayerScroll.Size = UDim2.new(0.85, 0, 0.55, 0)
+PlayerScroll.Position = UDim2.new(0.075, 0, 0.18, 0)
+PlayerScroll.BackgroundTransparency = 1
+PlayerScroll.ScrollBarThickness = 3
+PlayerScroll.Visible = false
+local PlayerListLayout = Instance.new("UIListLayout", PlayerScroll)
+PlayerListLayout.Padding = UDim.new(0, 4)
+
+-- Nút XÁC NHẬN
+local ConfirmBtn = Instance.new("TextButton", SubFrame)
+ConfirmBtn.Size = UDim2.new(0.85, 0, 0, 35)
+ConfirmBtn.Position = UDim2.new(0.075, 0, 0.8, 0)
+ConfirmBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+ConfirmBtn.Text = "XÁC NHẬN"
+ConfirmBtn.Font = Enum.Font.GothamBold
+ConfirmBtn.TextColor3 = Color3.fromRGB(20, 20, 20)
+Instance.new("UICorner", ConfirmBtn)
+
+--------------------------------------------------------------------------------
+-- 3. LOGIC XỬ LÝ SỰ KIỆN
+--------------------------------------------------------------------------------
+local selectedPlayer = nil
+local activeCallback = nil
+local buttonOrder = 1
+
+local function CreateMainButton(btnText, mode, callback)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0.85, 0, 0, 35)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 37, 45)
+    btn.Text = btnText
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.Gotham
+    btn.LayoutOrder = buttonOrder
+    buttonOrder = buttonOrder + 1
+    Instance.new("UICorner", btn)
+
+    btn.MouseButton1Click:Connect(function()
+        SubFrame.Visible = true
+        SubTitle.Text = btnText
+        activeCallback = callback
+        selectedPlayer = nil
+
+        if mode == "Input" then
+            InputBox.Visible = true
+            PlayerScroll.Visible = false
+            InputBox.Text = ""
+        elseif mode == "Player" then
+            InputBox.Visible = false
+            PlayerScroll.Visible = true
+            
+            -- Cập nhật danh sách người chơi
+            for _, child in pairs(PlayerScroll:GetChildren()) do
+                if not child:IsA("UIListLayout") then child:Destroy() end
+            end
+
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer then
+                    local pBtn = Instance.new("TextButton", PlayerScroll)
+                    pBtn.Size = UDim2.new(1, 0, 0, 28)
+                    pBtn.BackgroundColor3 = Color3.fromRGB(45, 47, 55)
+                    pBtn.Text = p.DisplayName .. " (@" .. p.Name .. ")"
+                    pBtn.TextColor3 = Color3.new(1, 1, 1)
+                    pBtn.Font = Enum.Font.Gotham
+                    pBtn.TextSize = 11
+                    Instance.new("UICorner", pBtn)
+
+                    pBtn.MouseButton1Click:Connect(function()
+                        selectedPlayer = p
+                        for _, item in pairs(PlayerScroll:GetChildren()) do
+                            if item:IsA("TextButton") then
+                                item.BackgroundColor3 = Color3.fromRGB(45, 47, 55)
+                            end
+                        end
+                        pBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+                        pBtn.TextColor3 = Color3.fromRGB(20, 20, 20)
+                    end)
+                end
+            end
+        end
+    end)
+end
+
+-- Xử lý bấm nút XÁC NHẬN
+ConfirmBtn.MouseButton1Click:Connect(function()
+    if activeCallback then
+        if InputBox.Visible then
+            local numVal = tonumber(InputBox.Text)
+            if numVal then activeCallback(numVal) end
+        elseif PlayerScroll.Visible then
+            if selectedPlayer then activeCallback(selectedPlayer) end
+        end
+    end
+end)
+
+--------------------------------------------------------------------------------
+-- 4. KÍCH HOẠT CÁC CHỨC NĂNG
+--------------------------------------------------------------------------------
+
+-- Tốc độ (WalkSpeed)
+CreateMainButton("Speed", "Input", function(val)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = val
+    end
+end)
+
+-- Độ cao (JumpPower)
+CreateMainButton("Jump", "Input", function(val)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.UseJumpPower = true
+        LocalPlayer.Character.Humanoid.JumpPower = val
+    end
+end)
+
+-- Teleport (Biến hình tới Player)
+CreateMainButton("Teleport", "Player", function(target)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0)
+        end
+    end
+end)
+
+-- Ngồi lên đầu (Sit on Head)
+CreateMainButton("Sit on Head", "Player", function(target)
+    if target and target.Character and target.Character:FindFirstChild("Head") then
+        local myChar = LocalPlayer.Character
+        if myChar and myChar:FindFirstChild("HumanoidRootPart") and myChar:FindFirstChild("Humanoid") then
+            myChar.Humanoid.Sit = true
+            myChar.HumanoidRootPart.CFrame = target.Character.Head.CFrame * CFrame.new(0, 1.6, 0)
+            
+            -- Tạo liên kết ngồi cố định trên đầu
+            local weld = Instance.new("WeldConstraint")
+            weld.Name = "HeadSitWeld"
+            weld.Part0 = myChar.HumanoidRootPart
+            weld.Part1 = target.Character.Head
+            weld.Parent = myChar.HumanoidRootPart
+        end
+    end
+end)
+
+-- Fling Player (Ném bay người chơi)
+CreateMainButton("Fling Player", "Player", function(target)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if myRoot then
+            myRoot.CFrame = target.Character.HumanoidRootPart.CFrame
+            task.wait(0.1)
+            
+            local bv = Instance.new("BodyVelocity", myRoot)
+            bv.Velocity = Vector3.new(99999, 99999, 99999)
+            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            
+            task.wait(0.3)
+            bv:Destroy()
+        end
+    end
+end)
