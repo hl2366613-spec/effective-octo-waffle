@@ -1,0 +1,425 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Xóa UI cũ nếu có
+if (game:GetService("CoreGui"):FindFirstChild("Raito_Ultra_GUI")) then
+    game:GetService("CoreGui")["Raito_Ultra_GUI"]:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Raito_Ultra_GUI"
+ScreenGui.Parent = game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+--------------------------------------------------------------------------------
+-- 1. THÔNG BÁO BẢN QUYỀN (GLOW & RAINBOW)
+--------------------------------------------------------------------------------
+local NotifyFrame = Instance.new("Frame", ScreenGui)
+NotifyFrame.Name = "NotifyFrame"
+NotifyFrame.BackgroundColor3 = Color3.fromRGB(15, 17, 23)
+NotifyFrame.BackgroundTransparency = 0
+NotifyFrame.Position = UDim2.new(0.5, -180, 0.02, 0)
+NotifyFrame.Size = UDim2.new(0, 360, 0, 40)
+NotifyFrame.ZIndex = 200
+
+local NFCorner = Instance.new("UICorner", NotifyFrame)
+NFCorner.CornerRadius = UDim.new(0, 10)
+local NFStroke = Instance.new("UIStroke", NotifyFrame)
+NFStroke.Thickness = 2
+NFStroke.Transparency = 0
+
+local NotifyText = Instance.new("TextLabel", NotifyFrame)
+NotifyText.Name = "NotifyText"
+NotifyText.Size = UDim2.new(1, -20, 1, 0)
+NotifyText.Position = UDim2.new(0, 10, 0, 0)
+NotifyText.BackgroundTransparency = 1
+NotifyText.TextTransparency = 0
+NotifyText.Font = Enum.Font.GothamBold
+NotifyText.Text = "✨ GIAO DIỆN MENU THUỘC BẢN QUYỀN CỦA ライト [ RAITO ] ✨"
+NotifyText.TextColor3 = Color3.fromRGB(255, 215, 0)
+NotifyText.TextSize = 11
+NotifyText.TextWrapped = true
+NotifyText.ZIndex = 201
+
+local hue = 0
+local rainbowConn
+rainbowConn = RunService.RenderStepped:Connect(function(delta)
+    if not NotifyFrame or not NotifyFrame.Parent then
+        rainbowConn:Disconnect()
+        return
+    end
+    hue = (hue + delta * 0.4) % 1
+    local color = Color3.fromHSV(hue, 0.8, 1)
+    NotifyText.TextColor3 = color
+    NFStroke.Color = color
+end)
+
+task.delay(6, function()
+    if NotifyFrame and NotifyFrame.Parent then
+        TweenService:Create(NotifyFrame, TweenInfo.new(1), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(NotifyText, TweenInfo.new(1), {TextTransparency = 1}):Play()
+        local t = TweenService:Create(NFStroke, TweenInfo.new(1), {Transparency = 1})
+        t:Play()
+        t.Completed:Connect(function() NotifyFrame:Destroy() end)
+    end
+end)
+
+--------------------------------------------------------------------------------
+-- 2. MENU CHÍNH (PREMIUM DARK & GOLD)
+--------------------------------------------------------------------------------
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Name = "OpenBtn"
+OpenBtn.BackgroundColor3 = Color3.fromRGB(20, 24, 33)
+OpenBtn.Position = UDim2.new(0.02, 0, 0.15, 0)
+OpenBtn.Size = UDim2.new(0, 52, 0, 52)
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.Text = "☀️"
+OpenBtn.TextSize = 24
+OpenBtn.ZIndex = 50
+
+local OpenCorner = Instance.new("UICorner", OpenBtn)
+OpenCorner.CornerRadius = UDim.new(1, 0)
+local OpenStroke = Instance.new("UIStroke", OpenBtn)
+OpenStroke.Color = Color3.fromRGB(255, 200, 50)
+OpenStroke.Thickness = 2.5
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Name = "MainFrame"
+MainFrame.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -140)
+MainFrame.Size = UDim2.new(0, 300, 0, 280)
+MainFrame.Visible = true
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.ZIndex = 10
+
+local UICorner = Instance.new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(0, 14)
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Color = Color3.fromRGB(255, 200, 60)
+UIStroke.Thickness = 2
+
+local HeaderFrame = Instance.new("Frame", MainFrame)
+HeaderFrame.Size = UDim2.new(1, 0, 0, 42)
+HeaderFrame.BackgroundColor3 = Color3.fromRGB(24, 27, 38)
+HeaderFrame.ZIndex = 11
+
+local HeaderCorner = Instance.new("UICorner", HeaderFrame)
+HeaderCorner.CornerRadius = UDim.new(0, 14)
+
+-- Che bớt bo góc dưới của Header
+local HeaderFix = Instance.new("Frame", HeaderFrame)
+HeaderFix.Size = UDim2.new(1, 0, 0, 10)
+HeaderFix.Position = UDim2.new(0, 0, 1, -10)
+HeaderFix.BackgroundColor3 = Color3.fromRGB(24, 27, 38)
+HeaderFix.BorderSizePixel = 0
+HeaderFix.ZIndex = 11
+
+local Title = Instance.new("TextLabel", HeaderFrame)
+Title.Size = UDim2.new(1, -45, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.Text = "☀️ ライト [ RAITO ] v2.5.0"
+Title.TextColor3 = Color3.fromRGB(255, 215, 80)
+Title.TextSize = 13
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 12
+
+local CloseMainBtn = Instance.new("TextButton", HeaderFrame)
+CloseMainBtn.Size = UDim2.new(0, 26, 0, 26)
+CloseMainBtn.Position = UDim2.new(1, -32, 0.5, -13)
+CloseMainBtn.BackgroundColor3 = Color3.fromRGB(45, 25, 35)
+CloseMainBtn.Font = Enum.Font.GothamBold
+CloseMainBtn.Text = "✕"
+CloseMainBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+CloseMainBtn.TextSize = 12
+CloseMainBtn.ZIndex = 12
+Instance.new("UICorner", CloseMainBtn).CornerRadius = UDim.new(0, 6)
+
+local Scroll = Instance.new("ScrollingFrame", MainFrame)
+Scroll.BackgroundTransparency = 1
+Scroll.Position = UDim2.new(0, 10, 0, 48)
+Scroll.Size = UDim2.new(1, -20, 1, -56)
+Scroll.ScrollBarThickness = 4
+Scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 200, 60)
+Scroll.ZIndex = 11
+
+local UIListLayout = Instance.new("UIListLayout", Scroll)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 6)
+
+--------------------------------------------------------------------------------
+-- 3. POPUP CHỈNH TỐC ĐỘ / ĐỘ CAO
+--------------------------------------------------------------------------------
+local ValueModal = Instance.new("Frame", ScreenGui)
+ValueModal.Name = "ValueModal"
+ValueModal.BackgroundColor3 = Color3.fromRGB(20, 23, 32)
+ValueModal.Position = UDim2.new(0.5, -115, 0.5, -70)
+ValueModal.Size = UDim2.new(0, 230, 0, 140)
+ValueModal.Visible = false
+ValueModal.ZIndex = 100
+ValueModal.Active = true
+ValueModal.Draggable = true
+
+Instance.new("UICorner", ValueModal).CornerRadius = UDim.new(0, 12)
+local VMStroke = Instance.new("UIStroke", ValueModal)
+VMStroke.Color = Color3.fromRGB(255, 200, 60)
+VMStroke.Thickness = 2
+
+local VMTitle = Instance.new("TextLabel", ValueModal)
+VMTitle.Size = UDim2.new(1, -35, 0, 35)
+VMTitle.Position = UDim2.new(0, 12, 0, 0)
+VMTitle.BackgroundTransparency = 1
+VMTitle.Font = Enum.Font.GothamBold
+VMTitle.Text = "Điều chỉnh"
+VMTitle.TextColor3 = Color3.fromRGB(255, 220, 100)
+VMTitle.TextSize = 12
+VMTitle.TextXAlignment = Enum.TextXAlignment.Left
+VMTitle.ZIndex = 101
+
+local VMClose = Instance.new("TextButton", ValueModal)
+VMClose.Size = UDim2.new(0, 22, 0, 22)
+VMClose.Position = UDim2.new(1, -28, 0, 6)
+VMClose.BackgroundColor3 = Color3.fromRGB(45, 25, 35)
+VMClose.Font = Enum.Font.GothamBold
+VMClose.Text = "✕"
+VMClose.TextColor3 = Color3.fromRGB(255, 90, 90)
+VMClose.TextSize = 10
+VMClose.ZIndex = 101
+Instance.new("UICorner", VMClose).CornerRadius = UDim.new(0, 5)
+
+local VMInput = Instance.new("TextBox", ValueModal)
+VMInput.Position = UDim2.new(0.08, 0, 0.36, 0)
+VMInput.Size = UDim2.new(0.84, 0, 0, 32)
+VMInput.BackgroundColor3 = Color3.fromRGB(12, 14, 20)
+VMInput.Font = Enum.Font.GothamBold
+VMInput.PlaceholderText = "Nhập chỉ số..."
+VMInput.Text = "100"
+VMInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+VMInput.TextSize = 12
+VMInput.ZIndex = 101
+Instance.new("UICorner", VMInput).CornerRadius = UDim.new(0, 6)
+
+local VMConfirm = Instance.new("TextButton", ValueModal)
+VMConfirm.Position = UDim2.new(0.12, 0, 0.72, 0)
+VMConfirm.Size = UDim2.new(0.76, 0, 0, 28)
+VMConfirm.BackgroundColor3 = Color3.fromRGB(255, 190, 40)
+VMConfirm.Font = Enum.Font.GothamBold
+VMConfirm.Text = "✔ Xác nhận"
+VMConfirm.TextColor3 = Color3.fromRGB(15, 15, 15)
+VMConfirm.TextSize = 11
+VMConfirm.ZIndex = 101
+Instance.new("UICorner", VMConfirm).CornerRadius = UDim.new(0, 6)
+
+--------------------------------------------------------------------------------
+-- 4. POPUP CHỌN PLAYER (CÓ AVATAR DANG CARD)
+--------------------------------------------------------------------------------
+local PlayerModal = Instance.new("Frame", ScreenGui)
+PlayerModal.Name = "PlayerModal"
+PlayerModal.BackgroundColor3 = Color3.fromRGB(20, 23, 32)
+PlayerModal.Position = UDim2.new(0.5, -125, 0.5, -100)
+PlayerModal.Size = UDim2.new(0, 250, 0, 200)
+PlayerModal.Visible = false
+PlayerModal.ZIndex = 100
+PlayerModal.Active = true
+PlayerModal.Draggable = true
+
+Instance.new("UICorner", PlayerModal).CornerRadius = UDim.new(0, 12)
+local PMStroke = Instance.new("UIStroke", PlayerModal)
+PMStroke.Color = Color3.fromRGB(255, 200, 60)
+PMStroke.Thickness = 2
+
+local PMTitle = Instance.new("TextLabel", PlayerModal)
+PMTitle.Size = UDim2.new(1, -35, 0, 35)
+PMTitle.Position = UDim2.new(0, 12, 0, 0)
+PMTitle.BackgroundTransparency = 1
+PMTitle.Font = Enum.Font.GothamBold
+PMTitle.Text = "Chọn Người Chơi"
+PMTitle.TextColor3 = Color3.fromRGB(255, 220, 100)
+PMTitle.TextSize = 12
+PMTitle.TextXAlignment = Enum.TextXAlignment.Left
+PMTitle.ZIndex = 101
+
+local PMClose = Instance.new("TextButton", PlayerModal)
+PMClose.Size = UDim2.new(0, 22, 0, 22)
+PMClose.Position = UDim2.new(1, -28, 0, 6)
+PMClose.BackgroundColor3 = Color3.fromRGB(45, 25, 35)
+PMClose.Font = Enum.Font.GothamBold
+PMClose.Text = "✕"
+PMClose.TextColor3 = Color3.fromRGB(255, 90, 90)
+PMClose.TextSize = 10
+PMClose.ZIndex = 101
+Instance.new("UICorner", PMClose).CornerRadius = UDim.new(0, 5)
+
+local PMScroll = Instance.new("ScrollingFrame", PlayerModal)
+PMScroll.BackgroundTransparency = 1
+PMScroll.Position = UDim2.new(0, 10, 0, 38)
+PMScroll.Size = UDim2.new(1, -20, 0, 115)
+PMScroll.ScrollBarThickness = 3
+PMScroll.ScrollBarImageColor3 = Color3.fromRGB(255, 200, 60)
+PMScroll.ZIndex = 101
+
+local PMListLayout = Instance.new("UIListLayout", PMScroll)
+PMListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+PMListLayout.Padding = UDim.new(0, 5)
+
+local PMConfirm = Instance.new("TextButton", PlayerModal)
+PMConfirm.Position = UDim2.new(0.12, 0, 0.82, 0)
+PMConfirm.Size = UDim2.new(0.76, 0, 0, 28)
+PMConfirm.BackgroundColor3 = Color3.fromRGB(255, 190, 40)
+PMConfirm.Font = Enum.Font.GothamBold
+PMConfirm.Text = "✔ Xác nhận"
+PMConfirm.TextColor3 = Color3.fromRGB(15, 15, 15)
+PMConfirm.TextSize = 11
+PMConfirm.ZIndex = 101
+Instance.new("UICorner", PMConfirm).CornerRadius = UDim.new(0, 6)
+
+--------------------------------------------------------------------------------
+-- TAO HÀNG CHỨC NĂNG
+--------------------------------------------------------------------------------
+local activeToggleBtn = nil
+local activeValueLabel = nil
+
+VMClose.MouseButton1Click:Connect(function() ValueModal.Visible = false end)
+PMClose.MouseButton1Click:Connect(function() PlayerModal.Visible = false end)
+CloseMainBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    ValueModal.Visible = false
+    PlayerModal.Visible = false
+end)
+
+local function CreateFeatureRow(name, mode, placeholder)
+    local Frame = Instance.new("Frame", Scroll)
+    Frame.BackgroundColor3 = Color3.fromRGB(25, 28, 39)
+    Frame.Size = UDim2.new(1, -6, 0, 38)
+    Frame.ZIndex = 12
+    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
+
+    local Label = Instance.new("TextLabel", Frame)
+    Label.BackgroundTransparency = 1
+    Label.Position = UDim2.new(0, 10, 0, 0)
+    Label.Size = UDim2.new(0.35, 0, 1, 0)
+    Label.Font = Enum.Font.GothamBold
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(230, 235, 245)
+    Label.TextSize = 12
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.ZIndex = 13
+
+    local ValBtn = nil
+    if mode == "Value" or mode == "Player" then
+        ValBtn = Instance.new("TextButton", Frame)
+        ValBtn.BackgroundColor3 = Color3.fromRGB(14, 16, 23)
+        ValBtn.Position = UDim2.new(0.38, 0, 0.18, 0)
+        ValBtn.Size = UDim2.new(0.42, 0, 0.64, 0)
+        ValBtn.Font = Enum.Font.GothamBold
+        ValBtn.Text = placeholder
+        ValBtn.TextColor3 = Color3.fromRGB(255, 210, 90)
+        ValBtn.TextSize = 10
+        ValBtn.ZIndex = 13
+        Instance.new("UICorner", ValBtn).CornerRadius = UDim.new(0, 5)
+    end
+
+    local ToggleBtn = Instance.new("TextButton", Frame)
+    ToggleBtn.Position = UDim2.new(1, -30, 0.5, -10)
+    ToggleBtn.Size = UDim2.new(0, 20, 0, 20)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.Text = ""
+    ToggleBtn.ZIndex = 13
+    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+
+    local isToggled = false
+
+    if ValBtn and mode == "Value" then
+        ValBtn.MouseButton1Click:Connect(function()
+            VMTitle.Text = "☀️ Chỉnh " .. name
+            activeToggleBtn = ToggleBtn
+            activeValueLabel = ValBtn
+            ValueModal.Visible = true
+            PlayerModal.Visible = false
+        end)
+    end
+
+    if ValBtn and mode == "Player" then
+        ValBtn.MouseButton1Click:Connect(function()
+            PMTitle.Text = "☀️ Chọn Player: " .. name
+            activeToggleBtn = ToggleBtn
+            activeValueLabel = ValBtn
+
+            for _, child in pairs(PMScroll:GetChildren()) do
+                if child:IsA("Frame") then child:Destroy() end
+            end
+
+            for _, plr in pairs(Players:GetPlayers()) do
+                local PFrame = Instance.new("Frame", PMScroll)
+                PFrame.BackgroundColor3 = Color3.fromRGB(30, 34, 48)
+                PFrame.Size = UDim2.new(1, 0, 0, 32)
+                PFrame.ZIndex = 102
+                Instance.new("UICorner", PFrame).CornerRadius = UDim.new(0, 6)
+
+                local Avatar = Instance.new("ImageLabel", PFrame)
+                Avatar.Position = UDim2.new(0, 5, 0.1, 0)
+                Avatar.Size = UDim2.new(0, 25, 0, 25)
+                Avatar.BackgroundTransparency = 1
+                Avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150"
+                Avatar.ZIndex = 103
+
+                local PBtn = Instance.new("TextButton", PFrame)
+                PBtn.Position = UDim2.new(0, 36, 0, 0)
+                PBtn.Size = UDim2.new(1, -36, 1, 0)
+                PBtn.BackgroundTransparency = 1
+                PBtn.Font = Enum.Font.GothamBold
+                PBtn.Text = plr.DisplayName
+                PBtn.TextColor3 = Color3.fromRGB(255, 220, 120)
+                PBtn.TextSize = 10
+                PBtn.TextXAlignment = Enum.TextXAlignment.Left
+                PBtn.ZIndex = 103
+
+                PBtn.MouseButton1Click:Connect(function()
+                    activeValueLabel.Text = plr.DisplayName
+                end)
+            end
+
+            PlayerModal.Visible = true
+            ValueModal.Visible = false
+        end)
+    end
+
+    ToggleBtn.MouseButton1Click:Connect(function()
+        isToggled = not isToggled
+        ToggleBtn.BackgroundColor3 = isToggled and Color3.fromRGB(255, 190, 40) or Color3.fromRGB(45, 50, 65)
+    end)
+end
+
+-- Sự kiện xác nhận
+VMConfirm.MouseButton1Click:Connect(function()
+    if activeToggleBtn then activeToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 190, 40) end
+    if activeValueLabel then activeValueLabel.Text = VMInput.Text end
+    ValueModal.Visible = false
+end)
+
+PMConfirm.MouseButton1Click:Connect(function()
+    if activeToggleBtn then activeToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 190, 40) end
+    PlayerModal.Visible = false
+end)
+
+-- Tạo các nút chức năng
+CreateFeatureRow("Fly", "Value", "[ Tốc độ ]")
+CreateFeatureRow("Speed", "Value", "[ Tốc độ ]")
+CreateFeatureRow("Jumpow", "Value", "[ Độ cao ]")
+CreateFeatureRow("Noclip", "None", "")
+CreateFeatureRow("ESP", "None", "")
+CreateFeatureRow("Aimbot", "Player", "[ Player ]")
+CreateFeatureRow("Teleport", "Player", "[ Player ]")
+CreateFeatureRow("Headshot", "Player", "[ Player ]")
+
+-- Bật/tắt Menu
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+    ValueModal.Visible = false
+    PlayerModal.Visible = false
+end)
