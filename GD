@@ -1,0 +1,706 @@
+--========================================================--
+--       ライト [Raito] V2.0.3
+--       Compact Neon Mobile UI
+--       UI DEMO
+--========================================================--
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+-- Remove old UI
+local Old = PlayerGui:FindFirstChild("RaitoV203")
+if Old then
+    Old:Destroy()
+end
+
+--========================================================--
+-- COLORS
+--========================================================--
+
+local BLACK      = Color3.fromRGB(7, 6, 12)
+local DARK       = Color3.fromRGB(12, 10, 19)
+local PANEL      = Color3.fromRGB(17, 13, 27)
+local PANEL2     = Color3.fromRGB(25, 18, 39)
+
+local PURPLE     = Color3.fromRGB(145, 45, 255)
+local LIGHTPURPLE= Color3.fromRGB(190, 80, 255)
+
+local WHITE      = Color3.fromRGB(245, 240, 255)
+local GREY       = Color3.fromRGB(165, 158, 180)
+local GREEN      = Color3.fromRGB(65, 235, 135)
+
+--========================================================--
+-- HELPERS
+--========================================================--
+
+local function Corner(Object, Radius)
+    local C = Instance.new("UICorner")
+    C.CornerRadius = UDim.new(0, Radius or 8)
+    C.Parent = Object
+    return C
+end
+
+local function Border(Object, Color, Thickness)
+    local S = Instance.new("UIStroke")
+    S.Color = Color or PURPLE
+    S.Thickness = Thickness or 1
+    S.Parent = Object
+    return S
+end
+
+local function Tween(Object, Time, Properties)
+    TweenService:Create(
+        Object,
+        TweenInfo.new(Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+        Properties
+    ):Play()
+end
+
+local function NewText(Parent, Text, Size, Position, TextSize, Color)
+    local L = Instance.new("TextLabel")
+    L.BackgroundTransparency = 1
+    L.Size = Size
+    L.Position = Position
+    L.Text = Text
+    L.TextColor3 = Color or WHITE
+    L.TextSize = TextSize or 14
+    L.Font = Enum.Font.Gotham
+    L.TextXAlignment = Enum.TextXAlignment.Left
+    L.Parent = Parent
+    return L
+end
+
+--========================================================--
+-- SCREEN GUI
+--========================================================--
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "RaitoV203"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Parent = PlayerGui
+
+--========================================================--
+-- FLOATING BUTTON
+--========================================================--
+
+local Float = Instance.new("TextButton")
+Float.Name = "RaitoButton"
+Float.Size = UDim2.fromOffset(58, 58)
+Float.Position = UDim2.new(0, 18, 0.5, -29)
+Float.BackgroundColor3 = BLACK
+Float.Text = "∞"
+Float.TextColor3 = LIGHTPURPLE
+Float.TextSize = 36
+Float.Font = Enum.Font.GothamBold
+Float.AutoButtonColor = false
+Float.Parent = Gui
+
+Corner(Float, 30)
+Border(Float, PURPLE, 2)
+
+local Glow = Instance.new("UIStroke")
+Glow.Color = PURPLE
+Glow.Thickness = 6
+Glow.Transparency = 0.8
+Glow.Parent = Float
+
+--========================================================--
+-- MAIN WINDOW
+--========================================================--
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.fromOffset(720, 455)
+Main.Position = UDim2.new(0.5, -360, 0.5, -227)
+Main.BackgroundColor3 = BLACK
+Main.Parent = Gui
+
+Corner(Main, 13)
+Border(Main, PURPLE, 2)
+
+-- Responsive scale
+local Scale = Instance.new("UIScale")
+Scale.Scale = 0.86
+Scale.Parent = Main
+
+--========================================================--
+-- HEADER
+--========================================================--
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 62)
+Header.BackgroundTransparency = 1
+Header.Parent = Main
+
+NewText(
+    Header,
+    "∞",
+    UDim2.fromOffset(48, 50),
+    UDim2.fromOffset(17, 5),
+    39,
+    LIGHTPURPLE
+).Font = Enum.Font.GothamBold
+
+local Title = NewText(
+    Header,
+    "ライト [Raito]",
+    UDim2.fromOffset(260, 30),
+    UDim2.fromOffset(70, 8),
+    21,
+    WHITE
+)
+Title.Font = Enum.Font.GothamBold
+
+NewText(
+    Header,
+    "V2.0.3  |  Power Beyond Limits.",
+    UDim2.fromOffset(300, 22),
+    UDim2.fromOffset(72, 34),
+    11,
+    LIGHTPURPLE
+)
+
+-- Minimize
+local Min = Instance.new("TextButton")
+Min.Size = UDim2.fromOffset(35, 35)
+Min.Position = UDim2.new(1, -82, 0, 13)
+Min.BackgroundColor3 = PANEL2
+Min.Text = "—"
+Min.TextColor3 = WHITE
+Min.TextSize = 20
+Min.Font = Enum.Font.GothamBold
+Min.AutoButtonColor = false
+Min.Parent = Header
+
+Corner(Min, 8)
+Border(Min, PURPLE, 1)
+
+-- Close
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.fromOffset(35, 35)
+Close.Position = UDim2.new(1, -42, 0, 13)
+Close.BackgroundColor3 = PANEL2
+Close.Text = "×"
+Close.TextColor3 = WHITE
+Close.TextSize = 22
+Close.Font = Enum.Font.GothamBold
+Close.AutoButtonColor = false
+Close.Parent = Header
+
+Corner(Close, 8)
+Border(Close, PURPLE, 1)
+
+--========================================================--
+-- SIDEBAR
+--========================================================--
+
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.fromOffset(145, 378)
+Sidebar.Position = UDim2.fromOffset(10, 68)
+Sidebar.BackgroundColor3 = DARK
+Sidebar.Parent = Main
+
+Corner(Sidebar, 10)
+Border(Sidebar, Color3.fromRGB(75, 25, 115), 1)
+
+local SideLayout = Instance.new("UIListLayout")
+SideLayout.Padding = UDim.new(0, 3)
+SideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+SideLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SideLayout.Parent = Sidebar
+
+local SidePadding = Instance.new("UIPadding")
+SidePadding.PaddingTop = UDim.new(0, 8)
+SidePadding.Parent = Sidebar
+
+local Pages = {
+    {"⌂", "Home"},
+    {"●", "Player"},
+    {"⚡", "Movement"},
+    {"◎", "Combat"},
+    {"◉", "Visual"},
+    {"◇", "ESP"},
+    {"◎", "World"},
+    {"◆", "Scripts"},
+    {"➤", "Teleports"},
+    {"•••", "Misc"},
+    {"⚙", "Settings"}
+}
+
+for i, Info in ipairs(Pages) do
+
+    local B = Instance.new("TextButton")
+    B.Size = UDim2.new(1, -14, 0, 29)
+    B.BackgroundColor3 =
+        i == 1
+        and Color3.fromRGB(48, 18, 78)
+        or Color3.fromRGB(0,0,0)
+
+    B.BackgroundTransparency = i == 1 and 0 or 1
+    B.Text = "  " .. Info[1] .. "   " .. Info[2]
+    B.TextColor3 = i == 1 and WHITE or GREY
+    B.TextSize = 12
+    B.TextXAlignment = Enum.TextXAlignment.Left
+    B.Font = Enum.Font.GothamMedium
+    B.AutoButtonColor = false
+    B.Parent = Sidebar
+
+    Corner(B, 7)
+
+    B.MouseEnter:Connect(function()
+        if i ~= 1 then
+            Tween(B, .15, {
+                BackgroundTransparency = 0,
+                BackgroundColor3 = Color3.fromRGB(31, 17, 48)
+            })
+        end
+    end)
+
+    B.MouseLeave:Connect(function()
+        if i ~= 1 then
+            Tween(B, .15, {
+                BackgroundTransparency = 1
+            })
+        end
+    end)
+end
+
+--========================================================--
+-- CONTENT
+--========================================================--
+
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -165, 1, -73)
+Content.Position = UDim2.fromOffset(158, 68)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
+
+--========================================================--
+-- PANEL FUNCTION
+--========================================================--
+
+local function Panel(Name, TitleText, X, Y, W, H)
+
+    local P = Instance.new("Frame")
+    P.Name = Name
+    P.Size = UDim2.fromOffset(W, H)
+    P.Position = UDim2.fromOffset(X, Y)
+    P.BackgroundColor3 = PANEL
+    P.Parent = Content
+
+    Corner(P, 9)
+    Border(P, Color3.fromRGB(70, 25, 105), 1)
+
+    NewText(
+        P,
+        TitleText,
+        UDim2.new(1, -16, 0, 28),
+        UDim2.fromOffset(9, 4),
+        14,
+        WHITE
+    ).Font = Enum.Font.GothamBold
+
+    local Line = Instance.new("Frame")
+    Line.Size = UDim2.new(1, -18, 0, 1)
+    Line.Position = UDim2.fromOffset(9, 34)
+    Line.BackgroundColor3 = PURPLE
+    Line.BackgroundTransparency = .55
+    Line.Parent = P
+
+    return P
+end
+
+--========================================================--
+-- PLAYER INFO
+--========================================================--
+
+local Info = Panel(
+    "PlayerInfo",
+    "♛  Player Info",
+    0, 0, 205, 165
+)
+
+NewText(Info, "Username:  " .. Player.Name,
+    UDim2.new(1,-18,0,22),
+    UDim2.fromOffset(9,43), 12, WHITE)
+
+NewText(Info, "User ID:  " .. Player.UserId,
+    UDim2.new(1,-18,0,22),
+    UDim2.fromOffset(9,67), 12, LIGHTPURPLE)
+
+NewText(Info, "Status:  Online",
+    UDim2.new(1,-18,0,22),
+    UDim2.fromOffset(9,91), 12, GREEN)
+
+NewText(Info, "Version:  V2.0.3",
+    UDim2.new(1,-18,0,22),
+    UDim2.fromOffset(9,115), 12, GREY)
+
+NewText(Info, "Device:  Mobile / PC",
+    UDim2.new(1,-18,0,22),
+    UDim2.fromOffset(9,139), 12, GREY)
+
+--========================================================--
+-- QUICK ACTIONS
+--========================================================--
+
+local Quick = Panel(
+    "Quick",
+    "⚡  Quick Actions",
+    213, 0, 165, 165
+)
+
+local function Button(Parent, Text, Y, Width)
+
+    local B = Instance.new("TextButton")
+    B.Size = UDim2.new(1, -(Width or 18), 0, 30)
+    B.Position = UDim2.fromOffset((Width or 18)/2, Y)
+    B.BackgroundColor3 = PANEL2
+    B.Text = Text
+    B.TextColor3 = WHITE
+    B.TextSize = 11
+    B.Font = Enum.Font.GothamMedium
+    B.AutoButtonColor = false
+    B.Parent = Parent
+
+    Corner(B, 6)
+    Border(B, Color3.fromRGB(75,25,110), 1)
+
+    B.MouseEnter:Connect(function()
+        Tween(B,.15,{
+            BackgroundColor3 = Color3.fromRGB(50,20,75)
+        })
+    end)
+
+    B.MouseLeave:Connect(function()
+        Tween(B,.15,{
+            BackgroundColor3 = PANEL2
+        })
+    end)
+
+    return B
+end
+
+Button(Quick, "↻   Rejoin", 44)
+Button(Quick, "●   Respawn", 79)
+Button(Quick, "◎   Server Hop", 114)
+
+--========================================================--
+-- PLAYER OPTIONS
+--========================================================--
+
+local PlayerPanel = Panel(
+    "PlayerPanel",
+    "✦  Player",
+    396, 0, 180, 165
+)
+
+local function Toggle(Parent, Text, Y, Enabled)
+
+    local Label = NewText(
+        Parent,
+        Text,
+        UDim2.new(1,-55,0,24),
+        UDim2.fromOffset(9,Y),
+        11,
+        GREY
+    )
+
+    local T = Instance.new("TextButton")
+    T.Size = UDim2.fromOffset(36,20)
+    T.Position = UDim2.new(1,-46,0,Y+1)
+    T.BackgroundColor3 =
+        Enabled
+        and PURPLE
+        or Color3.fromRGB(48,45,58)
+
+    T.Text = ""
+    T.AutoButtonColor = false
+    T.Parent = Parent
+
+    Corner(T,12)
+
+    local Dot = Instance.new("Frame")
+    Dot.Size = UDim2.fromOffset(14,14)
+    Dot.BackgroundColor3 = WHITE
+    Dot.Parent = T
+
+    Corner(Dot,10)
+
+    local State = Enabled
+
+    local function Update()
+
+        Tween(T,.15,{
+            BackgroundColor3 =
+                State
+                and PURPLE
+                or Color3.fromRGB(48,45,58)
+        })
+
+        Tween(Dot,.15,{
+            Position =
+                State
+                and UDim2.new(1,-17,.5,-7)
+                or UDim2.fromOffset(3,3)
+        })
+    end
+
+    Dot.Position =
+        Enabled
+        and UDim2.new(1,-17,.5,-7)
+        or UDim2.fromOffset(3,3)
+
+    T.MouseButton1Click:Connect(function()
+        State = not State
+        Update()
+    end)
+
+    return T
+end
+
+Toggle(PlayerPanel,"UI Glow",45,true)
+Toggle(PlayerPanel,"Animations",72,true)
+Toggle(PlayerPanel,"Compact Mode",99,false)
+Toggle(PlayerPanel,"Notifications",126,true)
+
+--========================================================--
+-- MOVEMENT
+--========================================================--
+
+local Movement = Panel(
+    "Movement",
+    "⚡  Movement",
+    0, 173, 285, 145
+)
+
+Toggle(Movement,"Speed Display",43,true)
+Toggle(Movement,"Jump Display",69,true)
+Toggle(Movement,"Mobile Controls",95,true)
+Toggle(Movement,"Smooth Animation",121,false)
+
+--========================================================--
+-- COMBAT
+--========================================================--
+
+local Combat = Panel(
+    "Combat",
+    "◎  Combat",
+    293, 173, 283, 145
+)
+
+Toggle(Combat,"Crosshair",43,true)
+Toggle(Combat,"Hit Marker",69,true)
+Toggle(Combat,"Damage Numbers",95,false)
+Toggle(Combat,"Combat UI",121,true)
+
+--========================================================--
+-- VISUAL
+--========================================================--
+
+local Visual = Panel(
+    "Visual",
+    "◉  Visual",
+    0, 326, 285, 100
+)
+
+Toggle(Visual,"UI Particles",42,true)
+Toggle(Visual,"Neon Border",68,true)
+
+--========================================================--
+-- CONFIG
+--========================================================--
+
+local Config = Panel(
+    "Config",
+    "▣  Save / Load",
+    293, 326, 283, 100
+)
+
+Button(Config,"▣   Save Config",43)
+Button(Config,"↻   Reset UI",78)
+
+--========================================================--
+-- MINI MENU
+--========================================================--
+
+local Mini = Instance.new("Frame")
+Mini.Name = "MiniMenu"
+Mini.Size = UDim2.fromOffset(195, 245)
+Mini.Position = UDim2.new(0, 16, 1, -260)
+Mini.BackgroundColor3 = BLACK
+Mini.Visible = false
+Mini.Parent = Gui
+
+Corner(Mini,11)
+Border(Mini,PURPLE,2)
+
+NewText(
+    Mini,
+    "∞  ライト [Raito]",
+    UDim2.new(1,-40,0,32),
+    UDim2.fromOffset(10,7),
+    14,
+    WHITE
+).Font = Enum.Font.GothamBold
+
+local MiniClose = Instance.new("TextButton")
+MiniClose.Size = UDim2.fromOffset(27,27)
+MiniClose.Position = UDim2.new(1,-34,0,8)
+MiniClose.BackgroundTransparency = 1
+MiniClose.Text = "×"
+MiniClose.TextColor3 = GREY
+MiniClose.TextSize = 18
+MiniClose.Parent = Mini
+
+local MiniList = {
+    {"⌂","Home"},
+    {"●","Player"},
+    {"◎","Combat"},
+    {"◉","Visual"},
+    {"◆","Scripts"},
+    {"⚙","Settings"}
+}
+
+for i, Data in ipairs(MiniList) do
+
+    local B = Instance.new("TextButton")
+    B.Size = UDim2.new(1,-18,0,29)
+    B.Position = UDim2.fromOffset(9,40 + ((i-1)*32))
+    B.BackgroundColor3 = PANEL2
+    B.Text = "  "..Data[1].."    "..Data[2]
+    B.TextColor3 = GREY
+    B.TextSize = 11
+    B.TextXAlignment = Enum.TextXAlignment.Left
+    B.Font = Enum.Font.GothamMedium
+    B.AutoButtonColor = false
+    B.Parent = Mini
+
+    Corner(B,6)
+end
+
+--========================================================--
+-- OPEN / CLOSE
+--========================================================--
+
+local function ShowMain()
+
+    Mini.Visible = false
+    Main.Visible = true
+
+    Main.Size = UDim2.fromOffset(680,430)
+
+    Tween(Main,.2,{
+        Size = UDim2.fromOffset(720,455)
+    })
+end
+
+local function ShowMini()
+
+    Main.Visible = false
+    Mini.Visible = true
+end
+
+Float.MouseButton1Click:Connect(function()
+
+    if Main.Visible then
+        ShowMini()
+    else
+        ShowMain()
+    end
+end)
+
+Min.MouseButton1Click:Connect(function()
+    ShowMini()
+end)
+
+Close.MouseButton1Click:Connect(function()
+
+    Main.Visible = false
+    Mini.Visible = false
+
+end)
+
+MiniClose.MouseButton1Click:Connect(function()
+
+    Mini.Visible = false
+
+end)
+
+--========================================================--
+-- DRAG SYSTEM
+--========================================================--
+
+local Dragging = false
+local DragStart
+local StartPosition
+
+Header.InputBegan:Connect(function(Input)
+
+    if Input.UserInputType == Enum.UserInputType.MouseButton1
+    or Input.UserInputType == Enum.UserInputType.Touch then
+
+        Dragging = true
+        DragStart = Input.Position
+        StartPosition = Main.Position
+
+        Input.Changed:Connect(function()
+
+            if Input.UserInputState == Enum.UserInputState.End then
+                Dragging = false
+            end
+
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(Input)
+
+    if not Dragging then
+        return
+    end
+
+    if Input.UserInputType ~= Enum.UserInputType.MouseMovement
+    and Input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+
+    local Delta = Input.Position - DragStart
+
+    Main.Position = UDim2.new(
+        StartPosition.X.Scale,
+        StartPosition.X.Offset + Delta.X,
+        StartPosition.Y.Scale,
+        StartPosition.Y.Offset + Delta.Y
+    )
+end)
+
+--========================================================--
+-- FLOAT BUTTON ANIMATION
+--========================================================--
+
+task.spawn(function()
+
+    while Gui.Parent do
+
+        Tween(Float,1,{
+            Size = UDim2.fromOffset(63,63)
+        })
+
+        task.wait(1)
+
+        Tween(Float,1,{
+            Size = UDim2.fromOffset(58,58)
+        })
+
+        task.wait(1)
+    end
+end)
+
+print("ライト [Raito] V2.0.3 loaded.")
