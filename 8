@@ -1,0 +1,127 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- [ 1. DỌN DẸP UI CŨ ]
+if game:GetService("CoreGui"):FindFirstChild("Raito_Final_GUI") then
+    game:GetService("CoreGui")["Raito_Final_GUI"]:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "Raito_Final_GUI"
+
+-- [ 2. MENU CHÍNH (TRÁI) ]
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 220, 0, 260)
+MainFrame.Position = UDim2.new(0.5, -280, 0.5, -130)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(255, 200, 50)
+
+-- [ 3. BẢNG XÁC NHẬN (PHẢI - CỐ ĐỊNH) ]
+local ActionFrame = Instance.new("Frame", ScreenGui)
+ActionFrame.Size = UDim2.new(0, 200, 0, 220)
+ActionFrame.Position = UDim2.new(0.5, 60, 0.5, -130)
+ActionFrame.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+ActionFrame.Visible = false -- Mặc định ẩn
+Instance.new("UICorner", ActionFrame)
+Instance.new("UIStroke", ActionFrame).Color = Color3.fromRGB(255, 200, 50)
+
+local InputBox = Instance.new("TextBox", ActionFrame)
+InputBox.Size = UDim2.new(0.8, 0, 0, 30)
+InputBox.Position = UDim2.new(0.1, 0, 0.1, 0)
+InputBox.BackgroundColor3 = Color3.fromRGB(40, 42, 50)
+InputBox.PlaceholderText = "Nhập số..."
+InputBox.TextColor3 = Color3.new(1,1,1)
+InputBox.Visible = false
+Instance.new("UICorner", InputBox)
+
+local PlayerScroll = Instance.new("ScrollingFrame", ActionFrame)
+PlayerScroll.Size = UDim2.new(0.8, 0, 0.5, 0)
+PlayerScroll.Position = UDim2.new(0.1, 0, 0.1, 0)
+PlayerScroll.BackgroundTransparency = 1
+PlayerScroll.ScrollBarThickness = 2
+PlayerScroll.Visible = false
+Instance.new("UIListLayout", PlayerScroll)
+
+local ConfirmBtn = Instance.new("TextButton", ActionFrame)
+ConfirmBtn.Size = UDim2.new(0.8, 0, 0, 35)
+ConfirmBtn.Position = UDim2.new(0.1, 0, 0.7, 0)
+ConfirmBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+ConfirmBtn.Text = "XÁC NHẬN"
+ConfirmBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", ConfirmBtn)
+
+-- [ 4. LOGIC XỬ LÝ ]
+local selectedTarget = nil
+local currentCallback = nil
+
+local function CreateBtn(name, mode, callback)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0.8, 0, 0, 35)
+    btn.Position = UDim2.new(0.1, 0, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 42, 50)
+    btn.Text = name
+    btn.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", btn)
+
+    btn.MouseButton1Click:Connect(function()
+        ActionFrame.Visible = true
+        currentCallback = callback
+        
+        if mode == "Input" then
+            InputBox.Visible = true
+            PlayerScroll.Visible = false
+        elseif mode == "Player" then
+            InputBox.Visible = false
+            PlayerScroll.Visible = true
+            -- Clear cũ
+            for _, c in pairs(PlayerScroll:GetChildren()) do if not c:IsA("UIListLayout") then c:Destroy() end end
+            -- Load list
+            for _, p in pairs(Players:GetPlayers()) do
+                local pBtn = Instance.new("TextButton", PlayerScroll)
+                pBtn.Size = UDim2.new(1, 0, 0, 30)
+                pBtn.Text = p.Name
+                pBtn.MouseButton1Click:Connect(function() selectedTarget = p; pBtn.BackgroundColor3 = Color3.new(1,0,0) end)
+                pBtn.Parent = PlayerScroll
+            end
+        end
+    end)
+end
+
+-- [ NÚT XÁC NHẬN CHUNG ]
+ConfirmBtn.MouseButton1Click:Connect(function()
+    if InputBox.Visible then
+        currentCallback(tonumber(InputBox.Text))
+    elseif PlayerScroll.Visible and selectedTarget then
+        currentCallback(selectedTarget)
+    end
+    ActionFrame.Visible = false
+end)
+
+-- [ CÁC CHỨC NĂNG ]
+CreateBtn("Fly", "Input", function(val) 
+    local hrp = LocalPlayer.Character.HumanoidRootPart
+    local bv = Instance.new("BodyVelocity", hrp)
+    bv.Velocity = Vector3.new(0, val or 50, 0)
+    bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+end)
+
+CreateBtn("Speed", "Input", function(val) LocalPlayer.Character.Humanoid.WalkSpeed = val end)
+CreateBtn("Jump", "Input", function(val) LocalPlayer.Character.Humanoid.JumpPower = val end)
+CreateBtn("Fling Player", "Player", function(target) 
+    if target and target.Character then
+        local root = LocalPlayer.Character.HumanoidRootPart
+        root.CFrame = target.Character.HumanoidRootPart.CFrame
+        task.wait(0.2)
+        local bv = Instance.new("BodyVelocity", root)
+        bv.Velocity = Vector3.new(99999, 99999, 99999)
+        task.wait(0.5)
+        bv:Destroy()
+    end
+end)
+
+-- Layout cho menu trái
+Instance.new("UIListLayout", MainFrame).Padding = UDim.new(0, 10)
