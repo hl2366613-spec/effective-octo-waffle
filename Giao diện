@@ -1,0 +1,659 @@
+--[[
+    ライト [Raito] V2.0.3
+    Neon Black/Purple UI
+    UI DEMO ONLY
+]]
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+--// Remove old UI
+local old = PlayerGui:FindFirstChild("RaitoV203")
+if old then
+    old:Destroy()
+end
+
+--// Colors
+local BG = Color3.fromRGB(8, 7, 14)
+local PANEL = Color3.fromRGB(13, 11, 22)
+local PANEL2 = Color3.fromRGB(18, 14, 30)
+local PURPLE = Color3.fromRGB(145, 45, 255)
+local PURPLE2 = Color3.fromRGB(190, 80, 255)
+local WHITE = Color3.fromRGB(245, 240, 255)
+local GREY = Color3.fromRGB(160, 155, 175)
+
+--// Helpers
+local function Corner(obj, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 8)
+    c.Parent = obj
+    return c
+end
+
+local function Stroke(obj, color, thickness, transparency)
+    local s = Instance.new("UIStroke")
+    s.Color = color or PURPLE
+    s.Thickness = thickness or 1
+    s.Transparency = transparency or 0
+    s.Parent = obj
+    return s
+end
+
+local function Tween(obj, info, props)
+    TweenService:Create(obj, info, props):Play()
+end
+
+--// ScreenGui
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "RaitoV203"
+Gui.ResetOnSpawn = false
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Parent = PlayerGui
+
+--==================================================
+-- FLOATING OPEN BUTTON
+--==================================================
+
+local OpenButton = Instance.new("TextButton")
+OpenButton.Name = "OpenButton"
+OpenButton.Size = UDim2.fromOffset(62, 62)
+OpenButton.Position = UDim2.new(0, 25, 0.5, -31)
+OpenButton.BackgroundColor3 = BG
+OpenButton.Text = "∞"
+OpenButton.TextColor3 = PURPLE2
+OpenButton.TextSize = 38
+OpenButton.Font = Enum.Font.GothamBold
+OpenButton.AutoButtonColor = false
+OpenButton.Parent = Gui
+
+Corner(OpenButton, 31)
+Stroke(OpenButton, PURPLE, 2)
+
+local openGlow = Instance.new("UIStroke")
+openGlow.Color = PURPLE
+openGlow.Thickness = 6
+openGlow.Transparency = 0.8
+openGlow.Parent = OpenButton
+
+--==================================================
+-- MAIN WINDOW
+--==================================================
+
+local Main = Instance.new("Frame")
+Main.Name = "MainWindow"
+Main.Size = UDim2.new(0, 950, 0, 610)
+Main.Position = UDim2.new(0.5, -475, 0.5, -305)
+Main.BackgroundColor3 = BG
+Main.Visible = true
+Main.Parent = Gui
+
+Corner(Main, 14)
+Stroke(Main, PURPLE, 2)
+
+-- Gradient
+local Gradient = Instance.new("UIGradient")
+Gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(8, 7, 14)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(19, 10, 30))
+})
+Gradient.Rotation = 25
+Gradient.Parent = Main
+
+--==================================================
+-- HEADER
+--==================================================
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 76)
+Header.BackgroundTransparency = 1
+Header.Parent = Main
+
+local Logo = Instance.new("TextLabel")
+Logo.Size = UDim2.fromOffset(65, 60)
+Logo.Position = UDim2.fromOffset(20, 8)
+Logo.BackgroundTransparency = 1
+Logo.Text = "∞"
+Logo.TextColor3 = PURPLE2
+Logo.TextSize = 50
+Logo.Font = Enum.Font.GothamBold
+Logo.Parent = Header
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.fromOffset(330, 35)
+Title.Position = UDim2.fromOffset(85, 10)
+Title.BackgroundTransparency = 1
+Title.Text = "ライト [Raito]"
+Title.TextColor3 = WHITE
+Title.TextSize = 25
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Header
+
+local Version = Instance.new("TextLabel")
+Version.Size = UDim2.fromOffset(330, 25)
+Version.Position = UDim2.fromOffset(87, 42)
+Version.BackgroundTransparency = 1
+Version.Text = "V2.0.3  |  Power Beyond Limits."
+Version.TextColor3 = PURPLE2
+Version.TextSize = 13
+Version.TextXAlignment = Enum.TextXAlignment.Left
+Version.Font = Enum.Font.Gotham
+Version.Parent = Header
+
+-- Close
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.fromOffset(42, 42)
+Close.Position = UDim2.new(1, -55, 0, 17)
+Close.BackgroundColor3 = PANEL2
+Close.Text = "×"
+Close.TextColor3 = WHITE
+Close.TextSize = 27
+Close.Font = Enum.Font.Gotham
+Close.AutoButtonColor = false
+Close.Parent = Header
+
+Corner(Close, 9)
+Stroke(Close, PURPLE, 1)
+
+-- Minimize
+local Minimize = Instance.new("TextButton")
+Minimize.Size = UDim2.fromOffset(42, 42)
+Minimize.Position = UDim2.new(1, -105, 0, 17)
+Minimize.BackgroundColor3 = PANEL2
+Minimize.Text = "—"
+Minimize.TextColor3 = WHITE
+Minimize.TextSize = 22
+Minimize.Font = Enum.Font.Gotham
+Minimize.AutoButtonColor = false
+Minimize.Parent = Header
+
+Corner(Minimize, 9)
+Stroke(Minimize, PURPLE, 1)
+
+--==================================================
+-- SIDEBAR
+--==================================================
+
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 185, 1, -90)
+Sidebar.Position = UDim2.fromOffset(12, 80)
+Sidebar.BackgroundColor3 = PANEL
+Sidebar.Parent = Main
+
+Corner(Sidebar, 12)
+Stroke(Sidebar, PURPLE, 1)
+
+local SideLayout = Instance.new("UIListLayout")
+SideLayout.Padding = UDim.new(0, 5)
+SideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+SideLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SideLayout.Parent = Sidebar
+
+local SidePadding = Instance.new("UIPadding")
+SidePadding.PaddingTop = UDim.new(0, 10)
+SidePadding.Parent = Sidebar
+
+local pages = {
+    {"⌂", "Home"},
+    {"●", "Player"},
+    {"⚡", "Movement"},
+    {"◎", "Combat"},
+    {"◉", "Visual"},
+    {"◇", "ESP"},
+    {"◎", "World"},
+    {"◆", "Scripts"},
+    {"➤", "Teleports"},
+    {"•••", "Misc"},
+    {"⚙", "Settings"}
+}
+
+local pageButtons = {}
+
+for i, data in ipairs(pages) do
+    local button = Instance.new("TextButton")
+    button.Name = data[2]
+    button.Size = UDim2.new(1, -18, 0, 40)
+    button.BackgroundColor3 =
+        i == 1 and Color3.fromRGB(45, 17, 75)
+        or Color3.fromRGB(0, 0, 0)
+
+    button.BackgroundTransparency = i == 1 and 0 or 1
+    button.Text = "   " .. data[1] .. "    " .. data[2]
+    button.TextColor3 = i == 1 and WHITE or GREY
+    button.TextSize = 14
+    button.TextXAlignment = Enum.TextXAlignment.Left
+    button.Font = Enum.Font.GothamMedium
+    button.AutoButtonColor = false
+    button.LayoutOrder = i
+    button.Parent = Sidebar
+
+    Corner(button, 9)
+
+    pageButtons[i] = button
+
+    button.MouseEnter:Connect(function()
+        if i ~= 1 then
+            Tween(button, TweenInfo.new(.15), {
+                BackgroundTransparency = 0,
+                BackgroundColor3 = Color3.fromRGB(30, 15, 45)
+            })
+        end
+    end)
+
+    button.MouseLeave:Connect(function()
+        if i ~= 1 then
+            Tween(button, TweenInfo.new(.15), {
+                BackgroundTransparency = 1
+            })
+        end
+    end)
+end
+
+--==================================================
+-- CONTENT AREA
+--==================================================
+
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -215, 1, -90)
+Content.Position = UDim2.fromOffset(205, 80)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
+
+local function CreatePanel(name, title, x, y, w, h)
+    local panel = Instance.new("Frame")
+    panel.Name = name
+    panel.Size = UDim2.fromOffset(w, h)
+    panel.Position = UDim2.fromOffset(x, y)
+    panel.BackgroundColor3 = PANEL
+    panel.Parent = Content
+
+    Corner(panel, 11)
+    Stroke(panel, Color3.fromRGB(80, 25, 130), 1)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -20, 0, 35)
+    label.Position = UDim2.fromOffset(10, 5)
+    label.BackgroundTransparency = 1
+    label.Text = title
+    label.TextColor3 = WHITE
+    label.TextSize = 17
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.GothamBold
+    label.Parent = panel
+
+    local line = Instance.new("Frame")
+    line.Size = UDim2.new(1, -20, 0, 1)
+    line.Position = UDim2.fromOffset(10, 42)
+    line.BackgroundColor3 = PURPLE
+    line.BackgroundTransparency = .55
+    line.Parent = panel
+
+    return panel
+end
+
+-- Player Info
+local Info = CreatePanel(
+    "PlayerInfo",
+    "♛  Player Info",
+    0, 0, 300, 190
+)
+
+local function InfoText(parent, text, y, color)
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, -25, 0, 25)
+    l.Position = UDim2.fromOffset(13, y)
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.TextColor3 = color or GREY
+    l.TextSize = 14
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Font = Enum.Font.Gotham
+    l.Parent = parent
+end
+
+InfoText(Info, "Username:  " .. Player.Name, 52)
+InfoText(Info, "User ID:  " .. Player.UserId, 78, PURPLE2)
+InfoText(Info, "Status:  Online", 104, Color3.fromRGB(70, 255, 150))
+InfoText(Info, "UI Version:  V2.0.3", 130, GREY)
+InfoText(Info, "Device:  Mobile / PC", 156, GREY)
+
+-- Quick Actions
+local Quick = CreatePanel(
+    "QuickActions",
+    "⚡  Quick Actions",
+    310, 0, 215, 190
+)
+
+local function ActionButton(parent, text, y)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -22, 0, 35)
+    b.Position = UDim2.fromOffset(11, y)
+    b.BackgroundColor3 = PANEL2
+    b.Text = text
+    b.TextColor3 = WHITE
+    b.TextSize = 13
+    b.Font = Enum.Font.GothamMedium
+    b.AutoButtonColor = false
+    b.Parent = parent
+
+    Corner(b, 7)
+    Stroke(b, Color3.fromRGB(70, 25, 105), 1)
+
+    b.MouseEnter:Connect(function()
+        Tween(b, TweenInfo.new(.15), {
+            BackgroundColor3 = Color3.fromRGB(50, 20, 75)
+        })
+    end)
+
+    b.MouseLeave:Connect(function()
+        Tween(b, TweenInfo.new(.15), {
+            BackgroundColor3 = PANEL2
+        })
+    end)
+
+    return b
+end
+
+ActionButton(Quick, "↻   Rejoin", 52)
+ActionButton(Quick, "●   Respawn", 92)
+ActionButton(Quick, "◎   Server Hop", 132)
+
+-- Player Settings
+local PlayerPanel = CreatePanel(
+    "PlayerSettings",
+    "✦  Player",
+    535, 0, 195, 190
+)
+
+-- Toggle creator
+local function Toggle(parent, text, y, default)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -60, 0, 28)
+    label.Position = UDim2.fromOffset(12, y)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = GREY
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.Gotham
+    label.Parent = parent
+
+    local t = Instance.new("TextButton")
+    t.Size = UDim2.fromOffset(40, 22)
+    t.Position = UDim2.new(1, -52, 0, y + 2)
+    t.BackgroundColor3 = default and PURPLE or Color3.fromRGB(45, 43, 55)
+    t.Text = ""
+    t.AutoButtonColor = false
+    t.Parent = parent
+
+    Corner(t, 12)
+
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.fromOffset(16, 16)
+    knob.Position = default
+        and UDim2.new(1, -19, .5, -8)
+        or UDim2.fromOffset(3, 3)
+    knob.BackgroundColor3 = WHITE
+    knob.Parent = t
+
+    Corner(knob, 10)
+
+    local state = default
+
+    t.MouseButton1Click:Connect(function()
+        state = not state
+
+        Tween(t, TweenInfo.new(.15), {
+            BackgroundColor3 = state and PURPLE or Color3.fromRGB(45, 43, 55)
+        })
+
+        Tween(knob, TweenInfo.new(.15), {
+            Position = state
+                and UDim2.new(1, -19, .5, -8)
+                or UDim2.fromOffset(3, 3)
+        })
+    end)
+
+    return t
+end
+
+Toggle(PlayerPanel, "UI Glow", 55, true)
+Toggle(PlayerPanel, "Animations", 90, true)
+Toggle(PlayerPanel, "Compact Mode", 125, false)
+Toggle(PlayerPanel, "Notifications", 160, true)
+
+--==================================================
+-- MOVEMENT / COMBAT / VISUAL DEMO PANELS
+--==================================================
+
+local Movement = CreatePanel(
+    "Movement",
+    "⚡  Movement",
+    0, 200, 355, 190
+)
+
+Toggle(Movement, "Speed Display", 52, true)
+Toggle(Movement, "Jump Display", 87, true)
+Toggle(Movement, "Mobile Controls", 122, true)
+Toggle(Movement, "Smooth Animation", 157, false)
+
+local Combat = CreatePanel(
+    "Combat",
+    "◎  Combat",
+    365, 200, 365, 190
+)
+
+Toggle(Combat, "Crosshair", 52, true)
+Toggle(Combat, "Hit Marker", 87, true)
+Toggle(Combat, "Damage Numbers", 122, false)
+Toggle(Combat, "Combat UI", 157, true)
+
+--==================================================
+-- SCRIPT / CONFIG PANEL
+--==================================================
+
+local Scripts = CreatePanel(
+    "Scripts",
+    "◆  Scripts & Utilities",
+    0, 400, 475, 95
+)
+
+local Input = Instance.new("TextBox")
+Input.Size = UDim2.new(1, -125, 0, 38)
+Input.Position = UDim2.fromOffset(12, 48)
+Input.BackgroundColor3 = PANEL2
+Input.PlaceholderText = "Enter UI demo command..."
+Input.PlaceholderColor3 = GREY
+Input.Text = ""
+Input.TextColor3 = WHITE
+Input.TextSize = 13
+Input.Font = Enum.Font.Code
+Input.ClearTextOnFocus = false
+Input.Parent = Scripts
+
+Corner(Input, 7)
+Stroke(Input, Color3.fromRGB(70, 25, 105), 1)
+
+local Execute = Instance.new("TextButton")
+Execute.Size = UDim2.fromOffset(95, 38)
+Execute.Position = UDim2.new(1, -107, 0, 48)
+Execute.BackgroundColor3 = PURPLE
+Execute.Text = "Preview"
+Execute.TextColor3 = WHITE
+Execute.TextSize = 13
+Execute.Font = Enum.Font.GothamBold
+Execute.AutoButtonColor = false
+Execute.Parent = Scripts
+
+Corner(Execute, 7)
+
+--==================================================
+-- CONFIG
+--==================================================
+
+local Config = CreatePanel(
+    "Config",
+    "▣  Save / Load Config",
+    485, 400, 245, 95
+)
+
+ActionButton(Config, "▣   Save Config", 48)
+
+--==================================================
+-- MINI MENU
+--==================================================
+
+local Mini = Instance.new("Frame")
+Mini.Name = "MiniMenu"
+Mini.Size = UDim2.fromOffset(210, 260)
+Mini.Position = UDim2.new(0, 20, 1, -285)
+Mini.BackgroundColor3 = BG
+Mini.Visible = false
+Mini.Parent = Gui
+
+Corner(Mini, 12)
+Stroke(Mini, PURPLE, 2)
+
+local MiniTitle = Instance.new("TextLabel")
+MiniTitle.Size = UDim2.new(1, -45, 0, 40)
+MiniTitle.Position = UDim2.fromOffset(12, 5)
+MiniTitle.BackgroundTransparency = 1
+MiniTitle.Text = "∞  ライト [Raito]"
+MiniTitle.TextColor3 = WHITE
+MiniTitle.TextSize = 15
+MiniTitle.TextXAlignment = Enum.TextXAlignment.Left
+MiniTitle.Font = Enum.Font.GothamBold
+MiniTitle.Parent = Mini
+
+local MiniClose = Instance.new("TextButton")
+MiniClose.Size = UDim2.fromOffset(30, 30)
+MiniClose.Position = UDim2.new(1, -38, 0, 10)
+MiniClose.BackgroundTransparency = 1
+MiniClose.Text = "×"
+MiniClose.TextColor3 = GREY
+MiniClose.TextSize = 20
+MiniClose.Parent = Mini
+
+local MiniList = Instance.new("UIListLayout")
+MiniList.Padding = UDim.new(0, 4)
+MiniList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+MiniList.Parent = Mini
+
+local MiniPad = Instance.new("UIPadding")
+MiniPad.PaddingTop = UDim.new(0, 45)
+MiniPad.Parent = Mini
+
+for _, data in ipairs({
+    {"⌂", "Home"},
+    {"●", "Player"},
+    {"◎", "Combat"},
+    {"◉", "Visual"},
+    {"◆", "Scripts"},
+    {"⚙", "Settings"}
+}) do
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -18, 0, 32)
+    b.BackgroundColor3 = PANEL2
+    b.Text = "   " .. data[1] .. "    " .. data[2]
+    b.TextColor3 = GREY
+    b.TextSize = 13
+    b.TextXAlignment = Enum.TextXAlignment.Left
+    b.Font = Enum.Font.GothamMedium
+    b.AutoButtonColor = false
+    b.Parent = Mini
+
+    Corner(b, 7)
+end
+
+--==================================================
+-- OPEN / CLOSE
+--==================================================
+
+OpenButton.MouseButton1Click:Connect(function()
+    if Main.Visible then
+        Main.Visible = false
+        Mini.Visible = true
+    else
+        Main.Visible = true
+        Mini.Visible = false
+    end
+end)
+
+MiniClose.MouseButton1Click:Connect(function()
+    Mini.Visible = false
+end)
+
+Close.MouseButton1Click:Connect(function()
+    Main.Visible = false
+    Mini.Visible = false
+end)
+
+Minimize.MouseButton1Click:Connect(function()
+    Main.Visible = false
+    Mini.Visible = true
+end)
+
+--==================================================
+-- DRAG SUPPORT
+--==================================================
+
+local dragging = false
+local dragStart
+local startPos
+
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+
+        local delta = input.Position - dragStart
+
+        Main.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+--==================================================
+-- OPEN BUTTON ANIMATION
+--==================================================
+
+task.spawn(function()
+    while Gui.Parent do
+        Tween(OpenButton, TweenInfo.new(1, Enum.EasingStyle.Sine), {
+            Size = UDim2.fromOffset(68, 68)
+        })
+
+        task.wait(1)
+
+        Tween(OpenButton, TweenInfo.new(1, Enum.EasingStyle.Sine), {
+            Size = UDim2.fromOffset(62, 62)
+        })
+
+        task.wait(1)
+    end
+end)
