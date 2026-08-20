@@ -1,0 +1,338 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- 1. TẠO THÔNG BÁO CHỮ ĐỔI MÀU LIÊN TỤC KHI KÍCH HOẠT SCRIPT
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Raito_Light_V250"
+ScreenGui.Parent = game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+local NotifyFrame = Instance.new("Frame", ScreenGui)
+NotifyFrame.Name = "NotifyFrame"
+NotifyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+NotifyFrame.Position = UDim2.new(0.5, -200, 0.05, 0)
+NotifyFrame.Size = UDim2.new(0, 400, 0, 42)
+NotifyFrame.ZIndex = 100
+
+local NFCorner = Instance.new("UICorner", NotifyFrame)
+NFCorner.CornerRadius = UDim.new(0, 8)
+
+local NFStroke = Instance.new("UIStroke", NotifyFrame)
+NFStroke.Thickness = 2
+
+local NotifyText = Instance.new("TextLabel", NotifyFrame)
+NotifyText.Size = UDim2.new(1, -20, 1, 0)
+NotifyText.Position = UDim2.new(0, 10, 0, 0)
+NotifyText.BackgroundTransparency = 1
+NotifyText.Font = Enum.Font.GothamBold
+NotifyText.Text = "GIAO DIỆN MENU THUỘC BẢN QUYỀN CỦA ライト [ raito ]"
+NotifyText.TextSize = 11
+NotifyText.TextWrapped = true
+
+-- Hiệu ứng đổi màu Rainbow liên tục
+local hue = 0
+RunService.RenderStepped:Connect(function(delta)
+    hue = (hue + delta * 0.5) % 1
+    local color = Color3.fromHSV(hue, 0.8, 1)
+    NotifyText.TextColor3 = color
+    NFStroke.Color = color
+end)
+
+-- Tự động ẩn thông báo sau 6 giây
+task.delay(6, function()
+    local tween = TweenService:Create(NotifyFrame, TweenInfo.new(1), {BackgroundTransparency = 1})
+    TweenService:Create(NotifyText, TweenInfo.new(1), {TextTransparency = 1}):Play()
+    TweenService:Create(NFStroke, TweenInfo.new(1), {Transparency = 1}):Play()
+    tween:Play()
+    tween.Completed:Connect(function()
+        NotifyFrame:Destroy()
+    end)
+end)
+
+--------------------------------------------------------------------------------
+-- 2. GIAO DIỆN CHỦ ĐỀ ÁNH SÁNG (LIGHT THEME)
+--------------------------------------------------------------------------------
+
+-- Nút mở/đóng Menu (Biểu tượng Mặt trời/Ánh sáng)
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Name = "OpenBtn"
+OpenBtn.BackgroundColor3 = Color3.fromRGB(255, 245, 220)
+OpenBtn.Position = UDim2.new(0.02, 0, 0.15, 0)
+OpenBtn.Size = UDim2.new(0, 48, 0, 48)
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.Text = "☀️"
+OpenBtn.TextSize = 22
+local OpenCorner = Instance.new("UICorner", OpenBtn)
+OpenCorner.CornerRadius = UDim.new(1, 0)
+
+local OpenStroke = Instance.new("UIStroke", OpenBtn)
+OpenStroke.Color = Color3.fromRGB(255, 215, 0)
+OpenStroke.Thickness = 2
+
+-- Khung Menu Chính
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Name = "MainFrame"
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
+MainFrame.Position = UDim2.new(0.5, -145, 0.5, -135)
+MainFrame.Size = UDim2.new(0, 290, 0, 270)
+MainFrame.Visible = true
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local UICorner = Instance.new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(0, 12)
+
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Color = Color3.fromRGB(255, 215, 100) -- Viền vàng ánh sáng
+UIStroke.Thickness = 2
+
+-- Tiêu đề Ánh sáng
+local Title = Instance.new("TextLabel", MainFrame)
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 0, 38)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "☀️ ライト [ RAITO ] ☀️"
+Title.TextColor3 = Color3.fromRGB(255, 230, 130)
+Title.TextSize = 14
+
+-- Scroll danh sách
+local Scroll = Instance.new("ScrollingFrame", MainFrame)
+Scroll.BackgroundTransparency = 1
+Scroll.Position = UDim2.new(0, 10, 0, 42)
+Scroll.Size = UDim2.new(1, -20, 1, -52)
+Scroll.ScrollBarThickness = 3
+Scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 215, 100)
+
+local UIListLayout = Instance.new("UIListLayout", Scroll)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 6)
+
+--------------------------------------------------------------------------------
+-- MENU NHỎ 1: CHỈNH CHỈ SỐ (LIGHT THEME)
+--------------------------------------------------------------------------------
+local ValueModal = Instance.new("Frame", ScreenGui)
+ValueModal.BackgroundColor3 = Color3.fromRGB(22, 24, 32)
+ValueModal.Position = UDim2.new(0.5, -110, 0.5, -60)
+ValueModal.Size = UDim2.new(0, 220, 0, 120)
+ValueModal.Visible = false
+ValueModal.ZIndex = 10
+ValueModal.Active = true
+ValueModal.Draggable = true
+
+local VMCorner = Instance.new("UICorner", ValueModal)
+VMCorner.CornerRadius = UDim.new(0, 8)
+local VMStroke = Instance.new("UIStroke", ValueModal)
+VMStroke.Color = Color3.fromRGB(255, 215, 100)
+
+local VMTitle = Instance.new("TextLabel", ValueModal)
+VMTitle.Size = UDim2.new(1, 0, 0, 30)
+VMTitle.BackgroundTransparency = 1
+VMTitle.Font = Enum.Font.GothamBold
+VMTitle.Text = "Điều chỉnh"
+VMTitle.TextColor3 = Color3.fromRGB(255, 235, 170)
+VMTitle.TextSize = 12
+
+local VMInput = Instance.new("TextBox", ValueModal)
+VMInput.Position = UDim2.new(0.1, 0, 0.35, 0)
+VMInput.Size = UDim2.new(0.8, 0, 0, 28)
+VMInput.BackgroundColor3 = Color3.fromRGB(12, 14, 20)
+VMInput.Font = Enum.Font.Gotham
+VMInput.Text = "100"
+VMInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+VMInput.TextSize = 12
+local VMInputCorner = Instance.new("UICorner", VMInput)
+VMInputCorner.CornerRadius = UDim.new(0, 4)
+
+local VMConfirm = Instance.new("TextButton", ValueModal)
+VMConfirm.Position = UDim2.new(0.2, 0, 0.7, 0)
+VMConfirm.Size = UDim2.new(0.6, 0, 0, 24)
+VMConfirm.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+VMConfirm.Font = Enum.Font.GothamBold
+VMConfirm.Text = "Xác nhận"
+VMConfirm.TextColor3 = Color3.fromRGB(20, 20, 20)
+VMConfirm.TextSize = 11
+local VMConfirmCorner = Instance.new("UICorner", VMConfirm)
+VMConfirmCorner.CornerRadius = UDim.new(0, 4)
+
+--------------------------------------------------------------------------------
+-- MENU NHỎ 2: CHỌN PLAYER (LIGHT THEME)
+--------------------------------------------------------------------------------
+local PlayerModal = Instance.new("Frame", ScreenGui)
+PlayerModal.BackgroundColor3 = Color3.fromRGB(22, 24, 32)
+PlayerModal.Position = UDim2.new(0.5, -120, 0.5, -90)
+PlayerModal.Size = UDim2.new(0, 240, 0, 180)
+PlayerModal.Visible = false
+PlayerModal.ZIndex = 10
+PlayerModal.Active = true
+PlayerModal.Draggable = true
+
+local PMCorner = Instance.new("UICorner", PlayerModal)
+PMCorner.CornerRadius = UDim.new(0, 8)
+local PMStroke = Instance.new("UIStroke", PlayerModal)
+PMStroke.Color = Color3.fromRGB(255, 215, 100)
+
+local PMTitle = Instance.new("TextLabel", PlayerModal)
+PMTitle.Size = UDim2.new(1, 0, 0, 30)
+PMTitle.BackgroundTransparency = 1
+PMTitle.Font = Enum.Font.GothamBold
+PMTitle.Text = "Chọn người chơi"
+PMTitle.TextColor3 = Color3.fromRGB(255, 235, 170)
+PMTitle.TextSize = 12
+
+local PMScroll = Instance.new("ScrollingFrame", PlayerModal)
+PMScroll.BackgroundTransparency = 1
+PMScroll.Position = UDim2.new(0, 10, 0, 32)
+PMScroll.Size = UDim2.new(1, -20, 0, 105)
+PMScroll.ScrollBarThickness = 2
+
+local PMListLayout = Instance.new("UIListLayout", PMScroll)
+PMListLayout.Padding = UDim.new(0, 4)
+
+local PMConfirm = Instance.new("TextButton", PlayerModal)
+PMConfirm.Position = UDim2.new(0.2, 0, 0.82, 0)
+PMConfirm.Size = UDim2.new(0.6, 0, 0, 24)
+PMConfirm.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+PMConfirm.Font = Enum.Font.GothamBold
+PMConfirm.Text = "Xác nhận"
+PMConfirm.TextColor3 = Color3.fromRGB(20, 20, 20)
+PMConfirm.TextSize = 11
+local PMConfirmCorner = Instance.new("UICorner", PMConfirm)
+PMConfirmCorner.CornerRadius = UDim.new(0, 4)
+
+--------------------------------------------------------------------------------
+-- HÀM TẠO CÁC HÀNG CHỨC NĂNG
+--------------------------------------------------------------------------------
+local activeToggleBtn = nil
+local activeValueLabel = nil
+
+local function CreateFeatureRow(name, mode)
+    local Frame = Instance.new("Frame", Scroll)
+    Frame.BackgroundColor3 = Color3.fromRGB(28, 32, 42)
+    Frame.Size = UDim2.new(1, -6, 0, 36)
+    local FCorner = Instance.new("UICorner", Frame)
+    FCorner.CornerRadius = UDim.new(0, 6)
+
+    local Label = Instance.new("TextLabel", Frame)
+    Label.BackgroundTransparency = 1
+    Label.Position = UDim2.new(0, 8, 0, 0)
+    Label.Size = UDim2.new(0.35, 0, 1, 0)
+    Label.Font = Enum.Font.Gotham
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(240, 240, 240)
+    Label.TextSize = 12
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local ValBtn = nil
+    if mode == "Value" or mode == "Player" then
+        ValBtn = Instance.new("TextButton", Frame)
+        ValBtn.BackgroundColor3 = Color3.fromRGB(16, 18, 24)
+        ValBtn.Position = UDim2.new(0.38, 0, 0.18, 0)
+        ValBtn.Size = UDim2.new(0.42, 0, 0.64, 0)
+        ValBtn.Font = Enum.Font.Gotham
+        ValBtn.Text = mode == "Value" and "[ Tốc độ ]" or "[ Player ]"
+        ValBtn.TextColor3 = Color3.fromRGB(255, 215, 100)
+        ValBtn.TextSize = 10
+        local VBCorner = Instance.new("UICorner", ValBtn)
+        VBCorner.CornerRadius = UDim.new(0, 4)
+    end
+
+    local ToggleBtn = Instance.new("TextButton", Frame)
+    ToggleBtn.Position = UDim2.new(1, -28, 0.5, -9)
+    ToggleBtn.Size = UDim2.new(0, 18, 0, 18)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 55, 65)
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.Text = ""
+    local TCorner = Instance.new("UICorner", ToggleBtn)
+    TCorner.CornerRadius = UDim.new(1, 0)
+
+    local isToggled = false
+
+    if ValBtn and mode == "Value" then
+        ValBtn.MouseButton1Click:Connect(function()
+            VMTitle.Text = "Chỉnh " .. name
+            activeToggleBtn = ToggleBtn
+            activeValueLabel = ValBtn
+            ValueModal.Visible = true
+            PlayerModal.Visible = false
+        end)
+    end
+
+    if ValBtn and mode == "Player" then
+        ValBtn.MouseButton1Click:Connect(function()
+            PMTitle.Text = "Chọn Player cho " .. name
+            activeToggleBtn = ToggleBtn
+            activeValueLabel = ValBtn
+
+            for _, child in pairs(PMScroll:GetChildren()) do
+                if child:IsA("Frame") then child:Destroy() end
+            end
+
+            for _, plr in pairs(Players:GetPlayers()) do
+                local PFrame = Instance.new("Frame", PMScroll)
+                PFrame.BackgroundColor3 = Color3.fromRGB(35, 40, 52)
+                PFrame.Size = UDim2.new(1, 0, 0, 28)
+                local PFCorner = Instance.new("UICorner", PFrame)
+                PFCorner.CornerRadius = UDim.new(0, 4)
+
+                local Avatar = Instance.new("ImageLabel", PFrame)
+                Avatar.Position = UDim2.new(0, 4, 0.1, 0)
+                Avatar.Size = UDim2.new(0, 22, 0, 22)
+                Avatar.BackgroundTransparency = 1
+                Avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150"
+
+                local PBtn = Instance.new("TextButton", PFrame)
+                PBtn.Position = UDim2.new(0, 32, 0, 0)
+                PBtn.Size = UDim2.new(1, -32, 1, 0)
+                PBtn.BackgroundTransparency = 1
+                PBtn.Font = Enum.Font.Gotham
+                PBtn.Text = plr.DisplayName
+                PBtn.TextColor3 = Color3.fromRGB(255, 235, 170)
+                PBtn.TextSize = 10
+                PBtn.TextXAlignment = Enum.TextXAlignment.Left
+
+                PBtn.MouseButton1Click:Connect(function()
+                    activeValueLabel.Text = plr.DisplayName
+                end)
+            end
+
+            PlayerModal.Visible = true
+            ValueModal.Visible = false
+        end)
+    end
+
+    ToggleBtn.MouseButton1Click:Connect(function()
+        isToggled = not isToggled
+        ToggleBtn.BackgroundColor3 = isToggled and Color3.fromRGB(255, 200, 50) or Color3.fromRGB(50, 55, 65)
+    end)
+end
+
+-- Nút [Xác nhận] các Menu phụ
+VMConfirm.MouseButton1Click:Connect(function()
+    if activeToggleBtn then activeToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 50) end
+    if activeValueLabel then activeValueLabel.Text = VMInput.Text end
+    ValueModal.Visible = false
+end)
+
+PMConfirm.MouseButton1Click:Connect(function()
+    if activeToggleBtn then activeToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 50) end
+    PlayerModal.Visible = false
+end)
+
+-- Khởi tạo danh sách
+CreateFeatureRow("Fly", "Value")
+CreateFeatureRow("Speed", "Value")
+CreateFeatureRow("Jumpow", "Value")
+CreateFeatureRow("Noclip", "None")
+CreateFeatureRow("ESP", "None")
+CreateFeatureRow("Aimbot", "Player")
+CreateFeatureRow("Teleport", "Player")
+CreateFeatureRow("Headshot", "Player")
+
+-- Bật/tắt Menu chính
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+    ValueModal.Visible = false
+    PlayerModal.Visible = false
+end)
