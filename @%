@@ -1,0 +1,1048 @@
+-- Script: ライト [RAITO] Ultra GUI V2.5.0
+-- Tương thích với Delta Executor
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- Kiểm tra và xóa UI cũ
+local function destroyOldUI()
+    local gui = LocalPlayer:FindFirstChild("PlayerGui")
+    if gui then
+        local old = gui:FindFirstChild("Raito_Ultra_GUI")
+        if old then old:Destroy() end
+    end
+    local coreGui = game:GetService("CoreGui")
+    if coreGui then
+        local old = coreGui:FindFirstChild("Raito_Ultra_GUI")
+        if old then old:Destroy() end
+    end
+end
+destroyOldUI()
+
+-- Tạo ScreenGui trong PlayerGui (an toàn hơn cho Delta)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Raito_Ultra_GUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- ===== BIẾN TOÀN CỤC =====
+local char = LocalPlayer.Character
+local hrp = char and char:FindFirstChild("HumanoidRootPart")
+local flyEnabled = false
+local flySpeed = 50
+local speedEnabled = false
+local walkSpeed = 16
+local jumpPower = 50
+local noclipEnabled = false
+local espEnabled = false
+local aimbotEnabled = false
+local flyConnection = nil
+local flyBodyVelocity = nil
+local flyBodyGyro = nil
+local noclipConnection = nil
+local espObjects = {}
+local espConnection = nil
+local aimbotConnection = nil
+local selectedPlayer = nil
+
+-- ===== CẬP NHẬT NHÂN VẬT =====
+local function updateChar()
+    char = LocalPlayer.Character
+    hrp = char and char:FindFirstChild("HumanoidRootPart")
+end
+LocalPlayer.CharacterAdded:Connect(updateChar)
+updateChar()
+
+-- ============================================
+-- 1. THÔNG BÁO BẢN QUYỀN
+-- ============================================
+local NotifyFrame = Instance.new("Frame", ScreenGui)
+NotifyFrame.Name = "NotifyFrame"
+NotifyFrame.BackgroundColor3 = Color3.fromRGB(15, 17, 23)
+NotifyFrame.Position = UDim2.new(0.5, -180, 0.02, 0)
+NotifyFrame.Size = UDim2.new(0, 360, 0, 40)
+NotifyFrame.ZIndex = 200
+NotifyFrame.BackgroundTransparency = 0
+
+local NFCorner = Instance.new("UICorner", NotifyFrame)
+NFCorner.CornerRadius = UDim.new(0, 10)
+
+local NFStroke = Instance.new("UIStroke", NotifyFrame)
+NFStroke.Thickness = 2
+NFStroke.Color = Color3.fromRGB(255, 200, 50)
+
+local NotifyText = Instance.new("TextLabel", NotifyFrame)
+NotifyText.Size = UDim2.new(1, -20, 1, 0)
+NotifyText.Position = UDim2.new(0, 10, 0, 0)
+NotifyText.BackgroundTransparency = 1
+NotifyText.Font = Enum.Font.GothamBold
+NotifyText.Text = "✨ GIAO DIỆN MENU THUỘC BẢN QUYỀN CỦA ライト [ RAITO ] ✨"
+NotifyText.TextColor3 = Color3.fromRGB(255, 215, 0)
+NotifyText.TextSize = 11
+NotifyText.TextWrapped = true
+NotifyText.ZIndex = 201
+
+local hue = 0
+local rainbowConn
+rainbowConn = RunService.RenderStepped:Connect(function(delta)
+    if not NotifyFrame or not NotifyFrame.Parent then
+        rainbowConn:Disconnect()
+        return
+    end
+    hue = (hue + delta * 0.4) % 1
+    local color = Color3.fromHSV(hue, 0.8, 1)
+    NotifyText.TextColor3 = color
+    NFStroke.Color = color
+end)
+
+task.delay(6, function()
+    if NotifyFrame and NotifyFrame.Parent then
+        pcall(function()
+            TweenService:Create(NotifyFrame, TweenInfo.new(1), {BackgroundTransparency = 1}):Play()
+            TweenService:Create(NotifyText, TweenInfo.new(1), {TextTransparency = 1}):Play()
+            local t = TweenService:Create(NFStroke, TweenInfo.new(1), {Transparency = 1})
+            t:Play()
+            t.Completed:Connect(function() 
+                pcall(function() NotifyFrame:Destroy() end) 
+            end)
+        end)
+    end
+end)
+
+-- ============================================
+-- 2. MENU CHÍNH
+-- ============================================
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Name = "OpenBtn"
+OpenBtn.BackgroundColor3 = Color3.fromRGB(20, 24, 33)
+OpenBtn.Position = UDim2.new(0.02, 0, 0.15, 0)
+OpenBtn.Size = UDim2.new(0, 52, 0, 52)
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.Text = "☀️"
+OpenBtn.TextSize = 24
+OpenBtn.ZIndex = 50
+OpenBtn.BackgroundTransparency = 0
+
+local OpenCorner = Instance.new("UICorner", OpenBtn)
+OpenCorner.CornerRadius = UDim.new(1, 0)
+
+local OpenStroke = Instance.new("UIStroke", OpenBtn)
+OpenStroke.Color = Color3.fromRGB(255, 200, 50)
+OpenStroke.Thickness = 2.5
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Name = "MainFrame"
+MainFrame.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -140)
+MainFrame.Size = UDim2.new(0, 300, 0, 280)
+MainFrame.Visible = true
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.ZIndex = 10
+MainFrame.BackgroundTransparency = 0
+
+local MainCorner = Instance.new("UICorner", MainFrame)
+MainCorner.CornerRadius = UDim.new(0, 14)
+
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Color = Color3.fromRGB(255, 200, 60)
+UIStroke.Thickness = 2
+
+local HeaderFrame = Instance.new("Frame", MainFrame)
+HeaderFrame.Size = UDim2.new(1, 0, 0, 42)
+HeaderFrame.BackgroundColor3 = Color3.fromRGB(24, 27, 38)
+HeaderFrame.ZIndex = 11
+HeaderFrame.BackgroundTransparency = 0
+
+local HeaderCorner = Instance.new("UICorner", HeaderFrame)
+HeaderCorner.CornerRadius = UDim.new(0, 14)
+
+local HeaderFix = Instance.new("Frame", HeaderFrame)
+HeaderFix.Size = UDim2.new(1, 0, 0, 10)
+HeaderFix.Position = UDim2.new(0, 0, 1, -10)
+HeaderFix.BackgroundColor3 = Color3.fromRGB(24, 27, 38)
+HeaderFix.BorderSizePixel = 0
+HeaderFix.ZIndex = 11
+HeaderFix.BackgroundTransparency = 0
+
+-- Nút [X] trên menu chính
+local MainCloseBtn = Instance.new("TextButton", HeaderFrame)
+MainCloseBtn.Size = UDim2.new(0, 28, 0, 28)
+MainCloseBtn.Position = UDim2.new(1, -34, 0.5, -14)
+MainCloseBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+MainCloseBtn.BackgroundTransparency = 0
+MainCloseBtn.Text = "✕"
+MainCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainCloseBtn.TextSize = 14
+MainCloseBtn.Font = Enum.Font.GothamBold
+MainCloseBtn.BorderSizePixel = 0
+MainCloseBtn.ZIndex = 20
+local MCBCorner = Instance.new("UICorner", MainCloseBtn)
+MCBCorner.CornerRadius = UDim.new(0, 6)
+
+local Title = Instance.new("TextLabel", HeaderFrame)
+Title.Size = UDim2.new(1, -50, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.Text = "☀️ ライト [ RAITO ] v2.5.0"
+Title.TextColor3 = Color3.fromRGB(255, 215, 80)
+Title.TextSize = 13
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 12
+
+local CloseMainBtn = Instance.new("TextButton", HeaderFrame)
+CloseMainBtn.Size = UDim2.new(0, 26, 0, 26)
+CloseMainBtn.Position = UDim2.new(1, -32, 0.5, -13)
+CloseMainBtn.BackgroundColor3 = Color3.fromRGB(45, 25, 35)
+CloseMainBtn.Font = Enum.Font.GothamBold
+CloseMainBtn.Text = "✕"
+CloseMainBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+CloseMainBtn.TextSize = 12
+CloseMainBtn.ZIndex = 12
+Instance.new("UICorner", CloseMainBtn).CornerRadius = UDim.new(0, 6)
+
+local Scroll = Instance.new("ScrollingFrame", MainFrame)
+Scroll.BackgroundTransparency = 1
+Scroll.Position = UDim2.new(0, 10, 0, 48)
+Scroll.Size = UDim2.new(1, -20, 1, -56)
+Scroll.ScrollBarThickness = 4
+Scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 200, 60)
+Scroll.ZIndex = 11
+
+local UIListLayout = Instance.new("UIListLayout", Scroll)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 6)
+
+-- ============================================
+-- 3. POPUP CHỈNH TỐC ĐỘ / ĐỘ CAO
+-- ============================================
+local ValueModal = Instance.new("Frame", ScreenGui)
+ValueModal.Name = "ValueModal"
+ValueModal.BackgroundColor3 = Color3.fromRGB(20, 23, 32)
+ValueModal.Position = UDim2.new(0.5, -120, 0.5, -60)
+ValueModal.Size = UDim2.new(0, 240, 0, 120)
+ValueModal.Visible = false
+ValueModal.ZIndex = 100
+ValueModal.Active = true
+ValueModal.Draggable = true
+ValueModal.BackgroundTransparency = 0
+
+local VMCorner = Instance.new("UICorner", ValueModal)
+VMCorner.CornerRadius = UDim.new(0, 12)
+
+local VMStroke = Instance.new("UIStroke", ValueModal)
+VMStroke.Color = Color3.fromRGB(255, 200, 60)
+VMStroke.Thickness = 2
+
+local VMTitle = Instance.new("TextLabel", ValueModal)
+VMTitle.Size = UDim2.new(1, -70, 0, 35)
+VMTitle.Position = UDim2.new(0, 12, 0, 0)
+VMTitle.BackgroundTransparency = 1
+VMTitle.Font = Enum.Font.GothamBold
+VMTitle.Text = "Điều chỉnh"
+VMTitle.TextColor3 = Color3.fromRGB(255, 220, 100)
+VMTitle.TextSize = 12
+VMTitle.TextXAlignment = Enum.TextXAlignment.Left
+VMTitle.ZIndex = 101
+
+-- Nút [X] trên popup value
+local VMCloseBtn = Instance.new("TextButton", ValueModal)
+VMCloseBtn.Size = UDim2.new(0, 24, 0, 24)
+VMCloseBtn.Position = UDim2.new(1, -30, 0, 8)
+VMCloseBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+VMCloseBtn.BackgroundTransparency = 0
+VMCloseBtn.Text = "✕"
+VMCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+VMCloseBtn.TextSize = 12
+VMCloseBtn.Font = Enum.Font.GothamBold
+VMCloseBtn.BorderSizePixel = 0
+VMCloseBtn.ZIndex = 102
+local VMCBCorner = Instance.new("UICorner", VMCloseBtn)
+VMCBCorner.CornerRadius = UDim.new(0, 5)
+
+local ValDisplay = Instance.new("TextLabel", ValueModal)
+ValDisplay.Position = UDim2.new(1, -65, 0, 8)
+ValDisplay.Size = UDim2.new(0, 35, 0, 20)
+ValDisplay.BackgroundColor3 = Color3.fromRGB(12, 14, 20)
+ValDisplay.Font = Enum.Font.GothamBold
+ValDisplay.Text = "50"
+ValDisplay.TextColor3 = Color3.fromRGB(255, 215, 80)
+ValDisplay.TextSize = 11
+ValDisplay.ZIndex = 101
+Instance.new("UICorner", ValDisplay).CornerRadius = UDim.new(0, 4)
+
+local SliderTrack = Instance.new("Frame", ValueModal)
+SliderTrack.Position = UDim2.new(0.08, 0, 0.55, 0)
+SliderTrack.Size = UDim2.new(0.84, 0, 0, 8)
+SliderTrack.BackgroundColor3 = Color3.fromRGB(35, 40, 55)
+SliderTrack.ZIndex = 101
+Instance.new("UICorner", SliderTrack).CornerRadius = UDim.new(1, 0)
+
+local SliderFill = Instance.new("Frame", SliderTrack)
+SliderFill.Size = UDim2.new(0.5, 0, 1, 0)
+SliderFill.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+SliderFill.ZIndex = 102
+Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0)
+
+local SliderKnob = Instance.new("Frame", SliderTrack)
+SliderKnob.Position = UDim2.new(0.5, -8, 0.5, -8)
+SliderKnob.Size = UDim2.new(0, 16, 0, 16)
+SliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SliderKnob.ZIndex = 103
+Instance.new("UICorner", SliderKnob).CornerRadius = UDim.new(1, 0)
+
+-- ============================================
+-- 4. POPUP CHỌN PLAYER
+-- ============================================
+local PlayerModal = Instance.new("Frame", ScreenGui)
+PlayerModal.Name = "PlayerModal"
+PlayerModal.BackgroundColor3 = Color3.fromRGB(20, 23, 32)
+PlayerModal.Position = UDim2.new(0.5, -125, 0.5, -90)
+PlayerModal.Size = UDim2.new(0, 250, 0, 180)
+PlayerModal.Visible = false
+PlayerModal.ZIndex = 100
+PlayerModal.Active = true
+PlayerModal.Draggable = true
+PlayerModal.BackgroundTransparency = 0
+
+local PMCorner = Instance.new("UICorner", PlayerModal)
+PMCorner.CornerRadius = UDim.new(0, 12)
+
+local PMStroke = Instance.new("UIStroke", PlayerModal)
+PMStroke.Color = Color3.fromRGB(255, 200, 60)
+PMStroke.Thickness = 2
+
+local PMTitle = Instance.new("TextLabel", PlayerModal)
+PMTitle.Size = UDim2.new(1, -35, 0, 35)
+PMTitle.Position = UDim2.new(0, 12, 0, 0)
+PMTitle.BackgroundTransparency = 1
+PMTitle.Font = Enum.Font.GothamBold
+PMTitle.Text = "Chọn Người Chơi"
+PMTitle.TextColor3 = Color3.fromRGB(255, 220, 100)
+PMTitle.TextSize = 12
+PMTitle.TextXAlignment = Enum.TextXAlignment.Left
+PMTitle.ZIndex = 101
+
+-- Nút [X] trên popup player
+local PMCloseBtn = Instance.new("TextButton", PlayerModal)
+PMCloseBtn.Size = UDim2.new(0, 24, 0, 24)
+PMCloseBtn.Position = UDim2.new(1, -30, 0, 8)
+PMCloseBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+PMCloseBtn.BackgroundTransparency = 0
+PMCloseBtn.Text = "✕"
+PMCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PMCloseBtn.TextSize = 12
+PMCloseBtn.Font = Enum.Font.GothamBold
+PMCloseBtn.BorderSizePixel = 0
+PMCloseBtn.ZIndex = 102
+local PMCBCorner = Instance.new("UICorner", PMCloseBtn)
+PMCBCorner.CornerRadius = UDim.new(0, 5)
+
+local PMScroll = Instance.new("ScrollingFrame", PlayerModal)
+PMScroll.BackgroundTransparency = 1
+PMScroll.Position = UDim2.new(0, 10, 0, 38)
+PMScroll.Size = UDim2.new(1, -20, 1, -48)
+PMScroll.ScrollBarThickness = 3
+PMScroll.ScrollBarImageColor3 = Color3.fromRGB(255, 200, 60)
+PMScroll.ZIndex = 101
+
+local PMListLayout = Instance.new("UIListLayout", PMScroll)
+PMListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+PMListLayout.Padding = UDim.new(0, 5)
+
+-- ============================================
+-- LOGIC XỬ LÝ SLIDER
+-- ============================================
+local activeValueLabel = nil
+local activeValueMode = nil
+local isDragging = false
+
+local function UpdateSlider(input)
+    pcall(function()
+        local pos = math.clamp((input.Position.X - SliderTrack.AbsolutePosition.X) / SliderTrack.AbsoluteSize.X, 0, 1)
+        SliderFill.Size = UDim2.new(pos, 0, 1, 0)
+        SliderKnob.Position = UDim2.new(pos, -8, 0.5, -8)
+        local val = math.floor(pos * 200)
+        ValDisplay.Text = tostring(val)
+        if activeValueLabel then
+            activeValueLabel.Text = "[" .. val .. "]"
+            if activeValueMode == "Fly" then
+                flySpeed = val
+            elseif activeValueMode == "Speed" then
+                walkSpeed = val
+                if char and char:FindFirstChild("Humanoid") and speedEnabled then
+                    char.Humanoid.WalkSpeed = val
+                end
+            elseif activeValueMode == "Jumpow" then
+                jumpPower = val
+                if char and char:FindFirstChild("Humanoid") then
+                    char.Humanoid.JumpPower = val
+                end
+            end
+        end
+    end)
+end
+
+SliderTrack.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = true
+        UpdateSlider(input)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        UpdateSlider(input)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = false
+    end
+end)
+
+-- ============================================
+-- CHỨC NĂNG FLY (Giống Infinite Yield)
+-- ============================================
+local function toggleFly()
+    flyEnabled = not flyEnabled
+    if flyEnabled then
+        if not hrp then updateChar() end
+        if hrp then
+            pcall(function()
+                flyBodyVelocity = Instance.new("BodyVelocity")
+                flyBodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 1e9
+                flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                flyBodyVelocity.Parent = hrp
+                
+                flyBodyGyro = Instance.new("BodyGyro")
+                flyBodyGyro.MaxTorque = Vector3.new(1, 1, 1) * 1e9
+                flyBodyGyro.Parent = hrp
+            end)
+            
+            flyConnection = RunService.Heartbeat:Connect(function()
+                if not flyEnabled or not hrp or not flyBodyVelocity then 
+                    return 
+                end
+                pcall(function()
+                    local forward = hrp.CFrame.LookVector
+                    local right = hrp.CFrame.RightVector
+                    local up = Vector3.new(0, 1, 0)
+                    
+                    local moveDir = Vector3.new(0, 0, 0)
+                    
+                    if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                        moveDir = moveDir + forward * flySpeed
+                    end
+                    if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                        moveDir = moveDir - forward * flySpeed
+                    end
+                    if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                        moveDir = moveDir - right * flySpeed
+                    end
+                    if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                        moveDir = moveDir + right * flySpeed
+                    end
+                    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                        moveDir = moveDir + up * flySpeed
+                    end
+                    if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                        moveDir = moveDir - up * flySpeed
+                    end
+                    
+                    flyBodyVelocity.Velocity = moveDir
+                    
+                    if hrp and flyBodyGyro then
+                        flyBodyGyro.CFrame = hrp.CFrame
+                    end
+                end)
+            end)
+        end
+    else
+        if flyConnection then
+            flyConnection:Disconnect()
+            flyConnection = nil
+        end
+        pcall(function()
+            if flyBodyVelocity then
+                flyBodyVelocity:Destroy()
+                flyBodyVelocity = nil
+            end
+            if flyBodyGyro then
+                flyBodyGyro:Destroy()
+                flyBodyGyro = nil
+            end
+            if hrp then
+                hrp.Velocity = Vector3.new(0, 0, 0)
+            end
+        end)
+    end
+end
+
+-- ============================================
+-- CHỨC NĂNG SPEED
+-- ============================================
+local function toggleSpeed()
+    speedEnabled = not speedEnabled
+    if char and char:FindFirstChild("Humanoid") then
+        if speedEnabled then
+            char.Humanoid.WalkSpeed = walkSpeed
+        else
+            char.Humanoid.WalkSpeed = 16
+        end
+    end
+end
+
+-- ============================================
+-- CHỨC NĂNG NOCLIP
+-- ============================================
+local function toggleNoclip()
+    noclipEnabled = not noclipEnabled
+    if noclipEnabled then
+        noclipConnection = RunService.Heartbeat:Connect(function()
+            if not noclipEnabled or not char then return end
+            pcall(function()
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end)
+        end)
+    else
+        if noclipConnection then 
+            noclipConnection:Disconnect() 
+            noclipConnection = nil 
+        end
+        if char then
+            pcall(function()
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end)
+        end
+    end
+end
+
+-- ============================================
+-- CHỨC NĂNG ESP
+-- ============================================
+local function toggleESP()
+    espEnabled = not espEnabled
+    if espEnabled then
+        espConnection = RunService.Heartbeat:Connect(function()
+            pcall(function()
+                for _, plr in pairs(Players:GetPlayers()) do
+                    if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local root = plr.Character.HumanoidRootPart
+                        local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                        
+                        if onScreen then
+                            if not espObjects[plr] then
+                                local espBox = Instance.new("Frame", ScreenGui)
+                                espBox.Size = UDim2.new(0, 40, 0, 80)
+                                espBox.Position = UDim2.new(0, pos.X - 20, 0, pos.Y - 40)
+                                espBox.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+                                espBox.BackgroundTransparency = 0.3
+                                espBox.BorderSizePixel = 0
+                                espBox.ZIndex = 5
+
+                                local espName = Instance.new("TextLabel", espBox)
+                                espName.Size = UDim2.new(1, 0, 0, 20)
+                                espName.Position = UDim2.new(0, 0, 1, 0)
+                                espName.BackgroundTransparency = 1
+                                espName.Text = plr.Name
+                                espName.TextColor3 = Color3.fromRGB(255, 255, 255)
+                                espName.TextScaled = true
+                                espName.Font = Enum.Font.GothamBold
+                                espName.ZIndex = 6
+
+                                espObjects[plr] = espBox
+                            else
+                                local espBox = espObjects[plr]
+                                espBox.Position = UDim2.new(0, pos.X - 20, 0, pos.Y - 40)
+                            end
+                        else
+                            if espObjects[plr] then
+                                espObjects[plr]:Destroy()
+                                espObjects[plr] = nil
+                            end
+                        end
+                    end
+                end
+            end)
+        end)
+    else
+        if espConnection then 
+            espConnection:Disconnect() 
+            espConnection = nil 
+        end
+        for _, obj in pairs(espObjects) do
+            pcall(function() obj:Destroy() end)
+        end
+        espObjects = {}
+    end
+end
+
+-- ============================================
+-- CHỨC NĂNG AIMBOT
+-- ============================================
+local function toggleAimbot()
+    aimbotEnabled = not aimbotEnabled
+    if aimbotEnabled then
+        aimbotConnection = RunService.Heartbeat:Connect(function()
+            if not aimbotEnabled or not char or not hrp then return end
+            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                pcall(function()
+                    local targetPos = selectedPlayer.Character.HumanoidRootPart.Position
+                    local lookAt = CFrame.new(hrp.Position, targetPos)
+                    hrp.CFrame = CFrame.new(hrp.Position, lookAt.LookVector * 100 + hrp.Position)
+                end)
+            end
+        end)
+    else
+        if aimbotConnection then 
+            aimbotConnection:Disconnect() 
+            aimbotConnection = nil 
+        end
+    end
+end
+
+-- ============================================
+-- CHỨC NĂNG TELEPORT
+-- ============================================
+local function teleportToPlayer(target)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        pcall(function()
+            local pos = target.Character.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = CFrame.new(pos)
+            end
+        end)
+    end
+end
+
+-- ============================================
+-- CHỨC NĂNG HEADSIT (NGỒI LÊN ĐẦU)
+-- ============================================
+local function headsitOnPlayer(target)
+    if target and target.Character and target.Character:FindFirstChild("Head") then
+        pcall(function()
+            local headPos = target.Character.Head.Position + Vector3.new(0, 1.5, 0)
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = CFrame.new(headPos)
+                if char:FindFirstChild("Humanoid") then
+                    char.Humanoid.Sit = true
+                end
+            end
+        end)
+    end
+end
+
+-- ============================================
+-- TẠO NÚT CHỨC NĂNG
+-- ============================================
+local function CreateFeatureRow(name, mode, placeholder)
+    local Frame = Instance.new("Frame", Scroll)
+    Frame.BackgroundColor3 = Color3.fromRGB(25, 28, 39)
+    Frame.Size = UDim2.new(1, -6, 0, 38)
+    Frame.ZIndex = 12
+    Frame.BackgroundTransparency = 0
+    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
+
+    local Label = Instance.new("TextLabel", Frame)
+    Label.BackgroundTransparency = 1
+    Label.Position = UDim2.new(0, 10, 0, 0)
+    Label.Size = UDim2.new(0.35, 0, 1, 0)
+    Label.Font = Enum.Font.GothamBold
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(230, 235, 245)
+    Label.TextSize = 12
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.ZIndex = 13
+
+    local ValBtn = nil
+    if mode == "Value" or mode == "Player" then
+        ValBtn = Instance.new("TextButton", Frame)
+        ValBtn.BackgroundColor3 = Color3.fromRGB(14, 16, 23)
+        ValBtn.Position = UDim2.new(0.38, 0, 0.18, 0)
+        ValBtn.Size = UDim2.new(0.42, 0, 0.64, 0)
+        ValBtn.Font = Enum.Font.GothamBold
+        ValBtn.Text = placeholder
+        ValBtn.TextColor3 = Color3.fromRGB(255, 210, 90)
+        ValBtn.TextSize = 10
+        ValBtn.ZIndex = 13
+        ValBtn.BackgroundTransparency = 0
+        Instance.new("UICorner", ValBtn).CornerRadius = UDim.new(0, 5)
+    end
+
+    local ToggleBtn = Instance.new("TextButton", Frame)
+    ToggleBtn.Position = UDim2.new(1, -30, 0.5, -10)
+    ToggleBtn.Size = UDim2.new(0, 20, 0, 20)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.Text = ""
+    ToggleBtn.ZIndex = 13
+    ToggleBtn.BackgroundTransparency = 0
+    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+
+    local isToggled = false
+
+    -- Xử lý Value
+    if ValBtn and mode == "Value" then
+        ValBtn.MouseButton1Click:Connect(function()
+            VMTitle.Text = "☀️ Chỉnh " .. name
+            activeValueLabel = ValBtn
+            activeValueMode = name
+            local currentVal = 50
+            if name == "Fly" then currentVal = flySpeed
+            elseif name == "Speed" then currentVal = walkSpeed
+            elseif name == "Jumpow" then currentVal = jumpPower end
+            local pos = math.clamp(currentVal / 200, 0, 1)
+            SliderFill.Size = UDim2.new(pos, 0, 1, 0)
+            SliderKnob.Position = UDim2.new(pos, -8, 0.5, -8)
+            ValDisplay.Text = tostring(currentVal)
+            ValueModal.Visible = true
+            PlayerModal.Visible = false
+        end)
+        -- Thêm TouchTap cho mobile
+        ValBtn.TouchTap:Connect(function()
+            VMTitle.Text = "☀️ Chỉnh " .. name
+            activeValueLabel = ValBtn
+            activeValueMode = name
+            local currentVal = 50
+            if name == "Fly" then currentVal = flySpeed
+            elseif name == "Speed" then currentVal = walkSpeed
+            elseif name == "Jumpow" then currentVal = jumpPower end
+            local pos = math.clamp(currentVal / 200, 0, 1)
+            SliderFill.Size = UDim2.new(pos, 0, 1, 0)
+            SliderKnob.Position = UDim2.new(pos, -8, 0.5, -8)
+            ValDisplay.Text = tostring(currentVal)
+            ValueModal.Visible = true
+            PlayerModal.Visible = false
+        end)
+    end
+
+    -- Xử lý Player
+    if ValBtn and mode == "Player" then
+        ValBtn.MouseButton1Click:Connect(function()
+            PMTitle.Text = "☀️ Chọn Player: " .. name
+            activeValueLabel = ValBtn
+
+            for _, child in pairs(PMScroll:GetChildren()) do
+                if child:IsA("Frame") then child:Destroy() end
+            end
+
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer then
+                    local PFrame = Instance.new("Frame", PMScroll)
+                    PFrame.BackgroundColor3 = Color3.fromRGB(30, 34, 48)
+                    PFrame.Size = UDim2.new(1, 0, 0, 32)
+                    PFrame.ZIndex = 102
+                    PFrame.BackgroundTransparency = 0
+                    Instance.new("UICorner", PFrame).CornerRadius = UDim.new(0, 6)
+
+                    local Avatar = Instance.new("ImageLabel", PFrame)
+                    Avatar.Position = UDim2.new(0, 5, 0.1, 0)
+                    Avatar.Size = UDim2.new(0, 25, 0, 25)
+                    Avatar.BackgroundTransparency = 1
+                    Avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150"
+                    Avatar.ZIndex = 103
+
+                    local PBtn = Instance.new("TextButton", PFrame)
+                    PBtn.Position = UDim2.new(0, 36, 0, 0)
+                    PBtn.Size = UDim2.new(1, -36, 1, 0)
+                    PBtn.BackgroundTransparency = 1
+                    PBtn.Font = Enum.Font.GothamBold
+                    PBtn.Text = plr.DisplayName
+                    PBtn.TextColor3 = Color3.fromRGB(255, 220, 120)
+                    PBtn.TextSize = 10
+                    PBtn.TextXAlignment = Enum.TextXAlignment.Left
+                    PBtn.ZIndex = 103
+
+                    PBtn.MouseButton1Click:Connect(function()
+                        activeValueLabel.Text = plr.DisplayName
+                        selectedPlayer = plr
+                        if name == "Teleport" then
+                            teleportToPlayer(plr)
+                        elseif name == "Headsit" then
+                            headsitOnPlayer(plr)
+                        elseif name == "Aimbot" then
+                            if aimbotEnabled then
+                                toggleAimbot()
+                                toggleAimbot()
+                            else
+                                toggleAimbot()
+                            end
+                        end
+                        PlayerModal.Visible = false
+                    end)
+                    PBtn.TouchTap:Connect(function()
+                        activeValueLabel.Text = plr.DisplayName
+                        selectedPlayer = plr
+                        if name == "Teleport" then
+                            teleportToPlayer(plr)
+                        elseif name == "Headsit" then
+                            headsitOnPlayer(plr)
+                        elseif name == "Aimbot" then
+                            if aimbotEnabled then
+                                toggleAimbot()
+                                toggleAimbot()
+                            else
+                                toggleAimbot()
+                            end
+                        end
+                        PlayerModal.Visible = false
+                    end)
+                end
+            end
+
+            PlayerModal.Visible = true
+            ValueModal.Visible = false
+        end)
+        -- Thêm TouchTap cho mobile
+        ValBtn.TouchTap:Connect(function()
+            PMTitle.Text = "☀️ Chọn Player: " .. name
+            activeValueLabel = ValBtn
+
+            for _, child in pairs(PMScroll:GetChildren()) do
+                if child:IsA("Frame") then child:Destroy() end
+            end
+
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer then
+                    local PFrame = Instance.new("Frame", PMScroll)
+                    PFrame.BackgroundColor3 = Color3.fromRGB(30, 34, 48)
+                    PFrame.Size = UDim2.new(1, 0, 0, 32)
+                    PFrame.ZIndex = 102
+                    PFrame.BackgroundTransparency = 0
+                    Instance.new("UICorner", PFrame).CornerRadius = UDim.new(0, 6)
+
+                    local Avatar = Instance.new("ImageLabel", PFrame)
+                    Avatar.Position = UDim2.new(0, 5, 0.1, 0)
+                    Avatar.Size = UDim2.new(0, 25, 0, 25)
+                    Avatar.BackgroundTransparency = 1
+                    Avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150"
+                    Avatar.ZIndex = 103
+
+                    local PBtn = Instance.new("TextButton", PFrame)
+                    PBtn.Position = UDim2.new(0, 36, 0, 0)
+                    PBtn.Size = UDim2.new(1, -36, 1, 0)
+                    PBtn.BackgroundTransparency = 1
+                    PBtn.Font = Enum.Font.GothamBold
+                    PBtn.Text = plr.DisplayName
+                    PBtn.TextColor3 = Color3.fromRGB(255, 220, 120)
+                    PBtn.TextSize = 10
+                    PBtn.TextXAlignment = Enum.TextXAlignment.Left
+                    PBtn.ZIndex = 103
+
+                    PBtn.MouseButton1Click:Connect(function()
+                        activeValueLabel.Text = plr.DisplayName
+                        selectedPlayer = plr
+                        if name == "Teleport" then
+                            teleportToPlayer(plr)
+                        elseif name == "Headsit" then
+                            headsitOnPlayer(plr)
+                        elseif name == "Aimbot" then
+                            if aimbotEnabled then
+                                toggleAimbot()
+                                toggleAimbot()
+                            else
+                                toggleAimbot()
+                            end
+                        end
+                        PlayerModal.Visible = false
+                    end)
+                    PBtn.TouchTap:Connect(function()
+                        activeValueLabel.Text = plr.DisplayName
+                        selectedPlayer = plr
+                        if name == "Teleport" then
+                            teleportToPlayer(plr)
+                        elseif name == "Headsit" then
+                            headsitOnPlayer(plr)
+                        elseif name == "Aimbot" then
+                            if aimbotEnabled then
+                                toggleAimbot()
+                                toggleAimbot()
+                            else
+                                toggleAimbot()
+                            end
+                        end
+                        PlayerModal.Visible = false
+                    end)
+                end
+            end
+
+            PlayerModal.Visible = true
+            ValueModal.Visible = false
+        end)
+    end
+
+    -- Bật/tắt toggle
+    ToggleBtn.MouseButton1Click:Connect(function()
+        isToggled = not isToggled
+        ToggleBtn.BackgroundColor3 = isToggled and Color3.fromRGB(255, 190, 40) or Color3.fromRGB(45, 50, 65)
+        
+        if name == "Fly" then 
+            toggleFly()
+        elseif name == "Speed" then 
+            toggleSpeed()
+        elseif name == "Jumpow" then
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.JumpPower = jumpPower
+            end
+        elseif name == "Noclip" then 
+            toggleNoclip()
+        elseif name == "ESP" then 
+            toggleESP()
+        elseif name == "Aimbot" then 
+            toggleAimbot()
+        end
+    end)
+    -- Thêm TouchTap cho mobile
+    ToggleBtn.TouchTap:Connect(function()
+        isToggled = not isToggled
+        ToggleBtn.BackgroundColor3 = isToggled and Color3.fromRGB(255, 190, 40) or Color3.fromRGB(45, 50, 65)
+        
+        if name == "Fly" then 
+            toggleFly()
+        elseif name == "Speed" then 
+            toggleSpeed()
+        elseif name == "Jumpow" then
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.JumpPower = jumpPower
+            end
+        elseif name == "Noclip" then 
+            toggleNoclip()
+        elseif name == "ESP" then 
+            toggleESP()
+        elseif name == "Aimbot" then 
+            toggleAimbot()
+        end
+    end)
+end
+
+-- ============================================
+-- KHỞI TẠO DANH SÁCH TÍNH NĂNG
+-- ============================================
+CreateFeatureRow("Fly", "Value", "[ Tốc độ ]")
+CreateFeatureRow("Speed", "Value", "[ Tốc độ ]")
+CreateFeatureRow("Jumpow", "Value", "[ Độ cao ]")
+CreateFeatureRow("Noclip", "None", "")
+CreateFeatureRow("ESP", "None", "")
+CreateFeatureRow("Aimbot", "Player", "[ Player ]")
+CreateFeatureRow("Teleport", "Player", "[ Player ]")
+CreateFeatureRow("Headsit", "Player", "[ Player ]")
+
+-- ============================================
+-- BẬT/TẮT MENU CHÍNH
+-- ============================================
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+    ValueModal.Visible = false
+    PlayerModal.Visible = false
+end)
+OpenBtn.TouchTap:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+    ValueModal.Visible = false
+    PlayerModal.Visible = false
+end)
+
+-- Đóng các popup khi bấm [X]
+MainCloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+MainCloseBtn.TouchTap:Connect(function()
+    MainFrame.Visible = false
+end)
+
+VMCloseBtn.MouseButton1Click:Connect(function()
+    ValueModal.Visible = false
+end)
+VMCloseBtn.TouchTap:Connect(function()
+    ValueModal.Visible = false
+end)
+
+PMCloseBtn.MouseButton1Click:Connect(function()
+    PlayerModal.Visible = false
+end)
+PMCloseBtn.TouchTap:Connect(function()
+    PlayerModal.Visible = false
+end)
+
+-- Đóng popup khi bấm nút X cũ
+VMClose.MouseButton1Click:Connect(function() 
+    ValueModal.Visible = false 
+end)
+VMClose.TouchTap:Connect(function() 
+    ValueModal.Visible = false 
+end)
+
+PMClose.MouseButton1Click:Connect(function() 
+    PlayerModal.Visible = false 
+end)
+PMClose.TouchTap:Connect(function() 
+    PlayerModal.Visible = false 
+end)
+
+CloseMainBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    ValueModal.Visible = false
+    PlayerModal.Visible = false
+end)
+CloseMainBtn.TouchTap:Connect(function()
+    MainFrame.Visible = false
+    ValueModal.Visible = false
+    PlayerModal.Visible = false
+end)
+
+-- ============================================
+-- XỬ LÝ KHI NHÂN VẬT RESPAWN
+-- ============================================
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    char = newChar
+    hrp = char:FindFirstChild("HumanoidRootPart")
+    task.wait(0.5)
+    
+    if char and char:FindFirstChild("Humanoid") then
+        if speedEnabled then
+            char.Humanoid.WalkSpeed = walkSpeed
+        end
+        char.Humanoid.JumpPower = jumpPower
+    end
+    
+    if flyEnabled then
+        if flyConnection then
+            flyConnection:Disconnect()
+            flyConnection = nil
+        end
+        pcall(function()
+            if flyBodyVelocity then
+                flyBodyVelocity:Destroy()
+                flyBodyVelocity = nil
+            end
+            if flyBodyGyro then
+                flyBodyGyro:Destroy()
+                flyBodyGyro = nil
+            end
+        end)
+        task.wait(0.2)
+        toggleFly()
+    end
+    
+    if noclipEnabled then
+        toggleNoclip()
+        toggleNoclip()
+    end
+end)
+
+print("✨ ライト [RAITO] Ultra GUI V2.5.0 đã tải thành công!")
+print("📌 Bấm ☀️ ở góc trái để mở menu")
