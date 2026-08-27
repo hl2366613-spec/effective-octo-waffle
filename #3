@@ -1,0 +1,257 @@
+-- Chức năng Ngồi Lên Đầu Player
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+-- Biến lưu trữ trạng thái
+local LocalPlayer = Players.LocalPlayer
+local isSitting = false
+local targetPlayer = nil
+local sitConnection = nil
+local originalPosition = nil
+local originalParent = nil
+local currentSitTarget = nil
+
+-- Hàm tìm player gần nhất
+local function findNearestPlayer(maxDistance)
+    maxDistance = maxDistance or 50
+    local nearestPlayer = nil
+    local shortestDistance = maxDistance
+    
+    local character = LocalPlayer.Character
+    if not character then return nil end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return nil end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local targetChar = player.Character
+            if targetChar then
+                local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+                if targetRoot then
+                    local distance = (rootPart.Position - targetRoot.Position).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        nearestPlayer = player
+                    end
+                end
+            end
+        end
+    end
+    
+    return nearestPlayer, shortestDistance
+end
+
+-- Hàm tạo Weld để giữ player ngồi trên đầu
+local function createSitWeld(character, targetCharacter)
+    local characterRoot = character:FindFirstChild("HumanoidRootPart")
+    local targetHead = targetCharacter:FindFirstChild("Head")
+    
+    if not characterRoot or not targetHead then
+        return nil
+    end
+    
+    -- Lưu vị trí ban đầu
+    originalPosition = characterRoot.Position
+    originalParent = characterRoot.Parent
+    
+    -- Tạo weld constraint
+    local weld = Instance.new("Weld")
+    weld.Name = "SitWeld"
+    weld.Part0 = characterRoot
+    weld.Part1 = targetHead
+    weld.C0 = CFrame.new(0, 2, 0) -- Vị trí ngồi trên đầu
+    weld.C1 = CFrame.new(0, 0, 0)
+    weld.Parent = characterRoot
+    
+    -- Vô hiệu hóa physics của character
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true
+    end
+    
+    -- Vô hiệu hóa các body movers
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+        if part:IsA("BodyMover") or part:IsA("BodyVelocity") or part:IsA("BodyGyro") then
+            part:Destroy()
+        end
+    end
+    
+    return weld
+end
+
+-- Hàm bắt đầu ngồi lên đầu
+local function startSitting()
+    if isSitting then return end
+    
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local target, distance = findNearestPlayer(30)
+    if not target or not target.Character then
+        print("Không tìm thấy player gần đó!")
+        return false
+    end
+    
+    targetPlayer = target
+    currentSitTarget = target
+    
+    local weld = createSitWeld(character, target.Character)
+    if not weld then
+        print("Không thể tạo weld!")
+        return false
+    end
+    
+    isSitting = true
+    
+    -- Thông báo
+    print("Đang ngồi lên đầu: " .. target.Name)
+    
+    -- Tạo hiệu ứng animation (tùy chọn)
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        -- Có thể thêm animation ngồi ở đây nếu muốn
+        -- local sitAnimation = Instance.new("Animation")
+        -- sitAnimation.AnimationId = "rbxassetid://SIT_ANIMATION_ID"
+        -- local animTrack = humanoid:LoadAnimation(sitAnimation)
+        -- animTrack:Play()
+    end
+    
+    return true
+end
+
+-- Hàm dừng ngồi
+local function stopSitting()
+    if not isSitting then return end
+    
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local characterRoot = character:FindFirstChild("HumanoidRootPart")
+    
+    -- Xóa weld
+    if characterRoot then
+        local weld = characterRoot:FindFirstChild("SitWeld")
+        if weld then
+            weld:Destroy()
+        end
+        
+        -- Khôi phục vị trí và physics
+        if originalPosition then
+            characterRoot.Position = originalPosition + Vector3.new(0, 3, 0)
+            originalPosition = nil
+        end
+        
+        -- Khôi phục CanCollide
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+        
+        -- Khôi phục humanoid
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+    
+    isSitting = false
+    targetPlayer = nil
+    currentSitTarget = nil
+    
+    print("Đã dừng ngồi!")
+end
+
+-- Toggle ngồi/đứng
+local function toggleSitting()
+    if isSitting then
+        stopSitting()
+    else
+        startSitting()
+    end
+end
+
+-- Theo dõi target player di chuyển
+RunService.RenderStepped:Connect(function()
+    if isSitting and targetPlayer and targetPlayer.Character then
+        local character = LocalPlayer.Character
+        local targetCharacter = targetPlayer.Character
+        
+        if character and targetCharacter then
+            local characterRoot = character:FindFirstChild("HumanoidRootPart")
+            local targetHead = targetCharacter:FindFirstChild("Head")
+            
+            if characterRoot and targetHead then
+                -- Cập nhật vị trí ngồi để theo sát đầu target
+                local weld = characterRoot:FindFirstChild("SitWeld")
+                if weld then
+                    weld.C0 = CFrame.new(0, 2, 0) * CFrame.Angles(0, math.rad(90), 0)
+                end
+            end
+        end
+    end
+end)
+
+-- Tự động dừng nếu target player disconnect
+Players.PlayerRemoving:Connect(function(player)
+    if player == targetPlayer then
+        stopSitting()
+    end
+end)
+
+-- Tự động dừng nếu LocalPlayer chết
+local function onCharacterAdded(character)
+    local humanoid = character:WaitForChild("Humanoid")
+    humanoid.Died:Connect(function()
+        if isSitting then
+            stopSitting()
+        end
+    end)
+end
+
+if LocalPlayer.Character then
+    onCharacterAdded(LocalPlayer.Character)
+end
+
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+-- Hàm để gọi từ menu (export)
+local SitOnHead = {
+    StartSitting = startSitting,
+    StopSitting = stopSitting,
+    ToggleSitting = toggleSitting,
+    IsSitting = function() return isSitting end,
+    GetTargetPlayer = function() return targetPlayer end,
+    FindNearestPlayer = findNearestPlayer
+}
+
+return SitOnHead
+
+-- CÁCH SỬ DỤNG TRONG MENU CỦA BẠN:
+--[[
+local SitOnHead = loadstring(game:HttpGet("URL_CUA_SCRIPT"))()
+
+-- Thêm vào menu của bạn:
+local function createSitButton()
+    local button = Instance.new("TextButton")
+    button.Text = "Ngồi Lên Đầu Player"
+    button.Size = UDim2.new(1, 0, 0, 30)
+    
+    button.MouseButton1Click:Connect(function()
+        SitOnHead.ToggleSitting()
+        -- Cập nhật text button
+        if SitOnHead.IsSitting() then
+            button.Text = "Đứng Dậy"
+        else
+            button.Text = "Ngồi Lên Đầu Player"
+        end
+    end)
+    
+    return button
+end
+--]]
