@@ -1,0 +1,629 @@
+--========================================================
+-- ライト [Raito]
+-- UI DEMO - Chức năng không can thiệp vào người chơi
+--========================================================
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local LP = Players.LocalPlayer
+
+--// Colors
+local BG       = Color3.fromRGB(7, 5, 12)
+local CARD     = Color3.fromRGB(14, 10, 22)
+local CARD2    = Color3.fromRGB(20, 14, 31)
+local PURPLE   = Color3.fromRGB(170, 70, 255)
+local PURPLE2  = Color3.fromRGB(110, 35, 180)
+local WHITE    = Color3.fromRGB(245, 240, 255)
+local GRAY     = Color3.fromRGB(155, 145, 175)
+
+--========================================================
+-- Helpers
+--========================================================
+
+local function Corner(obj, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 10)
+    c.Parent = obj
+    return c
+end
+
+local function Stroke(obj, color, thickness, transparency)
+    local s = Instance.new("UIStroke")
+    s.Color = color or PURPLE
+    s.Thickness = thickness or 1
+    s.Transparency = transparency or 0
+    s.Parent = obj
+    return s
+end
+
+local function Tween(obj, info, props)
+    TweenService:Create(obj, info, props):Play()
+end
+
+--========================================================
+-- GUI
+--========================================================
+
+local GUI = Instance.new("ScreenGui")
+GUI.Name = "Raito_UI"
+GUI.ResetOnSpawn = false
+GUI.IgnoreGuiInset = true
+GUI.Parent = game:GetService("CoreGui")
+
+--========================================================
+-- Main
+--========================================================
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.fromOffset(560, 430)
+Main.Position = UDim2.new(0.5, -280, 0.5, -215)
+Main.BackgroundColor3 = BG
+Main.BorderSizePixel = 0
+Main.ZIndex = 10
+Main.Parent = GUI
+
+Corner(Main, 18)
+Stroke(Main, PURPLE, 2, 0.15)
+
+--========================================================
+-- Top decoration
+--========================================================
+
+local TopLine = Instance.new("Frame")
+TopLine.Size = UDim2.new(1, -60, 0, 2)
+TopLine.Position = UDim2.fromOffset(30, 4)
+TopLine.BackgroundColor3 = PURPLE
+TopLine.BorderSizePixel = 0
+TopLine.ZIndex = 11
+TopLine.Parent = Main
+
+Corner(TopLine, 2)
+
+local Star = Instance.new("TextLabel")
+Star.Size = UDim2.fromOffset(55, 55)
+Star.Position = UDim2.fromOffset(20, 20)
+Star.BackgroundTransparency = 1
+Star.Text = "✦"
+Star.TextColor3 = PURPLE
+Star.TextSize = 48
+Star.Font = Enum.Font.GothamBold
+Star.ZIndex = 12
+Star.Parent = Main
+
+--========================================================
+-- Title
+--========================================================
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -130, 0, 50)
+Title.Position = UDim2.fromOffset(82, 18)
+Title.BackgroundTransparency = 1
+Title.Text = "ライト"
+Title.TextColor3 = WHITE
+Title.TextSize = 42
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 12
+Title.Parent = Main
+
+local Raito = Instance.new("TextLabel")
+Raito.Size = UDim2.new(1, -130, 0, 25)
+Raito.Position = UDim2.fromOffset(85, 61)
+Raito.BackgroundTransparency = 1
+Raito.Text = "~ ライト [ Raito ] ~"
+Raito.TextColor3 = PURPLE
+Raito.TextSize = 16
+Raito.Font = Enum.Font.GothamMedium
+Raito.TextXAlignment = Enum.TextXAlignment.Left
+Raito.ZIndex = 12
+Raito.Parent = Main
+
+--========================================================
+-- Close
+--========================================================
+
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.fromOffset(42, 38)
+Close.Position = UDim2.new(1, -55, 0, 18)
+Close.BackgroundColor3 = CARD2
+Close.Text = "×"
+Close.TextColor3 = WHITE
+Close.TextSize = 26
+Close.Font = Enum.Font.GothamBold
+Close.AutoButtonColor = false
+Close.ZIndex = 15
+Close.Parent = Main
+
+Corner(Close, 10)
+Stroke(Close, PURPLE2, 1)
+
+Close.MouseButton1Click:Connect(function()
+    GUI:Destroy()
+end)
+
+--========================================================
+-- Copyright
+--========================================================
+
+local Copyright = Instance.new("TextLabel")
+Copyright.Size = UDim2.new(1, -40, 0, 25)
+Copyright.Position = UDim2.fromOffset(20, 95)
+Copyright.BackgroundTransparency = 1
+Copyright.Text = "✦  Menu thuộc bản quyền của ライト  ✦"
+Copyright.TextColor3 = GRAY
+Copyright.TextSize = 13
+Copyright.Font = Enum.Font.GothamMedium
+Copyright.ZIndex = 12
+Copyright.Parent = Main
+
+--========================================================
+-- Feature Card
+--========================================================
+
+local Feature = Instance.new("Frame")
+Feature.Size = UDim2.new(1, -50, 0, 270)
+Feature.Position = UDim2.fromOffset(25, 135)
+Feature.BackgroundColor3 = CARD
+Feature.BorderSizePixel = 0
+Feature.ZIndex = 11
+Feature.Parent = Main
+
+Corner(Feature, 15)
+Stroke(Feature, PURPLE2, 1, 0.25)
+
+local FeatureTitle = Instance.new("TextLabel")
+FeatureTitle.Size = UDim2.new(1, -30, 0, 35)
+FeatureTitle.Position = UDim2.fromOffset(15, 12)
+FeatureTitle.BackgroundTransparency = 1
+FeatureTitle.Text = "✦  Ngồi lên đầu người chơi"
+FeatureTitle.TextColor3 = WHITE
+FeatureTitle.TextSize = 20
+FeatureTitle.Font = Enum.Font.GothamBold
+FeatureTitle.TextXAlignment = Enum.TextXAlignment.Left
+FeatureTitle.ZIndex = 12
+FeatureTitle.Parent = Feature
+
+local FeatureSub = Instance.new("TextLabel")
+FeatureSub.Size = UDim2.new(1, -30, 0, 25)
+FeatureSub.Position = UDim2.fromOffset(18, 44)
+FeatureSub.BackgroundTransparency = 1
+FeatureSub.Text = "Sit On Player's Head"
+FeatureSub.TextColor3 = PURPLE
+FeatureSub.TextSize = 14
+FeatureSub.Font = Enum.Font.GothamMedium
+FeatureSub.TextXAlignment = Enum.TextXAlignment.Left
+FeatureSub.ZIndex = 12
+FeatureSub.Parent = Feature
+
+--========================================================
+-- Player selector
+--========================================================
+
+local Selector = Instance.new("TextButton")
+Selector.Size = UDim2.new(1, -30, 0, 58)
+Selector.Position = UDim2.fromOffset(15, 80)
+Selector.BackgroundColor3 = CARD2
+Selector.Text = ""
+Selector.AutoButtonColor = false
+Selector.ZIndex = 13
+Selector.Parent = Feature
+
+Corner(Selector, 11)
+Stroke(Selector, PURPLE2, 1, 0.35)
+
+local UserIcon = Instance.new("TextLabel")
+UserIcon.Size = UDim2.fromOffset(40, 50)
+UserIcon.Position = UDim2.fromOffset(8, 4)
+UserIcon.BackgroundTransparency = 1
+UserIcon.Text = "♙"
+UserIcon.TextColor3 = PURPLE
+UserIcon.TextSize = 28
+UserIcon.Font = Enum.Font.GothamBold
+UserIcon.ZIndex = 14
+UserIcon.Parent = Selector
+
+local SelectedText = Instance.new("TextLabel")
+SelectedText.Size = UDim2.new(1, -85, 1, 0)
+SelectedText.Position = UDim2.fromOffset(55, 0)
+SelectedText.BackgroundTransparency = 1
+SelectedText.Text = "Chọn player..."
+SelectedText.TextColor3 = GRAY
+SelectedText.TextSize = 16
+SelectedText.Font = Enum.Font.GothamMedium
+SelectedText.TextXAlignment = Enum.TextXAlignment.Left
+SelectedText.ZIndex = 14
+SelectedText.Parent = Selector
+
+local Arrow = Instance.new("TextLabel")
+Arrow.Size = UDim2.fromOffset(35, 50)
+Arrow.Position = UDim2.new(1, -42, 0, 4)
+Arrow.BackgroundTransparency = 1
+Arrow.Text = "⌄"
+Arrow.TextColor3 = PURPLE
+Arrow.TextSize = 25
+Arrow.Font = Enum.Font.GothamBold
+Arrow.ZIndex = 14
+Arrow.Parent = Selector
+
+--========================================================
+-- Activate button
+--========================================================
+
+local Activate = Instance.new("TextButton")
+Activate.Size = UDim2.new(1, -30, 0, 62)
+Activate.Position = UDim2.fromOffset(15, 148)
+Activate.BackgroundColor3 = PURPLE2
+Activate.Text = "♙   KÍCH HOẠT"
+Activate.TextColor3 = WHITE
+Activate.TextSize = 19
+Activate.Font = Enum.Font.GothamBold
+Activate.AutoButtonColor = false
+Activate.ZIndex = 13
+Activate.Parent = Feature
+
+Corner(Activate, 13)
+Stroke(Activate, PURPLE, 2, 0)
+
+local active = false
+
+Activate.MouseButton1Click:Connect(function()
+    active = not active
+
+    if active then
+        Activate.Text = "✓   ĐÃ KÍCH HOẠT"
+        Activate.BackgroundColor3 = PURPLE
+    else
+        Activate.Text = "♙   KÍCH HOẠT"
+        Activate.BackgroundColor3 = PURPLE2
+    end
+end)
+
+Activate.MouseEnter:Connect(function()
+    Tween(Activate, TweenInfo.new(.15), {
+        BackgroundColor3 = PURPLE
+    })
+end)
+
+Activate.MouseLeave:Connect(function()
+    Tween(Activate, TweenInfo.new(.15), {
+        BackgroundColor3 = active and PURPLE or PURPLE2
+    })
+end)
+
+--========================================================
+-- Player List Popup
+--========================================================
+
+local ListFrame = Instance.new("Frame")
+ListFrame.Size = UDim2.fromOffset(410, 360)
+ListFrame.Position = UDim2.new(0.5, -205, 0.5, -180)
+ListFrame.BackgroundColor3 = BG
+ListFrame.BorderSizePixel = 0
+ListFrame.Visible = false
+ListFrame.ZIndex = 50
+ListFrame.Parent = GUI
+
+Corner(ListFrame, 16)
+Stroke(ListFrame, PURPLE, 2, 0.1)
+
+local ListTitle = Instance.new("TextLabel")
+ListTitle.Size = UDim2.new(1, -65, 0, 45)
+ListTitle.Position = UDim2.fromOffset(18, 10)
+ListTitle.BackgroundTransparency = 1
+ListTitle.Text = "✦  Chọn Player"
+ListTitle.TextColor3 = WHITE
+ListTitle.TextSize = 22
+ListTitle.Font = Enum.Font.GothamBold
+ListTitle.TextXAlignment = Enum.TextXAlignment.Left
+ListTitle.ZIndex = 51
+ListTitle.Parent = ListFrame
+
+local ListClose = Instance.new("TextButton")
+ListClose.Size = UDim2.fromOffset(38, 35)
+ListClose.Position = UDim2.new(1, -50, 0, 12)
+ListClose.BackgroundColor3 = CARD2
+ListClose.Text = "×"
+ListClose.TextColor3 = WHITE
+ListClose.TextSize = 23
+ListClose.Font = Enum.Font.GothamBold
+ListClose.AutoButtonColor = false
+ListClose.ZIndex = 52
+ListClose.Parent = ListFrame
+
+Corner(ListClose, 9)
+
+ListClose.MouseButton1Click:Connect(function()
+    ListFrame.Visible = false
+end)
+
+-- Search
+local Search = Instance.new("TextBox")
+Search.Size = UDim2.new(1, -30, 0, 42)
+Search.Position = UDim2.fromOffset(15, 60)
+Search.BackgroundColor3 = CARD2
+Search.PlaceholderText = "🔎  Tìm player..."
+Search.PlaceholderColor3 = GRAY
+Search.Text = ""
+Search.TextColor3 = WHITE
+Search.TextSize = 14
+Search.Font = Enum.Font.Gotham
+Search.ClearTextOnFocus = false
+Search.ZIndex = 51
+Search.Parent = ListFrame
+
+Corner(Search, 10)
+Stroke(Search, PURPLE2, 1, 0.35)
+
+-- Scrolling list
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -30, 1, -115)
+Scroll.Position = UDim2.fromOffset(15, 108)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.ScrollBarThickness = 3
+Scroll.ScrollBarImageColor3 = PURPLE
+Scroll.CanvasSize = UDim2.new()
+Scroll.ZIndex = 51
+Scroll.Parent = ListFrame
+
+local Layout = Instance.new("UIListLayout")
+Layout.Padding = UDim.new(0, 7)
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
+Layout.Parent = Scroll
+
+--========================================================
+-- Create player item
+--========================================================
+
+local function CreatePlayerItem(player)
+
+    local Item = Instance.new("TextButton")
+    Item.Name = player.Name
+    Item.Size = UDim2.new(1, -5, 0, 58)
+    Item.BackgroundColor3 = CARD2
+    Item.Text = ""
+    Item.AutoButtonColor = false
+    Item.ZIndex = 52
+    Item.Parent = Scroll
+
+    Corner(Item, 10)
+    Stroke(Item, PURPLE2, 1, 0.55)
+
+    -- Avatar
+    local Avatar = Instance.new("ImageLabel")
+    Avatar.Size = UDim2.fromOffset(44, 44)
+    Avatar.Position = UDim2.fromOffset(7, 7)
+    Avatar.BackgroundColor3 = BLACK
+    Avatar.ZIndex = 53
+    Avatar.Parent = Item
+
+    Corner(Avatar, 22)
+
+    local success, image = pcall(function()
+        return Players:GetUserThumbnailAsync(
+            player.UserId,
+            Enum.ThumbnailType.HeadShot,
+            Enum.ThumbnailSize.Size100x100
+        )
+    end)
+
+    if success then
+        Avatar.Image = image
+    end
+
+    local Name = Instance.new("TextLabel")
+    Name.Size = UDim2.new(1, -120, 0, 24)
+    Name.Position = UDim2.fromOffset(62, 7)
+    Name.BackgroundTransparency = 1
+    Name.Text = player.DisplayName
+    Name.TextColor3 = WHITE
+    Name.TextSize = 15
+    Name.Font = Enum.Font.GothamBold
+    Name.TextXAlignment = Enum.TextXAlignment.Left
+    Name.TextTruncate = Enum.TextTruncate.AtEnd
+    Name.ZIndex = 53
+    Name.Parent = Item
+
+    local Username = Instance.new("TextLabel")
+    Username.Size = UDim2.new(1, -120, 0, 20)
+    Username.Position = UDim2.fromOffset(62, 30)
+    Username.BackgroundTransparency = 1
+    Username.Text = "@" .. player.Name
+    Username.TextColor3 = GRAY
+    Username.TextSize = 12
+    Username.Font = Enum.Font.Gotham
+    Username.TextXAlignment = Enum.TextXAlignment.Left
+    Username.TextTruncate = Enum.TextTruncate.AtEnd
+    Username.ZIndex = 53
+    Username.Parent = Item
+
+    local Select = Instance.new("TextLabel")
+    Select.Size = UDim2.fromOffset(65, 30)
+    Select.Position = UDim2.new(1, -75, 0.5, -15)
+    Select.BackgroundColor3 = PURPLE2
+    Select.Text = "CHỌN"
+    Select.TextColor3 = WHITE
+    Select.TextSize = 11
+    Select.Font = Enum.Font.GothamBold
+    Select.ZIndex = 53
+    Select.Parent = Item
+
+    Corner(Select, 8)
+
+    Item.MouseEnter:Connect(function()
+        Tween(Item, TweenInfo.new(.12), {
+            BackgroundColor3 = Color3.fromRGB(29, 18, 44)
+        })
+    end)
+
+    Item.MouseLeave:Connect(function()
+        Tween(Item, TweenInfo.new(.12), {
+            BackgroundColor3 = CARD2
+        })
+    end)
+
+    Item.MouseButton1Click:Connect(function()
+
+        SelectedText.Text = player.DisplayName
+        SelectedText.TextColor3 = WHITE
+
+        -- Chỉ chọn player, không thực hiện chức năng
+        ListFrame.Visible = false
+    end)
+end
+
+--========================================================
+-- Refresh players
+--========================================================
+
+local function RefreshPlayers()
+
+    for _, child in ipairs(Scroll:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LP then
+            CreatePlayerItem(player)
+        end
+    end
+
+    task.wait()
+
+    Scroll.CanvasSize = UDim2.new(
+        0,
+        0,
+        0,
+        Layout.AbsoluteContentSize.Y + 10
+    )
+end
+
+RefreshPlayers()
+
+Players.PlayerAdded:Connect(function()
+    task.wait(.3)
+    RefreshPlayers()
+end)
+
+Players.PlayerRemoving:Connect(function()
+    task.wait(.3)
+    RefreshPlayers()
+end)
+
+--========================================================
+-- Search filter
+--========================================================
+
+Search:GetPropertyChangedSignal("Text"):Connect(function()
+
+    local query = string.lower(Search.Text)
+
+    for _, item in ipairs(Scroll:GetChildren()) do
+
+        if item:IsA("TextButton") then
+
+            local name = string.lower(item.Name)
+
+            item.Visible = query == "" or string.find(name, query, 1, true) ~= nil
+        end
+    end
+end)
+
+--========================================================
+-- Open player list
+--========================================================
+
+Selector.MouseButton1Click:Connect(function()
+
+    RefreshPlayers()
+
+    ListFrame.Visible = true
+    ListFrame.Size = UDim2.fromOffset(390, 0)
+
+    Tween(
+        ListFrame,
+        TweenInfo.new(
+            .2,
+            Enum.EasingStyle.Quint,
+            Enum.EasingDirection.Out
+        ),
+        {
+            Size = UDim2.fromOffset(410, 360)
+        }
+    )
+end)
+
+--========================================================
+-- Drag Main
+--========================================================
+
+local dragging = false
+local dragStart
+local startPos
+
+local function UpdateDrag(input)
+
+    local delta = input.Position - dragStart
+
+    Main.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+Main.InputBegan:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+
+        input.Changed:Connect(function()
+
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+    if dragging and
+        (input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch) then
+
+        UpdateDrag(input)
+    end
+end)
+
+--========================================================
+-- Mobile scaling
+--========================================================
+
+local Camera = workspace.CurrentCamera
+
+local function Resize()
+
+    if Camera.ViewportSize.X < 600 then
+        Main.Size = UDim2.fromOffset(400, 400)
+        Main.Position = UDim2.new(.5, -200, .5, -200)
+    else
+        Main.Size = UDim2.fromOffset(560, 430)
+        Main.Position = UDim2.new(.5, -280, .5, -215)
+    end
+end
+
+Resize()
+Camera:GetPropertyChangedSignal("ViewportSize"):Connect(Resize)
+
+print("ライト [Raito] UI loaded.")
