@@ -1,0 +1,856 @@
+-- GUI Light Menu UI (Tương thích Delta X VNG)
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+-- Xóa GUI cũ nếu đã tồn tại
+if CoreGui:FindFirstChild("LightMenuUI") then
+    CoreGui.LightMenuUI:Destroy()
+end
+
+-- Tạo ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LightMenuUI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- Folder chứa các vẽ ESP
+local EspFolder = Instance.new("Folder")
+EspFolder.Name = "LightESP_Folder"
+EspFolder.Parent = ScreenGui
+
+-- ==================== TIỆN ÍCH ====================
+local function CreateCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.Parent = parent
+    return corner
+end
+
+-- ==================== NÚT TRÒN BẬT/TẮT MENU ====================
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Name = "OpenBtn"
+OpenBtn.Size = UDim2.new(0, 45, 0, 45)
+OpenBtn.Position = UDim2.new(0.05, 0, 0.1, 0)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 10, 20)
+OpenBtn.BackgroundTransparency = 0.35
+OpenBtn.Text = "ライト"
+OpenBtn.TextColor3 = Color3.fromRGB(200, 130, 255)
+OpenBtn.TextSize = 11
+OpenBtn.Font = Enum.Font.SourceSansBold
+OpenBtn.Visible = true
+OpenBtn.Active = true
+OpenBtn.Draggable = true
+OpenBtn.Parent = ScreenGui
+CreateCorner(OpenBtn, 100)
+
+local OpenBtnStroke = Instance.new("UIStroke")
+OpenBtnStroke.Color = Color3.fromRGB(140, 50, 235)
+OpenBtnStroke.Thickness = 2.5
+OpenBtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+OpenBtnStroke.Parent = OpenBtn
+
+-- ==================== MAIN MENU ====================
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 250, 0, 260)
+MainFrame.Position = UDim2.new(0.5, -125, 0.4, -130)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 10, 20)
+MainFrame.BackgroundTransparency = 0.35
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
+CreateCorner(MainFrame, 12)
+
+local MainUIStroke = Instance.new("UIStroke")
+MainUIStroke.Color = Color3.fromRGB(140, 50, 235)
+MainUIStroke.Thickness = 2
+MainUIStroke.Parent = MainFrame
+
+-- Tiêu đề
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 60, 0, 25)
+Title.Position = UDim2.new(0, 12, 0, 6)
+Title.BackgroundTransparency = 1
+Title.Text = "ライト"
+Title.TextColor3 = Color3.fromRGB(200, 130, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.SourceSansBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+local VersionLabel = Instance.new("TextLabel")
+VersionLabel.Size = UDim2.new(0, 100, 0, 20)
+VersionLabel.Position = UDim2.new(0, 72, 0, 9)
+VersionLabel.BackgroundTransparency = 1
+VersionLabel.Text = "[raito] V2.1.0"
+VersionLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+VersionLabel.TextSize = 10
+VersionLabel.Font = Enum.Font.SourceSansBold
+VersionLabel.TextXAlignment = Enum.TextXAlignment.Left
+VersionLabel.Parent = MainFrame
+
+-- Nút thu nhỏ
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+MinimizeBtn.Position = UDim2.new(1, -32, 0, 5)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+MinimizeBtn.BackgroundTransparency = 0.4
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(200, 130, 255)
+MinimizeBtn.TextSize = 18
+MinimizeBtn.Font = Enum.Font.SourceSansBold
+MinimizeBtn.Parent = MainFrame
+CreateCorner(MinimizeBtn, 6)
+
+-- Scrolling Frame
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Size = UDim2.new(1, -20, 1, -42)
+ScrollFrame.Position = UDim2.new(0, 10, 0, 35)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollFrame.ScrollBarThickness = 3
+ScrollFrame.Parent = MainFrame
+
+local ScrollLayout = Instance.new("UIListLayout")
+ScrollLayout.Parent = ScrollFrame
+ScrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ScrollLayout.Padding = UDim.new(0, 4)
+
+-- Hàm tạo nút nhỏ đơn
+local function CreateSmallButton(parent, text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 28)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 20, 40)
+    btn.BackgroundTransparency = 0.35
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    btn.TextSize = 11
+    btn.Font = Enum.Font.SourceSansBold
+    btn.Parent = parent
+    CreateCorner(btn, 6)
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(60, 40, 80)
+    stroke.Thickness = 1
+    stroke.Parent = btn
+    
+    return btn
+end
+
+-- Hàm tạo hàng chỉnh có nút
+local function CreateAdjustRow(parent, title, defaultValue)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 28)
+    row.BackgroundTransparency = 1
+    row.Parent = parent
+
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(0.35, 0, 1, 0)
+    toggle.Position = UDim2.new(0, 0, 0, 0)
+    toggle.BackgroundColor3 = Color3.fromRGB(30, 20, 40)
+    toggle.BackgroundTransparency = 0.35
+    toggle.Text = title .. ": OFF"
+    toggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+    toggle.TextSize = 10
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.Parent = row
+    CreateCorner(toggle, 6)
+
+    local minus = Instance.new("TextButton")
+    minus.Size = UDim2.new(0.15, 0, 1, 0)
+    minus.Position = UDim2.new(0.38, 0, 0, 0)
+    minus.BackgroundColor3 = Color3.fromRGB(30, 20, 40)
+    minus.BackgroundTransparency = 0.35
+    minus.Text = "-"
+    minus.TextColor3 = Color3.fromRGB(200, 200, 255)
+    minus.TextSize = 14
+    minus.Font = Enum.Font.SourceSansBold
+    minus.Parent = row
+    CreateCorner(minus, 6)
+
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(0.15, 0, 1, 0)
+    valueLabel.Position = UDim2.new(0.56, 0, 0, 0)
+    valueLabel.BackgroundColor3 = Color3.fromRGB(15, 10, 20)
+    valueLabel.BackgroundTransparency = 0.35
+    valueLabel.Text = tostring(defaultValue)
+    valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    valueLabel.TextSize = 12
+    valueLabel.Font = Enum.Font.SourceSansBold
+    valueLabel.Parent = row
+    CreateCorner(valueLabel, 6)
+
+    local plus = Instance.new("TextButton")
+    plus.Size = UDim2.new(0.15, 0, 1, 0)
+    plus.Position = UDim2.new(0.74, 0, 0, 0)
+    plus.BackgroundColor3 = Color3.fromRGB(30, 20, 40)
+    plus.BackgroundTransparency = 0.35
+    plus.Text = "+"
+    plus.TextColor3 = Color3.fromRGB(200, 200, 255)
+    plus.TextSize = 14
+    plus.Font = Enum.Font.SourceSansBold
+    plus.Parent = row
+    CreateCorner(plus, 6)
+
+    return row, toggle, minus, valueLabel, plus
+end
+
+-- Khởi tạo các chức năng giao diện
+local GlueToggleBtn = CreateSmallButton(ScrollFrame, "Bám Như Keo 502: OFF")
+local SelectGluePlayerBtn = CreateSmallButton(ScrollFrame, "-[ NGƯỜI BỊ HẠI ]-")
+local NoClipBtn = CreateSmallButton(ScrollFrame, "NoClip: OFF")
+local TeleportBtn = CreateSmallButton(ScrollFrame, "Teleport")
+local SelectTPPlayerBtn = CreateSmallButton(ScrollFrame, "-[ PLAYER ]-")
+local EspToggleBtn = CreateSmallButton(ScrollFrame, "ESP (Tên/Máu/Khoảng Cách/Line): OFF")
+
+local FlyRow, FlyToggleBtn, FlyMinusBtn, FlyValueLabel, FlyPlusBtn = CreateAdjustRow(ScrollFrame, "Fly", 1)
+local FlyJumpBtn = CreateSmallButton(ScrollFrame, "Fly Jump: OFF")
+
+local SpeedRow, SpeedToggleBtn, SpeedMinusBtn, SpeedValueLabel, SpeedPlusBtn = CreateAdjustRow(ScrollFrame, "Speed", 50)
+local JumpRow, JumpToggleBtn, JumpMinusBtn, JumpValueLabel, JumpPlusBtn = CreateAdjustRow(ScrollFrame, "Jump", 50)
+
+-- Chức năng Sit và Spin xếp dưới Jump (Đã bỏ Prone)
+local SitBtn = CreateSmallButton(ScrollFrame, "Sit: -[ off ]-")
+local SpinBtn = CreateSmallButton(ScrollFrame, "Spin: -[ off ]-")
+
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 12 * 32)
+
+-- Sub menu chọn người chơi
+local SubFrame = Instance.new("Frame")
+SubFrame.Size = UDim2.new(0, 150, 0, 150)
+SubFrame.Position = UDim2.new(1, 5, 0, 0)
+SubFrame.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
+SubFrame.BackgroundTransparency = 0.35
+SubFrame.BorderSizePixel = 0
+SubFrame.Visible = false
+SubFrame.Parent = MainFrame
+CreateCorner(SubFrame, 8)
+
+local SubUIStroke = Instance.new("UIStroke")
+SubUIStroke.Color = Color3.fromRGB(140, 50, 235)
+SubUIStroke.Thickness = 1.5
+SubUIStroke.Parent = SubFrame
+
+local PlayerList = Instance.new("ScrollingFrame")
+PlayerList.Size = UDim2.new(0.9, 0, 0.9, 0)
+PlayerList.Position = UDim2.new(0.05, 0, 0.05, 0)
+PlayerList.BackgroundTransparency = 1
+PlayerList.CanvasSize = UDim2.new(0, 0, 0, 0)
+PlayerList.ScrollBarThickness = 3
+PlayerList.Parent = SubFrame
+
+local PlayerListLayout = Instance.new("UIListLayout")
+PlayerListLayout.Parent = PlayerList
+PlayerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+PlayerListLayout.Padding = UDim.new(0, 3)
+
+-- ==================== BIẾN LOGIC ====================
+local espEnabled = false
+local espObjects = {}
+local currentRainbowColor = Color3.fromRGB(255, 255, 255)
+
+local isGlueActive = false
+local selectedGluePlayer = nil
+local glueConnection = nil
+
+local selectedTPPlayer = nil
+
+local noClipEnabled = false
+local noClipConnection = nil
+
+local speedEnabled = false
+local speedValue = 50
+
+local jumpEnabled = false
+local jumpValue = 50
+
+local flyEnabled = false
+local flySpeed = 1
+local flyConnection = nil
+local flyBodyGyro = nil
+local flyBodyVelocity = nil
+
+local flyJumpEnabled = false
+local flyJumpConnection = nil
+local flyJumpPower = 70
+
+local isSitting = false
+local sitConnection = nil
+
+local isSpinning = false
+local spinAngularVelocity = nil
+
+local subMenuMode = "glue"
+
+-- ==================== HỆ THỐNG ESP ====================
+local function ClearESP()
+    for _, item in pairs(espObjects) do
+        if item.Text then item.Text:Destroy() end
+        if item.Line then item.Line:Destroy() end
+    end
+    espObjects = {}
+    EspFolder:ClearAllChildren()
+end
+
+local function CreateESPForPlayer(player)
+    if player == LocalPlayer then return end
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.BackgroundTransparency = 1
+    textLabel.Size = UDim2.new(0, 200, 0, 30)
+    textLabel.TextSize = 12
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textLabel.TextStrokeTransparency = 0.2
+    textLabel.Parent = EspFolder
+
+    local lineFrame = Instance.new("Frame")
+    lineFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    lineFrame.BorderSizePixel = 0
+    lineFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    lineFrame.Parent = EspFolder
+
+    espObjects[player] = {Text = textLabel, Line = lineFrame}
+end
+
+local function UpdateESP()
+    if not espEnabled then ClearESP() return end
+    
+    local camera = Workspace.CurrentCamera
+    if not camera then return end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if not espObjects[player] then
+                CreateESPForPlayer(player)
+            end
+
+            local data = espObjects[player]
+            local char = player.Character
+            local myChar = LocalPlayer.Character
+
+            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") and myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                local myHrp = myChar.HumanoidRootPart
+                
+                local head = char:FindFirstChild("Head") or hrp
+                local headPos = head.Position + Vector3.new(0, 2.5, 0)
+
+                local screenPos, onScreen = camera:WorldToViewportPoint(headPos)
+
+                if onScreen then
+                    local dist = math.floor((myHrp.Position - hrp.Position).Magnitude)
+                    local hpPercent = math.floor((hum.Health / math.max(hum.MaxHealth, 1)) * 100)
+
+                    data.Text.Visible = true
+                    data.Text.Position = UDim2.new(0, screenPos.X - 100, 0, screenPos.Y - 35)
+                    data.Text.Text = string.format("%s\nMáu: %d%% | %dm", player.DisplayName, hpPercent, dist)
+                    data.Text.TextColor3 = currentRainbowColor
+
+                    data.Line.Visible = true
+                    data.Line.BackgroundColor3 = currentRainbowColor
+                    local startPos = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y * 0.35)
+                    local endPos = Vector2.new(screenPos.X, screenPos.Y)
+                    local distance = (endPos - startPos).Magnitude
+                    local angle = math.atan2(endPos.Y - startPos.Y, endPos.X - startPos.X)
+
+                    data.Line.Size = UDim2.new(0, distance, 0, 1.5)
+                    data.Line.Position = UDim2.new(0, (startPos.X + endPos.X) / 2, 0, (startPos.Y + endPos.Y) / 2)
+                    data.Line.Rotation = math.deg(angle)
+                else
+                    data.Text.Visible = false
+                    data.Line.Visible = false
+                end
+            else
+                if data then
+                    data.Text.Visible = false
+                    data.Line.Visible = false
+                end
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(UpdateESP)
+
+-- ==================== BÁM KEO 502 ====================
+local function StopGlue()
+    if glueConnection then glueConnection:Disconnect(); glueConnection = nil end
+end
+
+local function StartGlue()
+    StopGlue()
+    if not selectedGluePlayer then
+        isGlueActive = false
+        GlueToggleBtn.Text = "Bám Như Keo 502: OFF"
+        GlueToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        return
+    end
+
+    glueConnection = RunService.Heartbeat:Connect(function()
+        if not isGlueActive then StopGlue(); return end
+        local targetCharacter = selectedGluePlayer.Character
+        local localCharacter = LocalPlayer.Character
+        if not targetCharacter or not localCharacter then
+            StopGlue(); isGlueActive = false
+            GlueToggleBtn.Text = "Bám Như Keo 502: OFF"
+            GlueToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+            return
+        end
+        local targetHead = targetCharacter:FindFirstChild("Head") or targetCharacter:FindFirstChild("HumanoidRootPart")
+        local localHRP = localCharacter:FindFirstChild("HumanoidRootPart")
+        if not targetHead or not localHRP then return end
+        local headCF = targetHead.CFrame
+        local offsetLocal = Vector3.new(targetHead.Size.X / 2 + 0.5, 0.3, 0)
+        local worldOffset = headCF:VectorToWorldSpace(offsetLocal)
+        local targetPos = targetHead.Position + worldOffset
+        localHRP.CFrame = CFrame.new(targetPos)
+        localHRP.Velocity = Vector3.new(0, 0, 0)
+        localHRP.RotVelocity = Vector3.new(0, 0, 0)
+    end)
+end
+
+-- ==================== NOCLIP ====================
+local function EnableNoClip()
+    if noClipConnection then return end
+    noClipConnection = RunService.Stepped:Connect(function()
+        local character = LocalPlayer.Character
+        if character then
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function DisableNoClip()
+    if noClipConnection then
+        noClipConnection:Disconnect()
+        noClipConnection = nil
+    end
+    local character = LocalPlayer.Character
+    if character then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+-- ==================== SPEED & JUMP ====================
+local function ApplySpeed()
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = speedEnabled and speedValue or 16
+        end
+    end
+end
+
+local function ApplyJump()
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.JumpPower = jumpEnabled and jumpValue or 50
+        end
+    end
+end
+
+-- ==================== FLY ====================
+local function StopFly()
+    if flyConnection then flyConnection:Disconnect(); flyConnection = nil end
+    if flyBodyGyro then flyBodyGyro:Destroy(); flyBodyGyro = nil end
+    if flyBodyVelocity then flyBodyVelocity:Destroy(); flyBodyVelocity = nil end
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid.PlatformStand = false end
+    end
+end
+
+local function StartFly()
+    StopFly()
+    local character = LocalPlayer.Character
+    if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoid or not rootPart then return end
+    
+    humanoid.PlatformStand = true
+    
+    flyBodyGyro = Instance.new("BodyGyro")
+    flyBodyGyro.P = 9e4
+    flyBodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    flyBodyGyro.CFrame = rootPart.CFrame
+    flyBodyGyro.Parent = rootPart
+    
+    flyBodyVelocity = Instance.new("BodyVelocity")
+    flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    flyBodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    flyBodyVelocity.Parent = rootPart
+    
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not flyEnabled then StopFly(); return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        local human = char:FindFirstChildOfClass("Humanoid")
+        local camera = Workspace.CurrentCamera
+        if not human or not camera then return end
+        
+        local moveDirection = human.MoveDirection
+        local calculatedSpeed = flySpeed * 50
+        
+        if moveDirection.Magnitude > 0 then
+            local flyVector = (camera.CFrame:VectorToWorldSpace(CFrame.new(
+                moveDirection:Dot(camera.CFrame.RightVector),
+                0,
+                moveDirection:Dot(-camera.CFrame.LookVector)
+            ).Position))
+            flyBodyVelocity.Velocity = flyVector.Unit * calculatedSpeed
+        else
+            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        end
+        
+        if human.Jump then
+            flyBodyVelocity.Velocity = flyBodyVelocity.Velocity + Vector3.new(0, calculatedSpeed, 0)
+            human.Jump = false
+        end
+        
+        flyBodyGyro.CFrame = camera.CFrame
+    end)
+end
+
+-- ==================== FLY JUMP ====================
+local function StopFlyJump()
+    if flyJumpConnection then flyJumpConnection:Disconnect(); flyJumpConnection = nil end
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid.PlatformStand = false end
+    end
+end
+
+local function StartFlyJump()
+    StopFlyJump()
+    local isFlying = false
+    flyJumpConnection = RunService.Heartbeat:Connect(function()
+        if not flyJumpEnabled then StopFlyJump(); return end
+        local character = LocalPlayer.Character
+        if not character then return end
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if not humanoid or not rootPart then return end
+        
+        if humanoid.Jump == true then
+            if not isFlying then isFlying = true; humanoid.PlatformStand = true end
+            rootPart.Velocity = Vector3.new(0, flyJumpPower, 0)
+            humanoid.Jump = false
+        else
+            if isFlying then isFlying = false; humanoid.PlatformStand = false end
+        end
+    end)
+end
+
+-- ==================== SIT & SPIN ====================
+local function ToggleSit()
+    isSitting = not isSitting
+    if isSitting then
+        SitBtn.Text = "Sit: -[ on ]-"
+        SitBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        sitConnection = RunService.Heartbeat:Connect(function()
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChildOfClass("Humanoid") then
+                char:FindFirstChildOfClass("Humanoid").Sit = true
+            end
+        end)
+    else
+        SitBtn.Text = "Sit: -[ off ]-"
+        SitBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        if sitConnection then sitConnection:Disconnect(); sitConnection = nil end
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            char:FindFirstChildOfClass("Humanoid").Sit = false
+        end
+    end
+end
+
+local function ToggleSpin()
+    isSpinning = not isSpinning
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    if isSpinning then
+        SpinBtn.Text = "Spin: -[ on ]-"
+        SpinBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        
+        local attachment = hrp:FindFirstChild("SpinAttachment") or Instance.new("Attachment")
+        attachment.Name = "SpinAttachment"
+        attachment.Parent = hrp
+        
+        spinAngularVelocity = Instance.new("AngularVelocity")
+        spinAngularVelocity.Name = "SpinVelocity"
+        spinAngularVelocity.Attachment0 = attachment
+        spinAngularVelocity.MaxTorque = math.huge
+        spinAngularVelocity.AngularVelocity = Vector3.new(0, 25, 0)
+        spinAngularVelocity.Parent = hrp
+    else
+        SpinBtn.Text = "Spin: -[ off ]-"
+        SpinBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        if hrp:FindFirstChild("SpinVelocity") then
+            hrp.SpinVelocity:Destroy()
+        end
+        if hrp:FindFirstChild("SpinAttachment") then
+            hrp.SpinAttachment:Destroy()
+        end
+    end
+end
+
+-- ==================== TELEPORT ====================
+local function TeleportToSelected()
+    if not selectedTPPlayer then return end
+    local targetCharacter = selectedTPPlayer.Character
+    local localCharacter = LocalPlayer.Character
+    if not targetCharacter or not localCharacter then return end
+    local targetHRP = targetCharacter:FindFirstChild("HumanoidRootPart")
+    local localHRP = localCharacter:FindFirstChild("HumanoidRootPart")
+    if targetHRP and localHRP then
+        localHRP.CFrame = targetHRP.CFrame + Vector3.new(0, 3, 0)
+    end
+end
+
+-- ==================== DANH SÁCH PLAYER ====================
+local function RefreshPlayerList()
+    for _, child in pairs(PlayerList:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    local count = 0
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            count = count + 1
+            local NameBtn = Instance.new("TextButton")
+            NameBtn.Size = UDim2.new(1, 0, 0, 28)
+            NameBtn.BackgroundColor3 = Color3.fromRGB(40, 30, 50)
+            NameBtn.BackgroundTransparency = 0.35
+            NameBtn.Text = player.DisplayName
+            NameBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            NameBtn.TextSize = 11
+            NameBtn.Font = Enum.Font.SourceSans
+            NameBtn.Parent = PlayerList
+            CreateCorner(NameBtn, 5)
+
+            NameBtn.MouseButton1Click:Connect(function()
+                if subMenuMode == "glue" then
+                    selectedGluePlayer = player
+                    SelectGluePlayerBtn.Text = "-[ NGƯỜI BỊ HẠI ]-: " .. player.DisplayName
+                else
+                    selectedTPPlayer = player
+                    SelectTPPlayerBtn.Text = "-[ PLAYER ]-: " .. player.DisplayName
+                end
+                SubFrame.Visible = false
+            end)
+        end
+    end
+    PlayerList.CanvasSize = UDim2.new(0, 0, 0, count * 31)
+end
+
+-- ==================== SỰ KIỆN NÚT ====================
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+EspToggleBtn.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    if espEnabled then
+        EspToggleBtn.Text = "ESP (Tên/Máu/Khoảng Cách/Line): ON"
+        EspToggleBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+    else
+        EspToggleBtn.Text = "ESP (Tên/Máu/Khoảng Cách/Line): OFF"
+        EspToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        ClearESP()
+    end
+end)
+
+GlueToggleBtn.MouseButton1Click:Connect(function()
+    isGlueActive = not isGlueActive
+    if isGlueActive then
+        GlueToggleBtn.Text = "Bám Như Keo 502: ON"
+        GlueToggleBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        StartGlue()
+    else
+        GlueToggleBtn.Text = "Bám Như Keo 502: OFF"
+        GlueToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        StopGlue()
+    end
+end)
+
+SelectGluePlayerBtn.MouseButton1Click:Connect(function()
+    subMenuMode = "glue"
+    SubFrame.Visible = not SubFrame.Visible
+    if SubFrame.Visible then RefreshPlayerList() end
+end)
+
+SelectTPPlayerBtn.MouseButton1Click:Connect(function()
+    subMenuMode = "tp"
+    SubFrame.Visible = not SubFrame.Visible
+    if SubFrame.Visible then RefreshPlayerList() end
+end)
+
+NoClipBtn.MouseButton1Click:Connect(function()
+    noClipEnabled = not noClipEnabled
+    if noClipEnabled then
+        NoClipBtn.Text = "NoClip: ON"
+        NoClipBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        EnableNoClip()
+    else
+        NoClipBtn.Text = "NoClip: OFF"
+        NoClipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        DisableNoClip()
+    end
+end)
+
+TeleportBtn.MouseButton1Click:Connect(function()
+    TeleportToSelected()
+end)
+
+FlyToggleBtn.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    if flyEnabled then
+        FlyToggleBtn.Text = "Fly: ON"
+        FlyToggleBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        StartFly()
+    else
+        FlyToggleBtn.Text = "Fly: OFF"
+        FlyToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        StopFly()
+    end
+end)
+
+FlyPlusBtn.MouseButton1Click:Connect(function()
+    flySpeed = math.min(flySpeed + 1, 50)
+    FlyValueLabel.Text = tostring(flySpeed)
+end)
+
+FlyMinusBtn.MouseButton1Click:Connect(function()
+    flySpeed = math.max(flySpeed - 1, 1)
+    FlyValueLabel.Text = tostring(flySpeed)
+end)
+
+FlyJumpBtn.MouseButton1Click:Connect(function()
+    flyJumpEnabled = not flyJumpEnabled
+    if flyJumpEnabled then
+        FlyJumpBtn.Text = "Fly Jump: ON"
+        FlyJumpBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        StartFlyJump()
+    else
+        FlyJumpBtn.Text = "Fly Jump: OFF"
+        FlyJumpBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        StopFlyJump()
+    end
+end)
+
+SpeedToggleBtn.MouseButton1Click:Connect(function()
+    speedEnabled = not speedEnabled
+    if speedEnabled then
+        SpeedToggleBtn.Text = "Speed: ON"
+        SpeedToggleBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+    else
+        SpeedToggleBtn.Text = "Speed: OFF"
+        SpeedToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    end
+    ApplySpeed()
+end)
+
+SpeedPlusBtn.MouseButton1Click:Connect(function()
+    speedValue = math.min(speedValue + 5, 300)
+    SpeedValueLabel.Text = tostring(speedValue)
+    if speedEnabled then ApplySpeed() end
+end)
+
+SpeedMinusBtn.MouseButton1Click:Connect(function()
+    speedValue = math.max(speedValue - 5, 1)
+    SpeedValueLabel.Text = tostring(speedValue)
+    if speedEnabled then ApplySpeed() end
+end)
+
+JumpToggleBtn.MouseButton1Click:Connect(function()
+    jumpEnabled = not jumpEnabled
+    if jumpEnabled then
+        JumpToggleBtn.Text = "Jump: ON"
+        JumpToggleBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+    else
+        JumpToggleBtn.Text = "Jump: OFF"
+        JumpToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    end
+    ApplyJump()
+end)
+
+JumpPlusBtn.MouseButton1Click:Connect(function()
+    jumpValue = math.min(jumpValue + 5, 500)
+    JumpValueLabel.Text = tostring(jumpValue)
+    if jumpEnabled then ApplyJump() end
+end)
+
+JumpMinusBtn.MouseButton1Click:Connect(function()
+    jumpValue = math.max(jumpValue - 5, 0)
+    JumpValueLabel.Text = tostring(jumpValue)
+    if jumpEnabled then ApplyJump() end
+end)
+
+SitBtn.MouseButton1Click:Connect(ToggleSit)
+SpinBtn.MouseButton1Click:Connect(ToggleSpin)
+
+Players.PlayerRemoving:Connect(function(player)
+    if espObjects[player] then
+        if espObjects[player].Text then espObjects[player].Text:Destroy() end
+        if espObjects[player].Line then espObjects[player].Line:Destroy() end
+        espObjects[player] = nil
+    end
+end)
+
+-- ==================== HIỆU ỨNG ĐỔI MÀU CẦU VỒNG ====================
+local hue = 0
+RunService.Heartbeat:Connect(function(delta)
+    hue = (hue + delta * 0.4) % 1
+    local rainbowColor = Color3.fromHSV(hue, 0.9, 1)
+    currentRainbowColor = rainbowColor
+
+    MainUIStroke.Color = rainbowColor
+    SubUIStroke.Color = rainbowColor
+    OpenBtnStroke.Color = rainbowColor
+    
+    Title.TextColor3 = rainbowColor
+    VersionLabel.TextColor3 = rainbowColor
+    OpenBtn.TextColor3 = rainbowColor
+
+    if not espEnabled then EspToggleBtn.TextColor3 = rainbowColor end
+    if not isGlueActive then GlueToggleBtn.TextColor3 = rainbowColor end
+    if not noClipEnabled then NoClipBtn.TextColor3 = rainbowColor end
+    if not flyEnabled then FlyToggleBtn.TextColor3 = rainbowColor end
+    if not flyJumpEnabled then FlyJumpBtn.TextColor3 = rainbowColor end
+    
+    TeleportBtn.TextColor3 = rainbowColor
+    SelectGluePlayerBtn.TextColor3 = rainbowColor
+    SelectTPPlayerBtn.TextColor3 = rainbowColor
+
+    if not speedEnabled then SpeedToggleBtn.TextColor3 = rainbowColor end
+    if not jumpEnabled then JumpToggleBtn.TextColor3 = rainbowColor end
+    if not isSitting then SitBtn.TextColor3 = rainbowColor end
+    if not isSpinning then SpinBtn.TextColor3 = rainbowColor end
+end)
