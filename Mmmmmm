@@ -1,0 +1,186 @@
+-- Tạo GUI chính trên màn hình điện thoại (Tương thích Delta X VNG)
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Xóa GUI cũ nếu đã tồn tại
+if CoreGui:FindFirstChild("LightMenuUI") then
+    CoreGui.LightMenuUI:Destroy()
+end
+
+-- Tạo ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LightMenuUI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- Giao diện Main Menu (Màu Đen - Tím)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 260, 0, 180)
+MainFrame.Position = UDim2.new(0.5, -130, 0.4, -90)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 15, 25) -- Đen Tím đậm
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- Hỗ trợ kéo thả trên di động
+MainFrame.Parent = ScreenGui
+
+local MainUICorner = Instance.new("UICorner")
+MainUICorner.CornerRadius = UDim.new(0, 10)
+MainUICorner.Parent = MainFrame
+
+local MainUIStroke = Instance.new("UIStroke")
+MainUIStroke.Color = Color3.fromRGB(140, 50, 235) -- Viền Tím Neon
+MainUIStroke.Thickness = 2
+MainUIStroke.Parent = MainFrame
+
+-- Tiêu đề "ライト"
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.BackgroundTransparency = 1
+Title.Text = "ライト"
+Title.TextColor3 = Color3.fromRGB(200, 130, 255)
+Title.TextSize = 22
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+-- Nút ON/OFF Ngồi Lên Đầu
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0.9, 0, 0, 40)
+ToggleBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+ToggleBtn.Text = "Ngồi Lên Đầu: OFF"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+ToggleBtn.TextSize = 14
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.Parent = MainFrame
+
+local BtnCorner1 = Instance.new("UICorner")
+BtnCorner1.CornerRadius = UDim.new(0, 8)
+BtnCorner1.Parent = ToggleBtn
+
+-- Nút Chọn Player
+local SelectPlayerBtn = Instance.new("TextButton")
+SelectPlayerBtn.Size = UDim2.new(0.9, 0, 0, 40)
+SelectPlayerBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+SelectPlayerBtn.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+SelectPlayerBtn.Text = "Chọn Player: [Chưa Chọn]"
+SelectPlayerBtn.TextColor3 = Color3.fromRGB(200, 200, 255)
+SelectPlayerBtn.TextSize = 14
+SelectPlayerBtn.Font = Enum.Font.SourceSansBold
+SelectPlayerBtn.Parent = MainFrame
+
+local BtnCorner2 = Instance.new("UICorner")
+BtnCorner2.CornerRadius = UDim.new(0, 8)
+BtnCorner2.Parent = SelectPlayerBtn
+
+-- Sub Menu (Danh sách Player bên cạnh)
+local SubFrame = Instance.new("Frame")
+SubFrame.Name = "SubFrame"
+SubFrame.Size = UDim2.new(0, 180, 0, 180)
+SubFrame.Position = UDim2.new(1, 10, 0, 0) -- Hiện ngay bên phải Menu chính
+SubFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 30)
+SubFrame.BorderSizePixel = 0
+SubFrame.Visible = false
+SubFrame.Parent = MainFrame
+
+local SubUICorner = Instance.new("UICorner")
+SubUICorner.CornerRadius = UDim.new(0, 10)
+SubUICorner.Parent = SubFrame
+
+local SubUIStroke = Instance.new("UIStroke")
+SubUIStroke.Color = Color3.fromRGB(100, 40, 180)
+SubUIStroke.Thickness = 1.5
+SubUIStroke.Parent = SubFrame
+
+local ScrollList = Instance.new("ScrollingFrame")
+ScrollList.Size = UDim2.new(0.9, 0, 0.85, 0)
+ScrollList.Position = UDim2.new(0.05, 0, 0.08, 0)
+ScrollList.BackgroundTransparency = 1
+ScrollList.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollList.ScrollBarThickness = 4
+ScrollList.Parent = SubFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = ScrollList
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 5)
+
+-- Trạng thái Logic
+local isToggled = false
+local selectedPlayerName = nil
+
+-- Hàm load danh sách người chơi kèm Avatar
+local function RefreshPlayerList()
+    for _, child in pairs(ScrollList:GetChildren()) do
+        if child:IsA("Frame") or child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    local count = 0
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            count = count + 1
+            
+            local ItemFrame = Instance.new("Frame")
+            ItemFrame.Size = UDim2.new(1, 0, 0, 35)
+            ItemFrame.BackgroundColor3 = Color3.fromRGB(40, 30, 50)
+            ItemFrame.Parent = ScrollList
+
+            local ItemCorner = Instance.new("UICorner")
+            ItemCorner.CornerRadius = UDim.new(0, 6)
+            ItemCorner.Parent = ItemFrame
+
+            -- Avatar Avatar
+            local AvatarImg = Instance.new("ImageLabel")
+            AvatarImg.Size = UDim2.new(0, 28, 0, 28)
+            AvatarImg.Position = UDim2.new(0, 4, 0.5, -14)
+            AvatarImg.BackgroundTransparency = 1
+            AvatarImg.Image = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+            AvatarImg.Parent = ItemFrame
+
+            local AvatarCorner = Instance.new("UICorner")
+            AvatarCorner.CornerRadius = UDim.new(1, 0)
+            AvatarCorner.Parent = AvatarImg
+
+            -- Nút chọn tên
+            local NameBtn = Instance.new("TextButton")
+            NameBtn.Size = UDim2.new(1, -38, 1, 0)
+            NameBtn.Position = UDim2.new(0, 36, 0, 0)
+            NameBtn.BackgroundTransparency = 1
+            NameBtn.Text = player.DisplayName
+            NameBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            NameBtn.TextSize = 12
+            NameBtn.Font = Enum.Font.SourceSans
+            NameBtn.TextXAlignment = Enum.TextXAlignment.Left
+            NameBtn.Parent = ItemFrame
+
+            NameBtn.MouseButton1Click:Connect(function()
+                selectedPlayerName = player.DisplayName
+                SelectPlayerBtn.Text = "Player: " .. player.DisplayName
+                SubFrame.Visible = false
+            end)
+        end
+    end
+    ScrollList.CanvasSize = UDim2.new(0, 0, 0, count * 40)
+end
+
+-- Sự kiện nhấn nút
+ToggleBtn.MouseButton1Click:Connect(function()
+    isToggled = not isToggled
+    if isToggled then
+        ToggleBtn.Text = "Ngồi Lên Đầu: ON"
+        ToggleBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+    else
+        ToggleBtn.Text = "Ngồi Lên Đầu: OFF"
+        ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    end
+end)
+
+SelectPlayerBtn.MouseButton1Click:Connect(function()
+    SubFrame.Visible = not SubFrame.Visible
+    if SubFrame.Visible then
+        RefreshPlayerList()
+    end
+end)
