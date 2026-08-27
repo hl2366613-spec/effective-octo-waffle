@@ -1,0 +1,854 @@
+--// ライト [RAITO] - UI ONLY
+--// Mobile UI - Delta X VNG
+--// Chức năng chỉ là giao diện, không thực hiện hành động trong game.
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+--==================================================
+-- CONFIG
+--==================================================
+
+local PURPLE = Color3.fromRGB(174, 76, 255)
+local LIGHT_PURPLE = Color3.fromRGB(218, 166, 255)
+local DARK = Color3.fromRGB(10, 7, 18)
+local DARK2 = Color3.fromRGB(19, 12, 31)
+local DARK3 = Color3.fromRGB(27, 16, 43)
+local WHITE = Color3.fromRGB(245, 235, 255)
+local MUTED = Color3.fromRGB(184, 158, 207)
+
+--==================================================
+-- CLEAN OLD UI
+--==================================================
+
+local old = PlayerGui:FindFirstChild("RaitoMobileUI")
+if old then
+	old:Destroy()
+end
+
+--==================================================
+-- HELPERS
+--==================================================
+
+local function corner(parent, radius)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, radius or 12)
+	c.Parent = parent
+	return c
+end
+
+local function stroke(parent, color, thickness, transparency)
+	local s = Instance.new("UIStroke")
+	s.Color = color or PURPLE
+	s.Thickness = thickness or 1
+	s.Transparency = transparency or 0
+	s.Parent = parent
+	return s
+end
+
+local function gradient(parent, color1, color2, rotation)
+	local g = Instance.new("UIGradient")
+	g.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, color1),
+		ColorSequenceKeypoint.new(1, color2)
+	})
+	g.Rotation = rotation or 0
+	g.Parent = parent
+	return g
+end
+
+local function tween(obj, properties, duration)
+	local info = TweenInfo.new(
+		duration or 0.2,
+		Enum.EasingStyle.Quint,
+		Enum.EasingDirection.Out
+	)
+
+	local t = TweenService:Create(obj, info, properties)
+	t:Play()
+	return t
+end
+
+local function createText(parent, text, size, font, color)
+	local t = Instance.new("TextLabel")
+	t.BackgroundTransparency = 1
+	t.Text = text
+	t.TextSize = size
+	t.Font = font or Enum.Font.Gotham
+	t.TextColor3 = color or WHITE
+	t.Parent = parent
+	return t
+end
+
+--==================================================
+-- SCREEN GUI
+--==================================================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RaitoMobileUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = PlayerGui
+
+--==================================================
+-- OPEN ICON
+--==================================================
+
+local OpenButton = Instance.new("TextButton")
+OpenButton.Name = "RaitoOpenButton"
+OpenButton.Size = UDim2.fromOffset(64, 64)
+OpenButton.Position = UDim2.new(0, 16, 0.5, -32)
+OpenButton.BackgroundColor3 = DARK
+OpenButton.Text = ""
+OpenButton.AutoButtonColor = false
+OpenButton.Visible = false
+OpenButton.Parent = ScreenGui
+
+corner(OpenButton, 32)
+stroke(OpenButton, PURPLE, 2)
+
+local OpenGlow = Instance.new("UIStroke")
+OpenGlow.Color = LIGHT_PURPLE
+OpenGlow.Thickness = 5
+OpenGlow.Transparency = 0.7
+OpenGlow.Parent = OpenButton
+
+local OpenStar = createText(
+	OpenButton,
+	"✦",
+	31,
+	Enum.Font.GothamBold,
+	LIGHT_PURPLE
+)
+OpenStar.Size = UDim2.fromScale(1, 0.65)
+OpenStar.Position = UDim2.fromScale(0, 0.02)
+
+local OpenName = createText(
+	OpenButton,
+	"ライト",
+	11,
+	Enum.Font.GothamBold,
+	WHITE
+)
+OpenName.Size = UDim2.fromScale(1, 0.28)
+OpenName.Position = UDim2.fromScale(0, 0.62)
+
+--==================================================
+-- MAIN FRAME
+--==================================================
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.fromScale(0.5, 0.5)
+Main.Size = UDim2.new(0.88, 0, 0.78, 0)
+Main.BackgroundColor3 = DARK
+Main.Parent = ScreenGui
+
+corner(Main, 25)
+stroke(Main, PURPLE, 2)
+
+-- Limit size for tablets/PC while still mobile friendly
+local SizeConstraint = Instance.new("UISizeConstraint")
+SizeConstraint.MinSize = Vector2.new(300, 360)
+SizeConstraint.MaxSize = Vector2.new(520, 570)
+SizeConstraint.Parent = Main
+
+gradient(
+	Main,
+	Color3.fromRGB(14, 8, 25),
+	Color3.fromRGB(7, 5, 13),
+	90
+)
+
+--==================================================
+-- DECORATIVE TOP LINE
+--==================================================
+
+local TopLine = Instance.new("Frame")
+TopLine.BackgroundColor3 = PURPLE
+TopLine.BackgroundTransparency = 0.25
+TopLine.BorderSizePixel = 0
+TopLine.Size = UDim2.new(0.72, 0, 0, 1)
+TopLine.Position = UDim2.new(0.14, 0, 0.17, 0)
+TopLine.Parent = Main
+
+--==================================================
+-- TITLE
+--==================================================
+
+local Title = createText(
+	Main,
+	"ライト",
+	48,
+	Enum.Font.GothamBlack,
+	WHITE
+)
+
+Title.AnchorPoint = Vector2.new(0.5, 0)
+Title.Position = UDim2.fromScale(0.5, 0.025)
+Title.Size = UDim2.new(0.8, 0, 0.085, 0)
+
+local TitleGradient = gradient(
+	Title,
+	Color3.fromRGB(255, 255, 255),
+	Color3.fromRGB(171, 76, 255),
+	90
+)
+
+local Raito = createText(
+	Main,
+	"R A I T O",
+	12,
+	Enum.Font.GothamBold,
+	LIGHT_PURPLE
+)
+
+Raito.AnchorPoint = Vector2.new(0.5, 0)
+Raito.Position = UDim2.fromScale(0.5, 0.115)
+Raito.Size = UDim2.new(0.5, 0, 0.035, 0)
+
+--==================================================
+-- CLOSE / MINIMIZE
+--==================================================
+
+local Minimize = Instance.new("TextButton")
+Minimize.Name = "Minimize"
+Minimize.Size = UDim2.fromOffset(48, 42)
+Minimize.Position = UDim2.new(1, -105, 0.035, 0)
+Minimize.BackgroundColor3 = DARK3
+Minimize.Text = "−"
+Minimize.TextColor3 = WHITE
+Minimize.TextSize = 27
+Minimize.Font = Enum.Font.GothamBold
+Minimize.AutoButtonColor = false
+Minimize.Parent = Main
+
+corner(Minimize, 10)
+stroke(Minimize, PURPLE, 1)
+
+local Close = Instance.new("TextButton")
+Close.Name = "Close"
+Close.Size = UDim2.fromOffset(48, 42)
+Close.Position = UDim2.new(1, -53, 0.035, 0)
+Close.BackgroundColor3 = DARK3
+Close.Text = "×"
+Close.TextColor3 = WHITE
+Close.TextSize = 28
+Close.Font = Enum.Font.GothamBold
+Close.AutoButtonColor = false
+Close.Parent = Main
+
+corner(Close, 10)
+stroke(Close, PURPLE, 1)
+
+--==================================================
+-- COPYRIGHT
+--==================================================
+
+local CopyrightTop = createText(
+	Main,
+	"✦  Menu thuộc bản quyền của ライト  ✦",
+	13,
+	Enum.Font.GothamMedium,
+	MUTED
+)
+
+CopyrightTop.AnchorPoint = Vector2.new(0.5, 0)
+CopyrightTop.Position = UDim2.fromScale(0.5, 0.185)
+CopyrightTop.Size = UDim2.new(0.85, 0, 0.055, 0)
+
+--==================================================
+-- CONTENT CARD
+--==================================================
+
+local Card = Instance.new("Frame")
+Card.Name = "FeatureCard"
+Card.Position = UDim2.new(0.045, 0, 0.275, 0)
+Card.Size = UDim2.new(0.91, 0, 0.57, 0)
+Card.BackgroundColor3 = DARK2
+Card.Parent = Main
+
+corner(Card, 22)
+stroke(Card, PURPLE, 1)
+
+--==================================================
+-- FEATURE HEADER
+--==================================================
+
+local FeatureIcon = createText(
+	Card,
+	"♙",
+	47,
+	Enum.Font.GothamBold,
+	LIGHT_PURPLE
+)
+
+FeatureIcon.Position = UDim2.new(0.08, 0, 0.045, 0)
+FeatureIcon.Size = UDim2.fromOffset(65, 60)
+
+local FeatureTitle = createText(
+	Card,
+	"Ngồi lên đầu người chơi",
+	21,
+	Enum.Font.GothamBold,
+	WHITE
+)
+
+FeatureTitle.TextXAlignment = Enum.TextXAlignment.Left
+FeatureTitle.Position = UDim2.new(0.25, 0, 0.06, 0)
+FeatureTitle.Size = UDim2.new(0.67, 0, 0.09, 0)
+
+local FeatureSub = createText(
+	Card,
+	"Sit On Player's Head",
+	13,
+	Enum.Font.GothamMedium,
+	PURPLE
+)
+
+FeatureSub.TextXAlignment = Enum.TextXAlignment.Left
+FeatureSub.Position = UDim2.new(0.25, 0, 0.145, 0)
+FeatureSub.Size = UDim2.new(0.67, 0, 0.065, 0)
+
+local Spark = createText(
+	Card,
+	"✦",
+	27,
+	Enum.Font.GothamBold,
+	LIGHT_PURPLE
+)
+
+Spark.Position = UDim2.new(0.82, 0, 0.08, 0)
+Spark.Size = UDim2.fromOffset(40, 40)
+
+--==================================================
+-- PLAYER SELECT BOX
+--==================================================
+
+local SelectBox = Instance.new("TextButton")
+SelectBox.Name = "PlayerSelector"
+SelectBox.Position = UDim2.new(0.045, 0, 0.28, 0)
+SelectBox.Size = UDim2.new(0.91, 0, 0.20, 0)
+SelectBox.BackgroundColor3 = Color3.fromRGB(20, 12, 33)
+SelectBox.Text = ""
+SelectBox.AutoButtonColor = false
+SelectBox.Parent = Card
+
+corner(SelectBox, 16)
+stroke(SelectBox, Color3.fromRGB(100, 48, 150), 1)
+
+local PersonIcon = createText(
+	SelectBox,
+	"♧",
+	27,
+	Enum.Font.GothamBold,
+	LIGHT_PURPLE
+)
+
+PersonIcon.Position = UDim2.new(0.035, 0, 0.15, 0)
+PersonIcon.Size = UDim2.fromOffset(42, 42)
+
+local SelectLabel = createText(
+	SelectBox,
+	"Chọn người chơi:",
+	14,
+	Enum.Font.GothamMedium,
+	WHITE
+)
+
+SelectLabel.TextXAlignment = Enum.TextXAlignment.Left
+SelectLabel.Position = UDim2.new(0.12, 0, 0.13, 0)
+SelectLabel.Size = UDim2.new(0.30, 0, 0.30, 0)
+
+local SelectedText = createText(
+	SelectBox,
+	"Chọn player...",
+	14,
+	Enum.Font.GothamMedium,
+	Color3.fromRGB(190, 165, 216)
+)
+
+SelectedText.TextXAlignment = Enum.TextXAlignment.Left
+SelectedText.Position = UDim2.new(0.40, 0, 0.12, 0)
+SelectedText.Size = UDim2.new(0.48, 0, 0.38, 0)
+
+local Arrow = createText(
+	SelectBox,
+	"⌄",
+	28,
+	Enum.Font.GothamBold,
+	LIGHT_PURPLE
+)
+
+Arrow.Position = UDim2.new(0.88, 0, 0.08, 0)
+Arrow.Size = UDim2.fromOffset(40, 45)
+
+--==================================================
+-- PLAYER LIST
+--==================================================
+
+local PlayerList = Instance.new("Frame")
+PlayerList.Name = "PlayerList"
+PlayerList.Visible = false
+PlayerList.Position = UDim2.new(0.045, 0, 0.49, 0)
+PlayerList.Size = UDim2.new(0.91, 0, 0.45, 0)
+PlayerList.BackgroundColor3 = Color3.fromRGB(12, 8, 20)
+PlayerList.ZIndex = 20
+PlayerList.Parent = Card
+
+corner(PlayerList, 16)
+stroke(PlayerList, PURPLE, 1)
+
+local ListTitle = createText(
+	PlayerList,
+	"CHỌN PLAYER",
+	13,
+	Enum.Font.GothamBold,
+	LIGHT_PURPLE
+)
+
+ListTitle.TextXAlignment = Enum.TextXAlignment.Left
+ListTitle.Position = UDim2.new(0.05, 0, 0.025, 0)
+ListTitle.Size = UDim2.new(0.9, 0, 0.12, 0)
+ListTitle.ZIndex = 21
+
+local Scrolling = Instance.new("ScrollingFrame")
+Scrolling.Name = "Players"
+Scrolling.Position = UDim2.new(0.025, 0, 0.15, 0)
+Scrolling.Size = UDim2.new(0.95, 0, 0.82, 0)
+Scrolling.BackgroundTransparency = 1
+Scrolling.BorderSizePixel = 0
+Scrolling.ScrollBarThickness = 3
+Scrolling.ScrollBarImageColor3 = PURPLE
+Scrolling.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scrolling.ZIndex = 21
+Scrolling.Parent = PlayerList
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.Padding = UDim.new(0, 6)
+ListLayout.SortOrder = Enum.SortOrder.Name
+ListLayout.Parent = Scrolling
+
+local ListPadding = Instance.new("UIPadding")
+ListPadding.PaddingLeft = UDim.new(0, 2)
+ListPadding.PaddingRight = UDim.new(0, 4)
+ListPadding.PaddingBottom = UDim.new(0, 5)
+ListPadding.Parent = Scrolling
+
+--==================================================
+-- CREATE PLAYER ROW
+--==================================================
+
+local function createPlayerRow(player)
+	local Row = Instance.new("TextButton")
+	Row.Name = player.Name
+	Row.Size = UDim2.new(1, -4, 0, 55)
+	Row.BackgroundColor3 = Color3.fromRGB(25, 15, 39)
+	Row.Text = ""
+	Row.AutoButtonColor = false
+	Row.ZIndex = 22
+	Row.Parent = Scrolling
+
+	corner(Row, 12)
+	stroke(Row, Color3.fromRGB(73, 39, 102), 1)
+
+	local Avatar = Instance.new("ImageLabel")
+	Avatar.Name = "Avatar"
+	Avatar.Size = UDim2.fromOffset(43, 43)
+	Avatar.Position = UDim2.new(0, 7, 0.5, -21)
+	Avatar.BackgroundColor3 = Color3.fromRGB(38, 24, 55)
+	Avatar.ZIndex = 23
+	Avatar.Parent = Row
+
+	corner(Avatar, 22)
+
+	task.spawn(function()
+		local success, image = pcall(function()
+			return Players:GetUserThumbnailAsync(
+				player.UserId,
+				Enum.ThumbnailType.HeadShot,
+				Enum.ThumbnailSize.Size100x100
+			)
+		end)
+
+		if success and Avatar.Parent then
+			Avatar.Image = image
+		end
+	end)
+
+	local Name = createText(
+		Row,
+		player.DisplayName,
+		14,
+		Enum.Font.GothamBold,
+		WHITE
+	)
+
+	Name.TextXAlignment = Enum.TextXAlignment.Left
+	Name.Position = UDim2.new(0, 60, 0.12, 0)
+	Name.Size = UDim2.new(0.68, 0, 0.35, 0)
+	Name.ZIndex = 23
+
+	local Username = createText(
+		Row,
+		"@" .. player.Name,
+		11,
+		Enum.Font.GothamMedium,
+		MUTED
+	)
+
+	Username.TextXAlignment = Enum.TextXAlignment.Left
+	Username.Position = UDim2.new(0, 60, 0.51, 0)
+	Username.Size = UDim2.new(0.68, 0, 0.30, 0)
+	Username.ZIndex = 23
+
+	local ArrowSmall = createText(
+		Row,
+		"›",
+		23,
+		Enum.Font.GothamBold,
+		PURPLE
+	)
+
+	ArrowSmall.Position = UDim2.new(0.88, 0, 0.2, 0)
+	ArrowSmall.Size = UDim2.fromOffset(30, 30)
+	ArrowSmall.ZIndex = 23
+
+	Row.MouseEnter:Connect(function()
+		tween(Row, {
+			BackgroundColor3 = Color3.fromRGB(43, 23, 65)
+		}, 0.12)
+	end)
+
+	Row.MouseLeave:Connect(function()
+		tween(Row, {
+			BackgroundColor3 = Color3.fromRGB(25, 15, 39)
+		}, 0.12)
+	end)
+
+	Row.Activated:Connect(function()
+		SelectedText.Text = player.DisplayName
+		SelectedText.TextColor3 = LIGHT_PURPLE
+
+		PlayerList.Visible = false
+		Arrow.Text = "⌄"
+
+		-- UI ONLY:
+		-- Không thực hiện teleport/sit/fling hay hành động nào.
+	end)
+end
+
+--==================================================
+-- REFRESH PLAYER LIST
+--==================================================
+
+local function refreshPlayers()
+	for _, child in ipairs(Scrolling:GetChildren()) do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		createPlayerRow(player)
+	end
+
+	task.wait()
+
+	Scrolling.CanvasSize = UDim2.new(
+		0,
+		0,
+		0,
+		ListLayout.AbsoluteContentSize.Y + 10
+	)
+end
+
+refreshPlayers()
+
+Players.PlayerAdded:Connect(function()
+	task.wait(0.3)
+	refreshPlayers()
+end)
+
+Players.PlayerRemoving:Connect(function()
+	task.wait(0.3)
+	refreshPlayers()
+end)
+
+--==================================================
+-- ACTIVATE BUTTON
+--==================================================
+
+local Activate = Instance.new("TextButton")
+Activate.Name = "Activate"
+Activate.Position = UDim2.new(0.12, 0, 0.735, 0)
+Activate.Size = UDim2.new(0.76, 0, 0.18, 0)
+Activate.BackgroundColor3 = Color3.fromRGB(91, 35, 145)
+Activate.Text = ""
+Activate.AutoButtonColor = false
+Activate.Parent = Card
+
+corner(Activate, 18)
+stroke(Activate, LIGHT_PURPLE, 2)
+
+gradient(
+	Activate,
+	Color3.fromRGB(111, 44, 181),
+	Color3.fromRGB(56, 20, 92),
+	90
+)
+
+local ActivateIcon = createText(
+	Activate,
+	"♙",
+	31,
+	Enum.Font.GothamBold,
+	WHITE
+)
+
+ActivateIcon.Position = UDim2.new(0.13, 0, 0.15, 0)
+ActivateIcon.Size = UDim2.fromOffset(45, 45)
+
+local ActivateText = createText(
+	Activate,
+	"KÍCH HOẠT",
+	20,
+	Enum.Font.GothamBold,
+	WHITE
+)
+
+ActivateText.Position = UDim2.new(0.25, 0, 0.12, 0)
+ActivateText.Size = UDim2.new(0.62, 0, 0.55, 0)
+
+--==================================================
+-- ACTIVATE = UI ONLY
+--==================================================
+
+local activated = false
+
+Activate.Activated:Connect(function()
+
+	activated = not activated
+
+	if activated then
+		ActivateText.Text = "ĐÃ CHỌN"
+		ActivateText.TextColor3 = LIGHT_PURPLE
+
+		tween(Activate, {
+			BackgroundColor3 = Color3.fromRGB(120, 48, 190)
+		}, 0.18)
+	else
+		ActivateText.Text = "KÍCH HOẠT"
+		ActivateText.TextColor3 = WHITE
+
+		tween(Activate, {
+			BackgroundColor3 = Color3.fromRGB(91, 35, 145)
+		}, 0.18)
+	end
+
+	--================================================
+	-- KHÔNG CÓ CODE CHỨC NĂNG Ở ĐÂY
+	-- Chỉ thay đổi giao diện.
+	--================================================
+end)
+
+--==================================================
+-- PLAYER SELECT OPEN/CLOSE
+--==================================================
+
+SelectBox.Activated:Connect(function()
+
+	PlayerList.Visible = not PlayerList.Visible
+
+	if PlayerList.Visible then
+		Arrow.Text = "⌃"
+		refreshPlayers()
+	else
+		Arrow.Text = "⌄"
+	end
+end)
+
+--==================================================
+-- MINIMIZE
+--==================================================
+
+local minimized = false
+
+Minimize.Activated:Connect(function()
+
+	minimized = not minimized
+
+	if minimized then
+		for _, child in ipairs(Main:GetChildren()) do
+			if child ~= Minimize
+				and child ~= Close
+				and child ~= Title
+				and child ~= Raito
+				and child ~= TopLine then
+
+				if child:IsA("GuiObject") then
+					child.Visible = false
+				end
+			end
+		end
+
+		Main.Size = UDim2.new(0, 310, 0, 95)
+
+		Title.Visible = true
+		Raito.Visible = true
+		TopLine.Visible = true
+		Minimize.Visible = true
+		Close.Visible = true
+
+	else
+
+		Main.Size = UDim2.new(0.88, 0, 0.78, 0)
+
+		for _, child in ipairs(Main:GetChildren()) do
+			if child:IsA("GuiObject") then
+				child.Visible = true
+			end
+		end
+	end
+end)
+
+--==================================================
+-- CLOSE
+--==================================================
+
+Close.Activated:Connect(function()
+
+	tween(Main, {
+		Size = UDim2.new(0, 0, 0, 0)
+	}, 0.25)
+
+	task.wait(0.25)
+
+	Main.Visible = false
+	OpenButton.Visible = true
+end)
+
+--==================================================
+-- OPEN
+--==================================================
+
+OpenButton.Activated:Connect(function()
+
+	OpenButton.Visible = false
+	Main.Visible = true
+
+	Main.Size = UDim2.new(0, 0, 0, 0)
+
+	tween(Main, {
+		Size = UDim2.new(0.88, 0, 0.78, 0)
+	}, 0.3)
+end)
+
+--==================================================
+-- DRAG SUPPORT
+--==================================================
+
+local dragging = false
+local dragStart
+local startPos
+
+local function updateDrag(input)
+
+	local delta = input.Position - dragStart
+
+	Main.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
+end
+
+Title.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPos = Main.Position
+	end
+end)
+
+Title.InputChanged:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		input.Changed:Connect(function()
+
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+	if dragging and (
+		input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch
+	) then
+
+		updateDrag(input)
+	end
+end)
+
+--==================================================
+-- MOBILE SCALE
+--==================================================
+
+local Camera = workspace.CurrentCamera
+
+local function adjustForScreen()
+
+	if not Camera then
+		return
+	end
+
+	local viewport = Camera.ViewportSize
+
+	if viewport.X < 500 then
+		Main.Size = UDim2.new(0.92, 0, 0.80, 0)
+	elseif viewport.X < 800 then
+		Main.Size = UDim2.new(0.88, 0, 0.78, 0)
+	end
+end
+
+adjustForScreen()
+
+Camera:GetPropertyChangedSignal("ViewportSize"):Connect(adjustForScreen)
+
+--==================================================
+-- PURPLE GLOW ANIMATION
+--==================================================
+
+task.spawn(function()
+
+	while Main.Parent do
+
+		tween(Title, {
+			TextColor3 = Color3.fromRGB(255, 255, 255)
+		}, 1.2)
+
+		task.wait(1.2)
+
+		tween(Title, {
+			TextColor3 = Color3.fromRGB(185, 100, 255)
+		}, 1.2)
+
+		task.wait(1.2)
+	end
+end)
