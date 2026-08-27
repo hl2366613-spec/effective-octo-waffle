@@ -1,0 +1,323 @@
+-- Tạo GUI chính trên màn hình điện thoại (Tương thích Delta X VNG)
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+-- Xóa GUI cũ nếu đã tồn tại
+if CoreGui:FindFirstChild("LightMenuUI") then
+    CoreGui.LightMenuUI:Destroy()
+end
+
+-- Tạo ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LightMenuUI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- 1. NÚT TRÒN BẬT/TẮT MENU (Floating Open Button)
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Name = "OpenBtn"
+OpenBtn.Size = UDim2.new(0, 45, 0, 45)
+OpenBtn.Position = UDim2.new(0.1, 0, 0.2, 0)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
+OpenBtn.Text = "ライト"
+OpenBtn.TextColor3 = Color3.fromRGB(200, 130, 255)
+OpenBtn.TextSize = 12
+OpenBtn.Font = Enum.Font.SourceSansBold
+OpenBtn.Visible = false -- Ban đầu ẩn đi
+OpenBtn.Active = true
+OpenBtn.Draggable = true -- Có thể kéo thả nút tròn trên màn hình
+OpenBtn.Parent = ScreenGui
+
+local OpenBtnCorner = Instance.new("UICorner")
+OpenBtnCorner.CornerRadius = UDim.new(1, 0) -- Tạo hình tròn
+OpenBtnCorner.Parent = OpenBtn
+
+local OpenBtnStroke = Instance.new("UIStroke")
+OpenBtnStroke.Color = Color3.fromRGB(140, 50, 235)
+OpenBtnStroke.Thickness = 2
+OpenBtnStroke.Parent = OpenBtn
+
+-- 2. GIAO DIỆN MAIN MENU (Màu Đen - Tím)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 260, 0, 180)
+MainFrame.Position = UDim2.new(0.5, -130, 0.4, -90)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- Hỗ trợ kéo thả trên di động
+MainFrame.Parent = ScreenGui
+
+local MainUICorner = Instance.new("UICorner")
+MainUICorner.CornerRadius = UDim.new(0, 10)
+MainUICorner.Parent = MainFrame
+
+local MainUIStroke = Instance.new("UIStroke")
+MainUIStroke.Color = Color3.fromRGB(140, 50, 235)
+MainUIStroke.Thickness = 2
+MainUIStroke.Parent = MainFrame
+
+-- Tiêu đề "ライト"
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -40, 0, 35)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "ライト"
+Title.TextColor3 = Color3.fromRGB(200, 130, 255)
+Title.TextSize = 20
+Title.Font = Enum.Font.SourceSansBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+-- Nút Thu Nhỏ (-) Ở Góc Menu
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 28, 0, 28)
+MinimizeBtn.Position = UDim2.new(1, -33, 0, 4)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(200, 130, 255)
+MinimizeBtn.TextSize = 20
+MinimizeBtn.Font = Enum.Font.SourceSansBold
+MinimizeBtn.Parent = MainFrame
+
+local MiniCorner = Instance.new("UICorner")
+MiniCorner.CornerRadius = UDim.new(0, 6)
+MiniCorner.Parent = MinimizeBtn
+
+-- Nút ON/OFF Ngồi Lên Đầu
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0.9, 0, 0, 40)
+ToggleBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+ToggleBtn.Text = "Ngồi Lên Đầu: OFF"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+ToggleBtn.TextSize = 14
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.Parent = MainFrame
+
+local BtnCorner1 = Instance.new("UICorner")
+BtnCorner1.CornerRadius = UDim.new(0, 8)
+BtnCorner1.Parent = ToggleBtn
+
+-- Nút Chọn Player
+local SelectPlayerBtn = Instance.new("TextButton")
+SelectPlayerBtn.Size = UDim2.new(0.9, 0, 0, 40)
+SelectPlayerBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+SelectPlayerBtn.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+SelectPlayerBtn.Text = "Chọn Player: [Chưa Chọn]"
+SelectPlayerBtn.TextColor3 = Color3.fromRGB(200, 200, 255)
+SelectPlayerBtn.TextSize = 14
+SelectPlayerBtn.Font = Enum.Font.SourceSansBold
+SelectPlayerBtn.Parent = MainFrame
+
+local BtnCorner2 = Instance.new("UICorner")
+BtnCorner2.CornerRadius = UDim.new(0, 8)
+BtnCorner2.Parent = SelectPlayerBtn
+
+-- Sub Menu (Danh sách Player)
+local SubFrame = Instance.new("Frame")
+SubFrame.Name = "SubFrame"
+SubFrame.Size = UDim2.new(0, 180, 0, 180)
+SubFrame.Position = UDim2.new(1, 10, 0, 0)
+SubFrame.BackgroundColor3 = Color3.fromRGB(25, 18, 30)
+SubFrame.BorderSizePixel = 0
+SubFrame.Visible = false
+SubFrame.Parent = MainFrame
+
+local SubUICorner = Instance.new("UICorner")
+SubUICorner.CornerRadius = UDim.new(0, 10)
+SubUICorner.Parent = SubFrame
+
+local SubUIStroke = Instance.new("UIStroke")
+SubUIStroke.Color = Color3.fromRGB(100, 40, 180)
+SubUIStroke.Thickness = 1.5
+SubUIStroke.Parent = SubFrame
+
+local ScrollList = Instance.new("ScrollingFrame")
+ScrollList.Size = UDim2.new(0.9, 0, 0.85, 0)
+ScrollList.Position = UDim2.new(0.05, 0, 0.08, 0)
+ScrollList.BackgroundTransparency = 1
+ScrollList.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollList.ScrollBarThickness = 4
+ScrollList.Parent = SubFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = ScrollList
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 5)
+
+-- ======================== BIẾN LOGIC ========================
+local isToggled = false
+local selectedPlayer = nil          -- Lưu instance của Player được chọn
+local sitConnection = nil           -- Connection của RunService để dừng khi tắt
+
+-- ======================== HÀM XỬ LÝ NGỒI LÊN ĐẦU ========================
+local function StopSitting()
+    if sitConnection then
+        sitConnection:Disconnect()
+        sitConnection = nil
+    end
+end
+
+local function StartSitting()
+    StopSitting() -- Đảm bảo không có loop cũ
+
+    -- Kiểm tra đã chọn player chưa
+    if not selectedPlayer then
+        isToggled = false
+        ToggleBtn.Text = "Ngồi Lên Đầu: OFF"
+        ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        return
+    end
+
+    -- Bắt đầu vòng lặp cập nhật vị trí
+    sitConnection = RunService.Heartbeat:Connect(function()
+        -- Nếu toggle bị tắt giữa chừng thì tự ngắt
+        if not isToggled then
+            StopSitting()
+            return
+        end
+
+        local targetCharacter = selectedPlayer.Character
+        local localCharacter = LocalPlayer.Character
+
+        -- Nếu một trong hai nhân vật không tồn tại (chết, rời game,...)
+        if not targetCharacter or not localCharacter then
+            StopSitting()
+            isToggled = false
+            ToggleBtn.Text = "Ngồi Lên Đầu: OFF"
+            ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+            return
+        end
+
+        local targetHead = targetCharacter:FindFirstChild("Head") or targetCharacter:FindFirstChild("HumanoidRootPart")
+        local localHRP = localCharacter:FindFirstChild("HumanoidRootPart")
+
+        if not targetHead or not localHRP then
+            StopSitting()
+            isToggled = false
+            ToggleBtn.Text = "Ngồi Lên Đầu: OFF"
+            ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+            return
+        end
+
+        -- Tính khoảng cách để đặt localHRP lên trên đầu target
+        local offsetY = targetHead.Size.Y / 2 + localHRP.Size.Y / 2 + 0.5 -- cộng thêm 0.5 stud
+        local targetPos = targetHead.Position + Vector3.new(0, offsetY, 0)
+
+        -- Đặt vị trí và giữ nguyên hướng yaw (đứng thẳng)
+        localHRP.CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(localHRP.Orientation.Y), 0)
+
+        -- Đặt vận tốc về 0 để tránh bị trôi
+        localHRP.Velocity = Vector3.new(0, 0, 0)
+        localHRP.RotVelocity = Vector3.new(0, 0, 0)
+    end)
+end
+
+-- ======================== CẬP NHẬT DANH SÁCH PLAYER ========================
+local function RefreshPlayerList()
+    -- Xóa các item cũ
+    for _, child in pairs(ScrollList:GetChildren()) do
+        if child:IsA("Frame") or child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    local count = 0
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            count = count + 1
+
+            local ItemFrame = Instance.new("Frame")
+            ItemFrame.Size = UDim2.new(1, 0, 0, 35)
+            ItemFrame.BackgroundColor3 = Color3.fromRGB(40, 30, 50)
+            ItemFrame.Parent = ScrollList
+
+            local ItemCorner = Instance.new("UICorner")
+            ItemCorner.CornerRadius = UDim.new(0, 6)
+            ItemCorner.Parent = ItemFrame
+
+            local AvatarImg = Instance.new("ImageLabel")
+            AvatarImg.Size = UDim2.new(0, 28, 0, 28)
+            AvatarImg.Position = UDim2.new(0, 4, 0.5, -14)
+            AvatarImg.BackgroundTransparency = 1
+            AvatarImg.Image = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+            AvatarImg.Parent = ItemFrame
+
+            local AvatarCorner = Instance.new("UICorner")
+            AvatarCorner.CornerRadius = UDim.new(1, 0)
+            AvatarCorner.Parent = AvatarImg
+
+            local NameBtn = Instance.new("TextButton")
+            NameBtn.Size = UDim2.new(1, -38, 1, 0)
+            NameBtn.Position = UDim2.new(0, 36, 0, 0)
+            NameBtn.BackgroundTransparency = 1
+            NameBtn.Text = player.DisplayName
+            NameBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            NameBtn.TextSize = 12
+            NameBtn.Font = Enum.Font.SourceSans
+            NameBtn.TextXAlignment = Enum.TextXAlignment.Left
+            NameBtn.Parent = ItemFrame
+
+            -- Khi chọn player, lưu instance và cập nhật nút
+            NameBtn.MouseButton1Click:Connect(function()
+                selectedPlayer = player
+                SelectPlayerBtn.Text = "Player: " .. player.DisplayName
+                SubFrame.Visible = false
+            end)
+        end
+    end
+    ScrollList.CanvasSize = UDim2.new(0, 0, 0, count * 40)
+end
+
+-- ======================== XỬ LÝ SỰ KIỆN NÚT ========================
+-- Thu nhỏ Menu -> Hiện nút tròn
+MinimizeBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    OpenBtn.Visible = true
+end)
+
+-- Nhấn nút tròn -> Mở lại Menu
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    OpenBtn.Visible = false
+end)
+
+-- Toggle ON/OFF
+ToggleBtn.MouseButton1Click:Connect(function()
+    isToggled = not isToggled
+    if isToggled then
+        ToggleBtn.Text = "Ngồi Lên Đầu: ON"
+        ToggleBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        StartSitting() -- Bắt đầu ngồi
+    else
+        ToggleBtn.Text = "Ngồi Lên Đầu: OFF"
+        ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        StopSitting() -- Dừng ngồi
+    end
+end)
+
+-- Mở/Tắt Bảng Player
+SelectPlayerBtn.MouseButton1Click:Connect(function()
+    SubFrame.Visible = not SubFrame.Visible
+    if SubFrame.Visible then
+        RefreshPlayerList()
+    end
+end)
+
+-- Xử lý khi player mục tiêu rời game
+Players.PlayerRemoving:Connect(function(player)
+    if player == selectedPlayer then
+        selectedPlayer = nil
+        SelectPlayerBtn.Text = "Chọn Player: [Chưa Chọn]"
+        -- Nếu đang ngồi thì tắt
+        if isToggled then
+            isToggled = false
+            ToggleBtn.Text = "Ngồi Lên Đầu: OFF"
+            ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+            StopSitting()
+        end
+    end
+end)
