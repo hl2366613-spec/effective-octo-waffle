@@ -1,0 +1,213 @@
+-- == MENU ライト - CHỈ LÀ MÔ PHỎNG GIAO DIỆN ==
+local PlayerService = game:GetService("Players")
+local LocalPlayer = PlayerService.LocalPlayer
+local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
+
+-- == TẠO GIAO DIỆN CHÍNH ==
+local MainGui = Instance.new("ScreenGui")
+MainGui.Name = "LightMenu"
+MainGui.Parent = StarterGui
+MainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Khung menu chính
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 280, 0, 380)
+MainFrame.Position = UDim2.new(1, -300, 0.5, -190)
+MainFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.1) -- Nền đen tím
+MainFrame.BorderColor3 = Color3.new(0.4, 0.2, 0.8) -- Viền tím
+MainFrame.BorderSizePixel = 2
+MainFrame.Parent = MainGui
+
+-- Tên menu "ライト"
+local MenuTitle = Instance.new("TextLabel")
+MenuTitle.Name = "MenuTitle"
+MenuTitle.Size = UDim2.new(1, 0, 0, 40)
+MenuTitle.BackgroundTransparency = 1
+MenuTitle.Text = "ライト"
+MenuTitle.Font = Enum.Font.GothamBold
+MenuTitle.TextSize = 22
+MenuTitle.TextColor3 = Color3.new(0.6, 0.3, 1) -- Màu tím sáng
+MenuTitle.Parent = MainFrame
+
+-- Nút thu gọn menu (-)
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Name = "MinimizeBtn"
+MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+MinimizeBtn.Position = UDim2.new(0, 5, 0, 5)
+MinimizeBtn.BackgroundColor3 = Color3.new(0.2, 0.1, 0.3)
+MinimizeBtn.BorderColor3 = Color3.new(0.4, 0.2, 0.8)
+MinimizeBtn.BorderSizePixel = 1
+MinimizeBtn.Text = "-"
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 18
+MinimizeBtn.TextColor3 = Color3.new(1, 1, 1)
+MinimizeBtn.Parent = MainFrame
+
+-- Nút bật/tắt toàn bộ chức năng
+local ToggleAllBtn = Instance.new("TextButton")
+ToggleAllBtn.Name = "ToggleAllBtn"
+ToggleAllBtn.Size = UDim2.new(0, 30, 0, 30)
+ToggleAllBtn.Position = UDim2.new(1, -35, 0, 5)
+ToggleAllBtn.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2) -- Màu đỏ khi tắt
+ToggleAllBtn.BorderColor3 = Color3.new(0.4, 0.2, 0.8)
+ToggleAllBtn.BorderSizePixel = 1
+ToggleAllBtn.Text = "OFF"
+ToggleAllBtn.Font = Enum.Font.GothamBold
+ToggleAllBtn.TextSize = 12
+ToggleAllBtn.TextColor3 = Color3.new(1, 1, 1)
+ToggleAllBtn.Parent = MainFrame
+
+-- Nút chọn người chơi
+local SelectPlayerBtn = Instance.new("TextButton")
+SelectPlayerBtn.Name = "SelectPlayerBtn"
+SelectPlayerBtn.Size = UDim2.new(0, 240, 0, 50)
+SelectPlayerBtn.Position = UDim2.new(0, 20, 0, 50)
+SelectPlayerBtn.BackgroundColor3 = Color3.new(0.2, 0.1, 0.3)
+SelectPlayerBtn.BorderColor3 = Color3.new(0.4, 0.2, 0.8)
+SelectPlayerBtn.BorderSizePixel = 1
+SelectPlayerBtn.Text = "CHỌN NGƯỜI CHƠI"
+SelectPlayerBtn.Font = Enum.Font.GothamBold
+SelectPlayerBtn.TextSize = 16
+SelectPlayerBtn.TextColor3 = Color3.new(1, 1, 1)
+SelectPlayerBtn.Parent = MainFrame
+
+-- Nút ngồi lên đầu người chơi
+local SitBtn = Instance.new("TextButton")
+SitBtn.Name = "SitBtn"
+SitBtn.Size = UDim2.new(0, 240, 0, 50)
+SitBtn.Position = UDim2.new(0, 20, 0, 110)
+SitBtn.BackgroundColor3 = Color3.new(0.2, 0.1, 0.3)
+SitBtn.BorderColor3 = Color3.new(0.4, 0.2, 0.8)
+SitBtn.BorderSizePixel = 1
+SitBtn.Text = "NGỒI LÊN ĐẦU NGƯỜI CHƠI"
+SitBtn.Font = Enum.Font.GothamBold
+SitBtn.TextSize = 16
+SitBtn.TextColor3 = Color3.new(1, 1, 1)
+SitBtn.Parent = MainFrame
+
+-- Khung menu phụ danh sách người chơi
+local PlayerListFrame = Instance.new("Frame")
+PlayerListFrame.Name = "PlayerListFrame"
+PlayerListFrame.Size = UDim2.new(0, 240, 0, 280)
+PlayerListFrame.Position = UDim2.new(0, 285, 0, 50)
+PlayerListFrame.BackgroundColor3 = Color3.new(0.1, 0.05, 0.15)
+PlayerListFrame.BorderColor3 = Color3.new(0.4, 0.2, 0.8)
+PlayerListFrame.BorderSizePixel = 2
+PlayerListFrame.Visible = false
+PlayerListFrame.Parent = MainGui
+
+-- Tiêu đề danh sách người chơi
+local PlayerListTitle = Instance.new("TextLabel")
+PlayerListTitle.Name = "PlayerListTitle"
+PlayerListTitle.Size = UDim2.new(1, 0, 0, 30)
+PlayerListTitle.BackgroundTransparency = 1
+PlayerListTitle.Text = "DANH SÁCH NGƯỜI CHƠI"
+PlayerListTitle.Font = Enum.Font.GothamBold
+PlayerListTitle.TextSize = 14
+PlayerListTitle.TextColor3 = Color3.new(0.6, 0.3, 1)
+PlayerListTitle.Parent = PlayerListFrame
+
+-- Khung cuộn danh sách người chơi
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Name = "ScrollingFrame"
+ScrollingFrame.Size = UDim2.new(1, -10, 1, -40)
+ScrollingFrame.Position = UDim2.new(0, 5, 0, 35)
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.BorderSizePixel = 0
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollingFrame.ScrollBarThickness = 6
+ScrollingFrame.Parent = PlayerListFrame
+
+-- == HÀM TẠO ITEM NGƯỜI CHƠI ==
+local function CreatePlayerItem(player)
+    local PlayerItem = Instance.new("TextButton")
+    PlayerItem.Size = UDim2.new(1, 0, 0, 45)
+    PlayerItem.BackgroundColor3 = Color3.new(0.2, 0.1, 0.3)
+    PlayerItem.BorderColor3 = Color3.new(0.4, 0.2, 0.8)
+    PlayerItem.BorderSizePixel = 1
+    PlayerItem.Text = player.Name
+    PlayerItem.Font = Enum.Font.Gotham
+    PlayerItem.TextSize = 14
+    PlayerItem.TextColor3 = Color3.new(1, 1, 1)
+    
+    -- Thêm avatar người chơi (chỉ mô phỏng)
+    local AvatarImg = Instance.new("ImageLabel")
+    AvatarImg.Size = UDim2.new(0, 35, 0, 35)
+    AvatarImg.Position = UDim2.new(0, 5, 0.5, -17)
+    AvatarImg.BackgroundTransparency = 1
+    AvatarImg.Image = "rbxthumb://type=AvatarHeadShot&id=" .. player.UserId .. "&w=420&h=420"
+    AvatarImg.Parent = PlayerItem
+    
+    PlayerItem.Parent = ScrollingFrame
+    return PlayerItem
+end
+
+-- == CẬP NHẬT DANH SÁCH NGƯỜI CHƠI ==
+local function UpdatePlayerList()
+    for _, child in pairs(ScrollingFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    local yOffset = 0
+    for _, player in pairs(PlayerService:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local item = CreatePlayerItem(player)
+            item.Position = UDim2.new(0, 0, 0, yOffset)
+            yOffset = yOffset + 50
+            ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, yOffset)
+        end
+    end
+end
+
+-- == XỬ LÝ SỰ KIỆN NÚT ==
+-- Nút thu gọn/mở rộng menu
+local isMenuMinimized = false
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 50, 0, 50)
+toggleBtn.Position = UDim2.new(1, -60, 0.5, -25)
+toggleBtn.BackgroundColor3 = Color3.new(0.4, 0.2, 0.8)
+toggleBtn.BorderSizePixel = 0
+toggleBtn.AutoButtonColor = false
+toggleBtn.Visible = false
+toggleBtn.Parent = MainGui
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+    isMenuMinimized = not isMenuMinimized
+    MainFrame.Visible = not isMenuMinimized
+    toggleBtn.Visible = isMenuMinimized
+end)
+
+toggleBtn.MouseButton1Click:Connect(function()
+    isMenuMinimized = not isMenuMinimized
+    MainFrame.Visible = not isMenuMinimized
+    toggleBtn.Visible = isMenuMinimized
+end)
+
+-- Nút bật/tắt chức năng
+local isMenuEnabled = true
+ToggleAllBtn.MouseButton1Click:Connect(function()
+    isMenuEnabled = not isMenuEnabled
+    if isMenuEnabled then
+        ToggleAllBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2)
+        ToggleAllBtn.Text = "ON"
+    else
+        ToggleAllBtn.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+        ToggleAllBtn.Text = "OFF"
+    end
+end)
+
+-- Nút mở/đóng danh sách người chơi
+SelectPlayerBtn.MouseButton1Click:Connect(function()
+    PlayerListFrame.Visible = not PlayerListFrame.Visible
+    if PlayerListFrame.Visible then
+        UpdatePlayerList()
+    end
+end)
+
+-- == LƯU Ý QUAN TRỌNG ==
+-- Script này chỉ là mô phỏng giao diện, KHÔNG có chức năng thực tế trên Delta X VNG
+-- Bạn không thể sử dụng script nào để can thiệp vào hành động của người chơi khác theo quy tắc của Roblox
