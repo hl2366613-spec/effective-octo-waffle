@@ -1,0 +1,270 @@
+-- Script Ngồi Lên Đầu - Tối ưu cho Delta Executor
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Tạo GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SitOnHeadGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Kiểm tra và chống anti-cheat
+pcall(function()
+    ScreenGui.Parent = game:GetService("CoreGui")
+end)
+
+if not ScreenGui.Parent then
+    ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Tạo Frame chính
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 200, 0, 150)
+MainFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+-- Tạo tiêu đề
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Text = "NGỒI LÊN ĐẦU"
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 16
+Title.BorderSizePixel = 0
+Title.Parent = MainFrame
+
+-- Tạo nút bấm
+local SitButton = Instance.new("TextButton")
+SitButton.Name = "SitButton"
+SitButton.Size = UDim2.new(0.9, 0, 0, 40)
+SitButton.Position = UDim2.new(0.05, 0, 0, 45)
+SitButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+SitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SitButton.Text = "BẮT ĐẦU NGỒI"
+SitButton.Font = Enum.Font.SourceSansBold
+SitButton.TextSize = 14
+SitButton.BorderSizePixel = 0
+SitButton.Parent = MainFrame
+
+-- Thêm hiệu ứng hover
+SitButton.MouseEnter:Connect(function()
+    SitButton.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
+end)
+
+SitButton.MouseLeave:Connect(function()
+    SitButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+end)
+
+-- Tạo thông báo trạng thái
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Name = "StatusLabel"
+StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+StatusLabel.Position = UDim2.new(0, 0, 0, 95)
+StatusLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusLabel.Text = "Trạng thái: Chưa ngồi"
+StatusLabel.Font = Enum.Font.SourceSans
+StatusLabel.TextSize = 12
+StatusLabel.BorderSizePixel = 0
+StatusLabel.Parent = MainFrame
+
+-- Tạo nút đóng
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 25, 0, 25)
+CloseButton.Position = UDim2.new(1, -28, 0, 2)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Text = "X"
+CloseButton.Font = Enum.Font.SourceSansBold
+CloseButton.TextSize = 14
+CloseButton.BorderSizePixel = 0
+CloseButton.Parent = MainFrame
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Logic chức năng
+local LocalPlayer = Players.LocalPlayer
+local isSitting = false
+local targetPlayer = nil
+local sitWeld = nil
+
+local function findNearestPlayer()
+    local nearestPlayer = nil
+    local shortestDistance = 30 -- Khoảng cách tối đa
+    
+    local character = LocalPlayer.Character
+    if not character then return nil end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return nil end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local targetChar = player.Character
+            if targetChar then
+                local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+                if targetRoot then
+                    local distance = (rootPart.Position - targetRoot.Position).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        nearestPlayer = player
+                    end
+                end
+            end
+        end
+    end
+    
+    return nearestPlayer
+end
+
+local function startSitting()
+    if isSitting then return end
+    
+    local character = LocalPlayer.Character
+    if not character then
+        StatusLabel.Text = "Trạng thái: Chưa có nhân vật!"
+        return
+    end
+    
+    local target = findNearestPlayer()
+    if not target or not target.Character then
+        StatusLabel.Text = "Trạng thái: Không tìm thấy player!"
+        return
+    end
+    
+    local characterRoot = character:FindFirstChild("HumanoidRootPart")
+    local targetHead = target.Character:FindFirstChild("Head")
+    
+    if not characterRoot or not targetHead then
+        StatusLabel.Text = "Trạng thái: Lỗi tìm bộ phận!"
+        return
+    end
+    
+    -- Tạo weld
+    sitWeld = Instance.new("Weld")
+    sitWeld.Name = "SitWeld"
+    sitWeld.Part0 = characterRoot
+    sitWeld.Part1 = targetHead
+    sitWeld.C0 = CFrame.new(0, 2, 0) -- Vị trí ngồi trên đầu
+    sitWeld.C1 = CFrame.new(0, 0, 0)
+    sitWeld.Parent = characterRoot
+    
+    -- Vô hiệu hóa physics
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true
+    end
+    
+    -- Vô hiệu hóa va chạm
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+    
+    isSitting = true
+    targetPlayer = target
+    
+    StatusLabel.Text = "Đang ngồi: " .. target.Name
+    SitButton.Text = "ĐỨNG DẬY"
+end
+
+local function stopSitting()
+    if not isSitting then return end
+    
+    local character = LocalPlayer.Character
+    if character then
+        local characterRoot = character:FindFirstChild("HumanoidRootPart")
+        
+        -- Xóa weld
+        if sitWeld then
+            sitWeld:Destroy()
+            sitWeld = nil
+        end
+        
+        -- Khôi phục physics
+        if characterRoot then
+            characterRoot.Position = characterRoot.Position + Vector3.new(0, 3, 0)
+        end
+        
+        -- Khôi phục va chạm
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+        
+        -- Khôi phục humanoid
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+    
+    isSitting = false
+    targetPlayer = nil
+    
+    StatusLabel.Text = "Trạng thái: Đã đứng dậy"
+    SitButton.Text = "BẮT ĐẦU NGỒI"
+end
+
+-- Xử lý nút bấm
+SitButton.MouseButton1Click:Connect(function()
+    if isSitting then
+        stopSitting()
+    else
+        startSitting()
+    end
+end)
+
+-- Theo dõi target
+RunService.RenderStepped:Connect(function()
+    if isSitting and targetPlayer and targetPlayer.Character then
+        local character = LocalPlayer.Character
+        local targetCharacter = targetPlayer.Character
+        
+        if character and targetCharacter then
+            local characterRoot = character:FindFirstChild("HumanoidRootPart")
+            local targetHead = targetCharacter:FindFirstChild("Head")
+            
+            if characterRoot and targetHead and sitWeld then
+                -- Giữ vị trí ngồi
+                sitWeld.C0 = CFrame.new(0, 2, 0)
+            end
+        end
+    end
+end)
+
+-- Xử lý khi player rời game
+Players.PlayerRemoving:Connect(function(player)
+    if player == targetPlayer then
+        stopSitting()
+    end
+end)
+
+-- Xử lý khi nhân vật chết
+LocalPlayer.CharacterAdded:Connect(function(character)
+    local humanoid = character:WaitForChild("Humanoid")
+    humanoid.Died:Connect(function()
+        if isSitting then
+            stopSitting()
+        end
+    end)
+end)
+
+-- Thông báo script đã load
+print("✅ Script Ngồi Lên Đầu đã load thành công!")
+print("✅ Menu đã hiện ở giữa màn hình!")
