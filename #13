@@ -1,0 +1,695 @@
+--[[
+    Light Menu UI - V2.9
+    UI FIX
+    Tabs: Main / Chat Simulator / Music
+
+    Bản này tập trung vào UI, Chat Simulator và Music.
+]]
+
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local SoundService = game:GetService("SoundService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- =========================================================
+-- CLEAN OLD GUI
+-- =========================================================
+
+pcall(function()
+    local old = CoreGui:FindFirstChild("LightMenuUI")
+    if old then
+        old:Destroy()
+    end
+end)
+
+pcall(function()
+    local old = LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("LightMenuUI")
+    if old then
+        old:Destroy()
+    end
+end)
+
+-- =========================================================
+-- GLOBAL STATE
+-- =========================================================
+
+_G.ChatState = _G.ChatState or false
+_G.ChatTextContent = _G.ChatTextContent or "Hello World!"
+_G.ChatColorSelected = _G.ChatColorSelected or Color3.fromRGB(255,255,255)
+
+_G.MusicVolume = _G.MusicVolume or 50
+_G.MusicLoopEnabled = _G.MusicLoopEnabled or false
+_G.SavedMusicID = _G.SavedMusicID or {}
+
+local currentRainbowColor = Color3.fromRGB(255,255,255)
+local RainbowStrokes = {}
+
+-- =========================================================
+-- SCREEN GUI
+-- =========================================================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LightMenuUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local guiParented = false
+
+pcall(function()
+    ScreenGui.Parent = CoreGui
+    guiParented = true
+end)
+
+if not guiParented then
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- =========================================================
+-- UTILITY
+-- =========================================================
+
+local function CreateCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.Parent = parent
+    return corner
+end
+
+local function CreateStroke(parent, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = currentRainbowColor
+    stroke.Thickness = thickness or 1.2
+    stroke.Transparency = 0
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = parent
+    return stroke
+end
+
+local function RegisterStroke(stroke)
+    if stroke then
+        table.insert(RainbowStrokes, stroke)
+    end
+end
+
+-- =========================================================
+-- OPEN BUTTON
+-- =========================================================
+
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Name = "OpenBtn"
+OpenBtn.Size = UDim2.fromOffset(55,55)
+OpenBtn.Position = UDim2.new(0.035,0,0.12,0)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(8,7,14)
+OpenBtn.BackgroundTransparency = 0.2
+OpenBtn.Text = "ライト"
+OpenBtn.TextColor3 = currentRainbowColor
+OpenBtn.TextSize = 11
+OpenBtn.Font = Enum.Font.SourceSansBold
+OpenBtn.AutoButtonColor = false
+OpenBtn.Active = true
+OpenBtn.Draggable = true
+OpenBtn.Parent = ScreenGui
+
+CreateCorner(OpenBtn,100)
+
+local OpenBtnStroke = CreateStroke(OpenBtn,2.3)
+RegisterStroke(OpenBtnStroke)
+
+-- =========================================================
+-- MAIN FRAME
+-- =========================================================
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.fromOffset(520,400)
+MainFrame.Position = UDim2.new(0.5,-260,0.42,-200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(8,7,13)
+MainFrame.BackgroundTransparency = 0.18
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
+
+CreateCorner(MainFrame,14)
+
+local MainUIStroke = CreateStroke(MainFrame,2)
+RegisterStroke(MainUIStroke)
+
+-- =========================================================
+-- HEADER
+-- =========================================================
+
+local TopLine = Instance.new("Frame")
+TopLine.Size = UDim2.new(1,-24,0,1)
+TopLine.Position = UDim2.fromOffset(12,34)
+TopLine.BackgroundColor3 = currentRainbowColor
+TopLine.BorderSizePixel = 0
+TopLine.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.fromOffset(65,25)
+Title.Position = UDim2.fromOffset(13,6)
+Title.BackgroundTransparency = 1
+Title.Text = "ライト"
+Title.TextColor3 = currentRainbowColor
+Title.TextSize = 18
+Title.Font = Enum.Font.SourceSansBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+local VersionLabel = Instance.new("TextLabel")
+VersionLabel.Size = UDim2.fromOffset(110,20)
+VersionLabel.Position = UDim2.fromOffset(78,9)
+VersionLabel.BackgroundTransparency = 1
+VersionLabel.Text = "[raito] V2.9"
+VersionLabel.TextColor3 = currentRainbowColor
+VersionLabel.TextSize = 10
+VersionLabel.Font = Enum.Font.SourceSansBold
+VersionLabel.TextXAlignment = Enum.TextXAlignment.Left
+VersionLabel.Parent = MainFrame
+
+-- =========================================================
+-- CLOSE
+-- =========================================================
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.fromOffset(27,27)
+CloseBtn.Position = UDim2.new(1,-35,0,5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(15,12,22)
+CloseBtn.BackgroundTransparency = 0.2
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255,100,100)
+CloseBtn.TextSize = 18
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.AutoButtonColor = false
+CloseBtn.Parent = MainFrame
+
+CreateCorner(CloseBtn,7)
+
+local CloseStroke = CreateStroke(CloseBtn,1)
+RegisterStroke(CloseStroke)
+
+-- =========================================================
+-- TAB HOLDER
+-- =========================================================
+
+local TabHolder = Instance.new("Frame")
+TabHolder.Size = UDim2.new(0,110,1,-45)
+TabHolder.Position = UDim2.fromOffset(10,40)
+TabHolder.BackgroundTransparency = 1
+TabHolder.Parent = MainFrame
+
+local TabLayout = Instance.new("UIListLayout")
+TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabLayout.Padding = UDim.new(0,6)
+TabLayout.Parent = TabHolder
+
+local function CreateTabButton(text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,0,0,32)
+    btn.BackgroundColor3 = Color3.fromRGB(12,10,18)
+    btn.BackgroundTransparency = 0.35
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.TextSize = 11
+    btn.Font = Enum.Font.SourceSansBold
+    btn.AutoButtonColor = false
+    btn.Parent = TabHolder
+
+    CreateCorner(btn,7)
+
+    local stroke = CreateStroke(btn,1)
+    RegisterStroke(stroke)
+
+    return btn
+end
+
+local MainTabBtn = CreateTabButton("Main")
+local ChatTabBtn = CreateTabButton("Chat Simulator")
+local MusicTabBtn = CreateTabButton("Music")
+
+-- =========================================================
+-- CONTENT
+-- =========================================================
+
+local function CreateContent()
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1,-135,1,-45)
+    frame.Position = UDim2.fromOffset(125,40)
+    frame.BackgroundTransparency = 1
+    frame.Parent = MainFrame
+    return frame
+end
+
+local MainContent = CreateContent()
+local ChatContent = CreateContent()
+local MusicContent = CreateContent()
+
+ChatContent.Visible = false
+MusicContent.Visible = false
+
+local function SwitchTab(tab)
+    MainContent.Visible = tab == MainContent
+    ChatContent.Visible = tab == ChatContent
+    MusicContent.Visible = tab == MusicContent
+end
+
+MainTabBtn.MouseButton1Click:Connect(function()
+    SwitchTab(MainContent)
+end)
+
+ChatTabBtn.MouseButton1Click:Connect(function()
+    SwitchTab(ChatContent)
+end)
+
+MusicTabBtn.MouseButton1Click:Connect(function()
+    SwitchTab(MusicContent)
+end)
+
+-- =========================================================
+-- MAIN TAB
+-- =========================================================
+
+local MainLabel = Instance.new("TextLabel")
+MainLabel.Size = UDim2.new(1,0,0,40)
+MainLabel.BackgroundTransparency = 1
+MainLabel.Text = "Light Menu"
+MainLabel.TextColor3 = Color3.fromRGB(255,255,255)
+MainLabel.TextSize = 18
+MainLabel.Font = Enum.Font.SourceSansBold
+MainLabel.Parent = MainContent
+
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Size = UDim2.new(1,0,0,100)
+InfoLabel.Position = UDim2.fromOffset(0,45)
+InfoLabel.BackgroundColor3 = Color3.fromRGB(12,10,18)
+InfoLabel.BackgroundTransparency = 0.25
+InfoLabel.Text = "Menu đã khởi động thành công.\n\nChọn Chat Simulator hoặc Music ở bên trái."
+InfoLabel.TextColor3 = Color3.fromRGB(230,230,230)
+InfoLabel.TextSize = 13
+InfoLabel.Font = Enum.Font.SourceSansBold
+InfoLabel.TextWrapped = true
+InfoLabel.Parent = MainContent
+
+CreateCorner(InfoLabel,8)
+RegisterStroke(CreateStroke(InfoLabel,1))
+
+-- =========================================================
+-- CHAT SIMULATOR
+-- =========================================================
+
+local ChatToggleBtn = Instance.new("TextButton")
+ChatToggleBtn.Size = UDim2.new(0.48,0,0,32)
+ChatToggleBtn.Position = UDim2.new(0.52,0,0,0)
+ChatToggleBtn.BackgroundColor3 = Color3.fromRGB(12,10,18)
+ChatToggleBtn.BackgroundTransparency = 0.3
+ChatToggleBtn.TextSize = 13
+ChatToggleBtn.Font = Enum.Font.SourceSansBold
+ChatToggleBtn.AutoButtonColor = false
+ChatToggleBtn.Parent = ChatContent
+
+CreateCorner(ChatToggleBtn,7)
+RegisterStroke(CreateStroke(ChatToggleBtn,1))
+
+local ChatTitle = Instance.new("TextLabel")
+ChatTitle.Size = UDim2.new(0.48,0,0,32)
+ChatTitle.BackgroundColor3 = Color3.fromRGB(12,10,18)
+ChatTitle.BackgroundTransparency = 0.3
+ChatTitle.Text = "Chat Simulator"
+ChatTitle.TextColor3 = Color3.fromRGB(255,255,255)
+ChatTitle.TextSize = 13
+ChatTitle.Font = Enum.Font.SourceSansBold
+ChatTitle.Parent = ChatContent
+
+CreateCorner(ChatTitle,7)
+RegisterStroke(CreateStroke(ChatTitle,1))
+
+local chatActive = _G.ChatState
+local selectedChatColor = _G.ChatColorSelected
+local isRainbowChat = false
+
+local function UpdateChatToggle()
+    if chatActive then
+        ChatToggleBtn.Text = "OFF"
+        ChatToggleBtn.TextColor3 = Color3.fromRGB(255,100,100)
+    else
+        ChatToggleBtn.Text = "ON"
+        ChatToggleBtn.TextColor3 = Color3.fromRGB(100,255,100)
+    end
+end
+
+UpdateChatToggle()
+
+local ChatInput = Instance.new("TextBox")
+ChatInput.Size = UDim2.new(1,0,0,34)
+ChatInput.Position = UDim2.fromOffset(0,42)
+ChatInput.BackgroundColor3 = Color3.fromRGB(15,12,22)
+ChatInput.BackgroundTransparency = 0.2
+ChatInput.PlaceholderText = "Nhập nội dung..."
+ChatInput.Text = _G.ChatTextContent
+ChatInput.TextColor3 = Color3.fromRGB(255,255,255)
+ChatInput.PlaceholderColor3 = Color3.fromRGB(160,160,160)
+ChatInput.Font = Enum.Font.SourceSansBold
+ChatInput.TextSize = 12
+ChatInput.ClearTextOnFocus = false
+ChatInput.Parent = ChatContent
+
+CreateCorner(ChatInput,7)
+RegisterStroke(CreateStroke(ChatInput,1))
+
+local ColorGrid = Instance.new("Frame")
+ColorGrid.Size = UDim2.new(1,0,0,150)
+ColorGrid.Position = UDim2.fromOffset(0,88)
+ColorGrid.BackgroundTransparency = 1
+ColorGrid.Parent = ChatContent
+
+local Grid = Instance.new("UIGridLayout")
+Grid.CellSize = UDim2.fromOffset(80,28)
+Grid.CellPadding = UDim2.fromOffset(6,6)
+Grid.Parent = ColorGrid
+
+local colors = {
+    {"Đỏ",Color3.fromRGB(255,50,50)},
+    {"Xanh lá",Color3.fromRGB(50,255,50)},
+    {"Xanh dương",Color3.fromRGB(50,150,255)},
+    {"Vàng",Color3.fromRGB(255,255,50)},
+    {"Tím",Color3.fromRGB(200,50,255)},
+    {"Cam",Color3.fromRGB(255,150,50)},
+    {"Trắng",Color3.fromRGB(255,255,255)},
+    {"Hồng",Color3.fromRGB(255,100,200)}
+}
+
+for _, data in ipairs(colors) do
+    local btn = Instance.new("TextButton")
+    btn.Text = data[1]
+    btn.BackgroundColor3 = data[2]
+    btn.TextColor3 = Color3.fromRGB(0,0,0)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 10
+    btn.Parent = ColorGrid
+
+    CreateCorner(btn,6)
+
+    btn.MouseButton1Click:Connect(function()
+        isRainbowChat = false
+        selectedChatColor = data[2]
+        _G.ChatColorSelected = data[2]
+    end)
+end
+
+local RainbowBtn = Instance.new("TextButton")
+RainbowBtn.Text = "Cầu Vồng"
+RainbowBtn.BackgroundColor3 = currentRainbowColor
+RainbowBtn.TextColor3 = Color3.fromRGB(0,0,0)
+RainbowBtn.Font = Enum.Font.SourceSansBold
+RainbowBtn.TextSize = 10
+RainbowBtn.Parent = ColorGrid
+
+CreateCorner(RainbowBtn,6)
+
+RainbowBtn.MouseButton1Click:Connect(function()
+    isRainbowChat = true
+end)
+
+local ChatPreview = Instance.new("TextLabel")
+ChatPreview.Size = UDim2.new(1,0,0,60)
+ChatPreview.Position = UDim2.fromOffset(0,250)
+ChatPreview.BackgroundColor3 = Color3.fromRGB(12,10,18)
+ChatPreview.BackgroundTransparency = 0.25
+ChatPreview.Text = ChatInput.Text
+ChatPreview.TextSize = 16
+ChatPreview.Font = Enum.Font.SourceSansBold
+ChatPreview.TextWrapped = true
+ChatPreview.Parent = ChatContent
+
+CreateCorner(ChatPreview,8)
+RegisterStroke(CreateStroke(ChatPreview,1))
+
+local function UpdateChatPreview()
+    ChatPreview.Text = ChatInput.Text
+    ChatPreview.TextColor3 = isRainbowChat and currentRainbowColor or selectedChatColor
+end
+
+ChatToggleBtn.MouseButton1Click:Connect(function()
+    chatActive = not chatActive
+    _G.ChatState = chatActive
+    UpdateChatToggle()
+end)
+
+ChatInput:GetPropertyChangedSignal("Text"):Connect(function()
+    _G.ChatTextContent = ChatInput.Text
+    UpdateChatPreview()
+end)
+
+UpdateChatPreview()
+
+-- =========================================================
+-- MUSIC
+-- =========================================================
+
+local localSound = Instance.new("Sound")
+localSound.Name = "LocalMusicPlayer"
+localSound.Volume = _G.MusicVolume / 100
+localSound.Looped = _G.MusicLoopEnabled
+localSound.Parent = SoundService
+
+local MusicIDInput = Instance.new("TextBox")
+MusicIDInput.Size = UDim2.new(1,0,0,34)
+MusicIDInput.BackgroundColor3 = Color3.fromRGB(15,12,22)
+MusicIDInput.BackgroundTransparency = 0.2
+MusicIDInput.PlaceholderText = "Nhập ID nhạc..."
+MusicIDInput.Text = "1848354536"
+MusicIDInput.TextColor3 = Color3.fromRGB(255,255,255)
+MusicIDInput.Font = Enum.Font.SourceSansBold
+MusicIDInput.TextSize = 12
+MusicIDInput.ClearTextOnFocus = false
+MusicIDInput.Parent = MusicContent
+
+CreateCorner(MusicIDInput,7)
+RegisterStroke(CreateStroke(MusicIDInput,1))
+
+local VolumeLabel = Instance.new("TextLabel")
+VolumeLabel.Size = UDim2.new(1,0,0,25)
+VolumeLabel.Position = UDim2.fromOffset(0,42)
+VolumeLabel.BackgroundTransparency = 1
+VolumeLabel.Text = "Âm lượng: " .. _G.MusicVolume .. "%"
+VolumeLabel.TextColor3 = Color3.fromRGB(255,255,255)
+VolumeLabel.TextSize = 12
+VolumeLabel.Font = Enum.Font.SourceSansBold
+VolumeLabel.Parent = MusicContent
+
+local VolumeSlider = Instance.new("TextButton")
+VolumeSlider.Size = UDim2.new(1,0,0,20)
+VolumeSlider.Position = UDim2.fromOffset(0,70)
+VolumeSlider.BackgroundColor3 = Color3.fromRGB(55,55,75)
+VolumeSlider.Text = ""
+VolumeSlider.AutoButtonColor = false
+VolumeSlider.Parent = MusicContent
+
+CreateCorner(VolumeSlider,10)
+
+local VolumeProgress = Instance.new("Frame")
+VolumeProgress.Size = UDim2.new(_G.MusicVolume/100,0,1,0)
+VolumeProgress.BackgroundColor3 = currentRainbowColor
+VolumeProgress.BorderSizePixel = 0
+VolumeProgress.Parent = VolumeSlider
+
+CreateCorner(VolumeProgress,10)
+
+local function SetVolume(percent)
+    percent = math.clamp(percent,0,1)
+
+    _G.MusicVolume = math.round(percent * 100)
+    localSound.Volume = percent
+
+    VolumeProgress.Size = UDim2.new(percent,0,1,0)
+    VolumeLabel.Text = "Âm lượng: " .. _G.MusicVolume .. "%"
+end
+
+VolumeSlider.MouseButton1Click:Connect(function()
+    local x = UserInputService:GetMouseLocation().X
+    local pos = VolumeSlider.AbsolutePosition.X
+    local size = VolumeSlider.AbsoluteSize.X
+
+    SetVolume((x-pos)/size)
+end)
+
+local PlayBtn = Instance.new("TextButton")
+PlayBtn.Size = UDim2.new(0.31,0,0,35)
+PlayBtn.Position = UDim2.fromOffset(0,105)
+PlayBtn.Text = "▶ Play"
+PlayBtn.Font = Enum.Font.SourceSansBold
+PlayBtn.TextSize = 12
+PlayBtn.TextColor3 = Color3.fromRGB(100,255,100)
+PlayBtn.BackgroundColor3 = Color3.fromRGB(12,10,18)
+PlayBtn.Parent = MusicContent
+
+CreateCorner(PlayBtn,7)
+RegisterStroke(CreateStroke(PlayBtn,1))
+
+local PauseBtn = Instance.new("TextButton")
+PauseBtn.Size = UDim2.new(0.31,0,0,35)
+PauseBtn.Position = UDim2.new(0.345,0,0,105)
+PauseBtn.Text = "⏸ Pause"
+PauseBtn.Font = Enum.Font.SourceSansBold
+PauseBtn.TextSize = 12
+PauseBtn.TextColor3 = Color3.fromRGB(255,200,100)
+PauseBtn.BackgroundColor3 = Color3.fromRGB(12,10,18)
+PauseBtn.Parent = MusicContent
+
+CreateCorner(PauseBtn,7)
+RegisterStroke(CreateStroke(PauseBtn,1))
+
+local StopBtn = Instance.new("TextButton")
+StopBtn.Size = UDim2.new(0.31,0,0,35)
+StopBtn.Position = UDim2.new(0.69,0,0,105)
+StopBtn.Text = "⏹ Stop"
+StopBtn.Font = Enum.Font.SourceSansBold
+StopBtn.TextSize = 12
+StopBtn.TextColor3 = Color3.fromRGB(255,100,100)
+StopBtn.BackgroundColor3 = Color3.fromRGB(12,10,18)
+StopBtn.Parent = MusicContent
+
+CreateCorner(StopBtn,7)
+RegisterStroke(CreateStroke(StopBtn,1))
+
+local LoopBtn = Instance.new("TextButton")
+LoopBtn.Size = UDim2.new(1,0,0,35)
+LoopBtn.Position = UDim2.fromOffset(0,150)
+LoopBtn.Text = _G.MusicLoopEnabled and "🔄 Loop: ON" or "🔄 Loop: OFF"
+LoopBtn.Font = Enum.Font.SourceSansBold
+LoopBtn.TextSize = 12
+LoopBtn.TextColor3 = _G.MusicLoopEnabled
+    and Color3.fromRGB(100,255,100)
+    or Color3.fromRGB(255,100,100)
+LoopBtn.BackgroundColor3 = Color3.fromRGB(12,10,18)
+LoopBtn.Parent = MusicContent
+
+CreateCorner(LoopBtn,7)
+RegisterStroke(CreateStroke(LoopBtn,1))
+
+local MusicStatus = Instance.new("TextLabel")
+MusicStatus.Size = UDim2.new(1,0,0,40)
+MusicStatus.Position = UDim2.fromOffset(0,195)
+MusicStatus.BackgroundTransparency = 1
+MusicStatus.Text = "Status: Stopped"
+MusicStatus.TextColor3 = Color3.fromRGB(220,220,220)
+MusicStatus.TextSize = 12
+MusicStatus.Font = Enum.Font.SourceSansBold
+MusicStatus.Parent = MusicContent
+
+local function PlayMusic()
+    local id = MusicIDInput.Text:gsub("%D","")
+
+    if id == "" then
+        MusicStatus.Text = "Status: ID không hợp lệ"
+        return
+    end
+
+    localSound.SoundId = "rbxassetid://" .. id
+    localSound.Looped = _G.MusicLoopEnabled
+
+    pcall(function()
+        localSound:Play()
+    end)
+
+    MusicStatus.Text = "Status: Playing"
+end
+
+PlayBtn.MouseButton1Click:Connect(function()
+    if localSound.IsPaused then
+        localSound:Resume()
+        MusicStatus.Text = "Status: Playing"
+    else
+        PlayMusic()
+    end
+end)
+
+PauseBtn.MouseButton1Click:Connect(function()
+    if localSound.IsPlaying then
+        localSound:Pause()
+        MusicStatus.Text = "Status: Paused"
+    end
+end)
+
+StopBtn.MouseButton1Click:Connect(function()
+    localSound:Stop()
+    MusicStatus.Text = "Status: Stopped"
+end)
+
+LoopBtn.MouseButton1Click:Connect(function()
+    _G.MusicLoopEnabled = not _G.MusicLoopEnabled
+    localSound.Looped = _G.MusicLoopEnabled
+
+    if _G.MusicLoopEnabled then
+        LoopBtn.Text = "🔄 Loop: ON"
+        LoopBtn.TextColor3 = Color3.fromRGB(100,255,100)
+    else
+        LoopBtn.Text = "🔄 Loop: OFF"
+        LoopBtn.TextColor3 = Color3.fromRGB(255,100,100)
+    end
+end)
+
+-- =========================================================
+-- OPEN / CLOSE
+-- =========================================================
+
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+-- =========================================================
+-- RAINBOW
+-- =========================================================
+
+local hue = 0
+
+RunService.Heartbeat:Connect(function(delta)
+    hue = (hue + delta * 0.32) % 1
+    currentRainbowColor = Color3.fromHSV(hue,0.88,1)
+
+    MainUIStroke.Color = currentRainbowColor
+    OpenBtnStroke.Color = currentRainbowColor
+    CloseStroke.Color = currentRainbowColor
+
+    TopLine.BackgroundColor3 = currentRainbowColor
+    Title.TextColor3 = currentRainbowColor
+    VersionLabel.TextColor3 = currentRainbowColor
+    OpenBtn.TextColor3 = currentRainbowColor
+    VolumeProgress.BackgroundColor3 = currentRainbowColor
+
+    if isRainbowChat then
+        ChatPreview.TextColor3 = currentRainbowColor
+    end
+
+    RainbowBtn.BackgroundColor3 = currentRainbowColor
+
+    for _, stroke in ipairs(RainbowStrokes) do
+        if stroke and stroke.Parent then
+            stroke.Color = currentRainbowColor
+        end
+    end
+end)
+
+-- =========================================================
+-- CHARACTER RESET SAFETY
+-- =========================================================
+
+Players.PlayerRemoving:Connect(function(player)
+    if player == LocalPlayer then
+        pcall(function()
+            localSound:Stop()
+        end)
+    end
+end)
+
+print("[LightMenuUI V2.9] Loaded successfully")
