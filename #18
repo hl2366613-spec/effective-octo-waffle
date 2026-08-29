@@ -1,0 +1,619 @@
+-- GUI Light Menu UI (Updated to V2.9 with Advanced Music Tab)
+-- Delta X VNG Mobile
+
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+local SoundService = game:GetService("SoundService")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+-- Xóa GUI cũ
+if CoreGui:FindFirstChild("LightMenuUI") then
+    CoreGui.LightMenuUI:Destroy()
+end
+
+-- Khai báo biến toàn cục
+local currentRainbowColor = Color3.fromRGB(255, 255, 255)
+local RainbowStrokes = {}
+local RainbowButtons = {}
+
+-- Lưu trạng thái với _G
+if _G.SavedMusicID == nil then _G.SavedMusicID = {} end
+if _G.ChatState == nil then _G.ChatState = false end
+if _G.ChatTextContent == nil then _G.ChatTextContent = "Hello World!" end
+if _G.ChatColorSelected == nil then _G.ChatColorSelected = Color3.fromRGB(255, 255, 255) end
+if _G.MusicLoopEnabled == nil then _G.MusicLoopEnabled = false end
+if _G.MusicVolume == nil then _G.MusicVolume = 92 end
+if _G.MusicSpeed == nil then _G.MusicSpeed = 1 end
+
+-- ==================== SCREEN GUI ====================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LightMenuUI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local EspFolder = Instance.new("Folder")
+EspFolder.Name = "LightESP_Folder"
+EspFolder.Parent = ScreenGui
+
+-- ==================== UTILITY ====================
+
+local function CreateCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.Parent = parent
+    return corner
+end
+
+local function CreateStroke(parent, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(160, 80, 255)
+    stroke.Thickness = thickness or 1.2
+    stroke.Transparency = 0
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = parent
+    return stroke
+end
+
+local function RegisterStroke(stroke)
+    if stroke then table.insert(RainbowStrokes, stroke) end
+end
+
+local function RegisterButtonRainbow(btn)
+    if btn then table.insert(RainbowButtons, btn) end
+end
+
+-- ==================== OPEN BUTTON ====================
+
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Name = "OpenBtn"
+OpenBtn.Size = UDim2.new(0, 48, 0, 48)
+OpenBtn.Position = UDim2.new(0.035, 0, 0.12, 0)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(8, 7, 14)
+OpenBtn.BackgroundTransparency = 0.28
+OpenBtn.Text = "ライト"
+OpenBtn.TextColor3 = Color3.fromRGB(220, 150, 255)
+OpenBtn.TextSize = 11
+OpenBtn.Font = Enum.Font.SourceSansBold
+OpenBtn.Active = true
+OpenBtn.Draggable = true
+OpenBtn.Parent = ScreenGui
+
+CreateCorner(OpenBtn, 100)
+local OpenBtnStroke = CreateStroke(OpenBtn, 2.3)
+RegisterStroke(OpenBtnStroke)
+
+-- ==================== MAIN MENU ====================
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 520, 0, 360)
+MainFrame.Position = UDim2.new(0.5, -260, 0.42, -180)
+MainFrame.BackgroundColor3 = Color3.fromRGB(8, 7, 13)
+MainFrame.BackgroundTransparency = 0.28
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+CreateCorner(MainFrame, 14)
+local MainUIStroke = CreateStroke(MainFrame, 2)
+RegisterStroke(MainUIStroke)
+
+-- ==================== TOP GLOW & TITLE ====================
+
+local TopLine = Instance.new("Frame")
+TopLine.Size = UDim2.new(1, -24, 0, 1)
+TopLine.Position = UDim2.new(0, 12, 0, 34)
+TopLine.BackgroundColor3 = Color3.fromRGB(180, 80, 255)
+TopLine.BorderSizePixel = 0
+TopLine.Parent = MainFrame
+CreateCorner(TopLine, 10)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 65, 0, 25)
+Title.Position = UDim2.new(0, 13, 0, 6)
+Title.BackgroundTransparency = 1
+Title.Text = "ライト"
+Title.TextColor3 = Color3.fromRGB(220, 150, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.SourceSansBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+local VersionLabel = Instance.new("TextLabel")
+VersionLabel.Size = UDim2.new(0, 110, 0, 20)
+VersionLabel.Position = UDim2.new(0, 78, 0, 9)
+VersionLabel.BackgroundTransparency = 1
+VersionLabel.Text = "[raito] V2.9"
+VersionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+VersionLabel.TextSize = 10
+VersionLabel.Font = Enum.Font.SourceSansBold
+VersionLabel.TextXAlignment = Enum.TextXAlignment.Left
+VersionLabel.Parent = MainFrame
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 27, 0, 27)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(15, 12, 22)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseBtn.TextSize = 18
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.Parent = MainFrame
+
+CreateCorner(CloseBtn, 7)
+local CloseStroke = CreateStroke(CloseBtn, 1)
+RegisterStroke(CloseStroke)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+-- ==================== TAB HOLDERS ====================
+
+local TabHolder = Instance.new("Frame")
+TabHolder.Size = UDim2.new(0, 110, 1, -45)
+TabHolder.Position = UDim2.new(0, 10, 0, 40)
+TabHolder.BackgroundTransparency = 1
+TabHolder.Parent = MainFrame
+
+local TabListLayout = Instance.new("UIListLayout")
+TabListLayout.Parent = TabHolder
+TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabListLayout.Padding = UDim.new(0, 6)
+
+local function CreateTabButton(name)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 32)
+    btn.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+    btn.BackgroundTransparency = 0.45
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 11
+    btn.Font = Enum.Font.SourceSansBold
+    btn.Parent = TabHolder
+
+    CreateCorner(btn, 7)
+    local stroke = CreateStroke(btn, 1)
+    RegisterStroke(stroke)
+    return btn
+end
+
+local MainTabBtn = CreateTabButton("Main")
+local ChatTabBtn = CreateTabButton("Chat Simulator")
+local MusicTabBtn = CreateTabButton("Music")
+
+-- ==================== CONTAINERS ====================
+
+local MainContent = Instance.new("Frame")
+MainContent.Size = UDim2.new(1, -135, 1, -45)
+MainContent.Position = UDim2.new(0, 125, 0, 40)
+MainContent.BackgroundTransparency = 1
+MainContent.Visible = false
+MainContent.Parent = MainFrame
+
+local ChatContent = Instance.new("Frame")
+ChatContent.Size = UDim2.new(1, -135, 1, -45)
+ChatContent.Position = UDim2.new(0, 125, 0, 40)
+ChatContent.BackgroundTransparency = 1
+ChatContent.Visible = false
+ChatContent.Parent = MainFrame
+
+local MusicContent = Instance.new("Frame")
+MusicContent.Size = UDim2.new(1, -135, 1, -45)
+MusicContent.Position = UDim2.new(0, 125, 0, 40)
+MusicContent.BackgroundTransparency = 1
+MusicContent.Visible = true
+MusicContent.Parent = MainFrame
+
+local function SwitchTab(activeTab)
+    MainContent.Visible = (activeTab == MainContent)
+    ChatContent.Visible = (activeTab == ChatContent)
+    MusicContent.Visible = (activeTab == MusicContent)
+end
+
+MainTabBtn.MouseButton1Click:Connect(function() SwitchTab(MainContent) end)
+ChatTabBtn.MouseButton1Click:Connect(function() SwitchTab(ChatContent) end)
+MusicTabBtn.MouseButton1Click:Connect(function() SwitchTab(MusicContent) end)
+
+-- ==================== NEW MUSIC UI (MÔ PHỎNG HÌNH ẢNH) ====================
+
+local localSound = Instance.new("Sound")
+localSound.Name = "LocalMusicPlayer"
+localSound.Parent = SoundService
+localSound.Volume = _G.MusicVolume / 100
+localSound.PlaybackSpeed = _G.MusicSpeed
+
+-- 1. Card thông tin bài hát
+local SongCard = Instance.new("Frame")
+SongCard.Size = UDim2.new(1, 0, 0, 65)
+SongCard.Position = UDim2.new(0, 0, 0, 0)
+SongCard.BackgroundColor3 = Color3.fromRGB(15, 18, 25)
+SongCard.BackgroundTransparency = 0.2
+SongCard.Parent = MusicContent
+CreateCorner(SongCard, 8)
+RegisterStroke(CreateStroke(SongCard, 1))
+
+local SongTitle = Instance.new("TextLabel")
+SongTitle.Size = UDim2.new(1, -20, 0, 18)
+SongTitle.Position = UDim2.new(0, 10, 0, 6)
+SongTitle.BackgroundTransparency = 1
+SongTitle.Text = "Vũ Trụ"
+SongTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+SongTitle.TextSize = 14
+SongTitle.Font = Enum.Font.SourceSansBold
+SongTitle.TextXAlignment = Enum.TextXAlignment.Left
+SongTitle.Parent = SongCard
+
+local SongAuthorTime = Instance.new("TextLabel")
+SongAuthorTime.Size = UDim2.new(1, -20, 0, 14)
+SongAuthorTime.Position = UDim2.new(0, 10, 0, 24)
+SongAuthorTime.BackgroundTransparency = 1
+SongAuthorTime.Text = "chamiyiy | 3:18"
+SongAuthorTime.TextColor3 = Color3.fromRGB(150, 160, 180)
+SongAuthorTime.TextSize = 11
+SongAuthorTime.Font = Enum.Font.SourceSans
+SongAuthorTime.TextXAlignment = Enum.TextXAlignment.Left
+SongAuthorTime.Parent = SongCard
+
+local SongDesc = Instance.new("TextLabel")
+SongDesc.Size = UDim2.new(1, -20, 0, 14)
+SongDesc.Position = UDim2.new(0, 10, 0, 42)
+SongDesc.BackgroundTransparency = 1
+SongDesc.Text = "Không có mô tả có sẵn."
+SongDesc.TextColor3 = Color3.fromRGB(120, 130, 145)
+SongDesc.TextSize = 10
+SongDesc.Font = Enum.Font.SourceSans
+SongDesc.TextXAlignment = Enum.TextXAlignment.Left
+SongDesc.Parent = SongCard
+
+-- 2. Khung nhập ID + Sao chép + Đã thêm
+local MusicIDInput = Instance.new("TextBox")
+MusicIDInput.Size = UDim2.new(0.5, -5, 0, 30)
+MusicIDInput.Position = UDim2.new(0, 0, 0, 72)
+MusicIDInput.BackgroundColor3 = Color3.fromRGB(15, 18, 25)
+MusicIDInput.PlaceholderText = "Mã số âm thanh"
+MusicIDInput.Text = "99555946575863"
+MusicIDInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+MusicIDInput.Font = Enum.Font.SourceSansBold
+MusicIDInput.TextSize = 11
+MusicIDInput.Parent = MusicContent
+CreateCorner(MusicIDInput, 6)
+RegisterStroke(CreateStroke(MusicIDInput, 1))
+
+local CopyBtn = Instance.new("TextButton")
+CopyBtn.Size = UDim2.new(0.23, -5, 0, 30)
+CopyBtn.Position = UDim2.new(0.5, 3, 0, 72)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
+CopyBtn.Text = "SAO CHÉP ID"
+CopyBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+CopyBtn.Font = Enum.Font.SourceSansBold
+CopyBtn.TextSize = 9
+CopyBtn.Parent = MusicContent
+CreateCorner(CopyBtn, 6)
+RegisterButtonRainbow(CopyBtn)
+RegisterStroke(CreateStroke(CopyBtn, 1))
+
+CopyBtn.MouseButton1Click:Connect(function()
+    setclipboard(MusicIDInput.Text)
+end)
+
+local AddBtn = Instance.new("TextButton")
+AddBtn.Size = UDim2.new(0.27, -3, 0, 30)
+AddBtn.Position = UDim2.new(0.73, 3, 0, 72)
+AddBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 90)
+AddBtn.Text = "ĐÃ THÊM"
+AddBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AddBtn.Font = Enum.Font.SourceSansBold
+AddBtn.TextSize = 10
+AddBtn.Parent = MusicContent
+CreateCorner(AddBtn, 6)
+RegisterButtonRainbow(AddBtn)
+RegisterStroke(CreateStroke(AddBtn, 1))
+
+-- 3. Ba nút điều khiển lớn: CHƠI / TẠM DỪNG / ĐÃ DỪNG
+local PlayControlBtn = Instance.new("TextButton")
+PlayControlBtn.Size = UDim2.new(0.31, 0, 0, 32)
+PlayControlBtn.Position = UDim2.new(0, 0, 0, 108)
+PlayControlBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 90)
+PlayControlBtn.Text = "CHƠI"
+PlayControlBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlayControlBtn.Font = Enum.Font.SourceSansBold
+PlayControlBtn.TextSize = 11
+PlayControlBtn.Parent = MusicContent
+CreateCorner(PlayControlBtn, 6)
+RegisterButtonRainbow(PlayControlBtn)
+RegisterStroke(CreateStroke(PlayControlBtn, 1))
+
+local PauseControlBtn = Instance.new("TextButton")
+PauseControlBtn.Size = UDim2.new(0.34, 0, 0, 32)
+PauseControlBtn.Position = UDim2.new(0.33, 0, 0, 108)
+PauseControlBtn.BackgroundColor3 = Color3.fromRGB(210, 140, 30)
+PauseControlBtn.Text = "TẠM DỪNG"
+PauseControlBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PauseControlBtn.Font = Enum.Font.SourceSansBold
+PauseControlBtn.TextSize = 11
+PauseControlBtn.Parent = MusicContent
+CreateCorner(PauseControlBtn, 6)
+RegisterButtonRainbow(PauseControlBtn)
+RegisterStroke(CreateStroke(PauseControlBtn, 1))
+
+local StopControlBtn = Instance.new("TextButton")
+StopControlBtn.Size = UDim2.new(0.31, 0, 0, 32)
+StopControlBtn.Position = UDim2.new(0.69, 0, 0, 108)
+StopControlBtn.BackgroundColor3 = Color3.fromRGB(30, 130, 200)
+StopControlBtn.Text = "ĐÃ DỪNG"
+StopControlBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopControlBtn.Font = Enum.Font.SourceSansBold
+StopControlBtn.TextSize = 11
+StopControlBtn.Parent = MusicContent
+CreateCorner(StopControlBtn, 6)
+RegisterButtonRainbow(StopControlBtn)
+RegisterStroke(CreateStroke(StopControlBtn, 1))
+
+-- 4. Thanh thời lượng bài hát & Vòng lặp
+local TimeLabel = Instance.new("TextLabel")
+TimeLabel.Size = UDim2.new(0.3, 0, 0, 20)
+TimeLabel.Position = UDim2.new(0.35, 0, 0, 146)
+TimeLabel.BackgroundTransparency = 1
+TimeLabel.Text = "0:00 / 0:00"
+TimeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+TimeLabel.Font = Enum.Font.SourceSansBold
+TimeLabel.TextSize = 11
+TimeLabel.Parent = MusicContent
+
+local LoopBtn = Instance.new("TextButton")
+LoopBtn.Size = UDim2.new(0.32, 0, 0, 25)
+LoopBtn.Position = UDim2.new(0.68, 0, 0, 144)
+LoopBtn.BackgroundColor3 = Color3.fromRGB(25, 30, 42)
+LoopBtn.Text = "Vòng lặp: TẮT"
+LoopBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+LoopBtn.Font = Enum.Font.SourceSansBold
+LoopBtn.TextSize = 10
+LoopBtn.Parent = MusicContent
+CreateCorner(LoopBtn, 6)
+RegisterButtonRainbow(LoopBtn)
+RegisterStroke(CreateStroke(LoopBtn, 1))
+
+-- 5. Tốc độ & Thanh trượt Tốc độ
+local SpeedTextLabel = Instance.new("TextLabel")
+SpeedTextLabel.Size = UDim2.new(0.3, 0, 0, 16)
+SpeedTextLabel.Position = UDim2.new(0, 0, 0, 175)
+SpeedTextLabel.BackgroundTransparency = 1
+SpeedTextLabel.Text = "TỐC ĐỘ 1x"
+SpeedTextLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+SpeedTextLabel.Font = Enum.Font.SourceSansBold
+SpeedTextLabel.TextSize = 10
+SpeedTextLabel.TextXAlignment = Enum.TextXAlignment.Left
+SpeedTextLabel.Parent = MusicContent
+
+local Speed1Btn = Instance.new("TextButton")
+Speed1Btn.Size = UDim2.new(0.18, 0, 0, 20)
+Speed1Btn.Position = UDim2.new(0.58, 0, 0, 173)
+Speed1Btn.BackgroundColor3 = Color3.fromRGB(25, 30, 42)
+Speed1Btn.Text = "1"
+Speed1Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Speed1Btn.Font = Enum.Font.SourceSansBold
+Speed1Btn.TextSize = 10
+Speed1Btn.Parent = MusicContent
+CreateCorner(Speed1Btn, 5)
+RegisterButtonRainbow(Speed1Btn)
+RegisterStroke(CreateStroke(Speed1Btn, 1))
+
+local Speed1XBtn = Instance.new("TextButton")
+Speed1XBtn.Size = UDim2.new(0.18, 0, 0, 20)
+Speed1XBtn.Position = UDim2.new(0.79, 0, 0, 173)
+Speed1XBtn.BackgroundColor3 = Color3.fromRGB(25, 30, 42)
+Speed1XBtn.Text = "1X"
+Speed1XBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Speed1XBtn.Font = Enum.Font.SourceSansBold
+Speed1XBtn.TextSize = 10
+Speed1XBtn.Parent = MusicContent
+CreateCorner(Speed1XBtn, 5)
+RegisterButtonRainbow(Speed1XBtn)
+RegisterStroke(CreateStroke(Speed1XBtn, 1))
+
+-- Thanh Slider Tốc độ
+local SpeedSliderBar = Instance.new("Frame")
+SpeedSliderBar.Size = UDim2.new(1, 0, 0, 6)
+SpeedSliderBar.Position = UDim2.new(0, 0, 0, 200)
+SpeedSliderBar.BackgroundColor3 = Color3.fromRGB(30, 35, 50)
+SpeedSliderBar.BorderSizePixel = 0
+SpeedSliderBar.Parent = MusicContent
+CreateCorner(SpeedSliderBar, 10)
+
+local SpeedSliderFill = Instance.new("Frame")
+SpeedSliderFill.Size = UDim2.new(0.5, 0, 1, 0)
+SpeedSliderFill.BackgroundColor3 = Color3.fromRGB(40, 150, 230)
+SpeedSliderFill.BorderSizePixel = 0
+SpeedSliderFill.Parent = SpeedSliderBar
+CreateCorner(SpeedSliderFill, 10)
+
+local SpeedSliderKnob = Instance.new("Frame")
+SpeedSliderKnob.Size = UDim2.new(0, 14, 0, 14)
+SpeedSliderKnob.Position = UDim2.new(0.5, -7, 0.5, -7)
+SpeedSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SpeedSliderKnob.Parent = SpeedSliderBar
+CreateCorner(SpeedSliderKnob, 100)
+
+-- 6. Thể tích (Âm lượng) & Thanh trượt Âm lượng
+local VolTextLabel = Instance.new("TextLabel")
+VolTextLabel.Size = UDim2.new(0.4, 0, 0, 16)
+VolTextLabel.Position = UDim2.new(0, 0, 0, 215)
+VolTextLabel.BackgroundTransparency = 1
+VolTextLabel.Text = "THỂ TÍCH " .. tostring(_G.MusicVolume) .. "%"
+VolTextLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+VolTextLabel.Font = Enum.Font.SourceSansBold
+VolTextLabel.TextSize = 10
+VolTextLabel.TextXAlignment = Enum.TextXAlignment.Left
+VolTextLabel.Parent = MusicContent
+
+local VolSliderBar = Instance.new("Frame")
+VolSliderBar.Size = UDim2.new(1, 0, 0, 6)
+VolSliderBar.Position = UDim2.new(0, 0, 0, 238)
+VolSliderBar.BackgroundColor3 = Color3.fromRGB(30, 35, 50)
+VolSliderBar.BorderSizePixel = 0
+VolSliderBar.Parent = MusicContent
+CreateCorner(VolSliderBar, 10)
+
+local VolSliderFill = Instance.new("Frame")
+VolSliderFill.Size = UDim2.new(_G.MusicVolume / 100, 0, 1, 0)
+VolSliderFill.BackgroundColor3 = Color3.fromRGB(40, 150, 230)
+VolSliderFill.BorderSizePixel = 0
+VolSliderFill.Parent = VolSliderBar
+CreateCorner(VolSliderFill, 10)
+
+local VolSliderKnob = Instance.new("Frame")
+VolSliderKnob.Size = UDim2.new(0, 14, 0, 14)
+VolSliderKnob.Position = UDim2.new(_G.MusicVolume / 100, -7, 0.5, -7)
+VolSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+VolSliderKnob.Parent = VolSliderBar
+CreateCorner(VolSliderKnob, 100)
+
+-- Thông báo trạng thái đặt lại
+local ResetSpeedMsg = Instance.new("TextLabel")
+ResetSpeedMsg.Size = UDim2.new(0.6, 0, 0, 20)
+ResetSpeedMsg.Position = UDim2.new(0, 0, 0, 252)
+ResetSpeedMsg.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+ResetSpeedMsg.BackgroundTransparency = 0.3
+ResetSpeedMsg.Text = "Tốc độ phát lại được đặt lại về 1x"
+ResetSpeedMsg.TextColor3 = Color3.fromRGB(180, 180, 180)
+ResetSpeedMsg.Font = Enum.Font.SourceSans
+ResetSpeedMsg.TextSize = 9
+ResetSpeedMsg.Parent = MusicContent
+CreateCorner(ResetSpeedMsg, 10)
+
+-- ==================== CHỨC NĂNG PHÁT NHẠC ====================
+
+local isPlaying = false
+local isLoop = _G.MusicLoopEnabled
+
+local function LoadSongInfo(id)
+    local numericId = id:gsub("%D", "")
+    if numericId == "" then return end
+    
+    task.spawn(function()
+        pcall(function()
+            local assetInfo = MarketplaceService:GetProductInfo(tonumber(numericId))
+            if assetInfo and assetInfo.Name then
+                SongTitle.Text = assetInfo.Name
+                SongAuthorTime.Text = (assetInfo.Creator.Name or "Unknown") .. " | 3:18"
+            end
+        end)
+    end)
+    
+    localSound.SoundId = "rbxassetid://" .. numericId
+end
+
+PlayControlBtn.MouseButton1Click:Connect(function()
+    local id = MusicIDInput.Text:gsub("%D", "")
+    if id ~= "" then
+        LoadSongInfo(id)
+        localSound:Play()
+        isPlaying = true
+    end
+end)
+
+PauseControlBtn.MouseButton1Click:Connect(function()
+    if isPlaying then
+        localSound:Pause()
+        isPlaying = false
+    else
+        localSound:Resume()
+        isPlaying = true
+    end
+end)
+
+StopControlBtn.MouseButton1Click:Connect(function()
+    localSound:Stop()
+    isPlaying = false
+end)
+
+LoopBtn.MouseButton1Click:Connect(function()
+    isLoop = not isLoop
+    _G.MusicLoopEnabled = isLoop
+    localSound.Looped = isLoop
+    LoopBtn.Text = isLoop and "Vòng lặp: BẬT" or "Vòng lặp: TẮT"
+end)
+
+localSound.TimeChanged:Connect(function(time)
+    local curMins = math.floor(time / 60)
+    local curSecs = math.floor(time % 60)
+    local maxMins = math.floor(localSound.TimeLength / 60)
+    local maxSecs = math.floor(localSound.TimeLength % 60)
+    TimeLabel.Text = string.format("%d:%02d / %d:%02d", curMins, curSecs, maxMins, maxSecs)
+end)
+
+-- Kéo Slider Âm lượng
+local draggingVol = false
+VolSliderBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingVol = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        draggingVol = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if draggingVol and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local pos = math.clamp((input.Position.X - VolSliderBar.AbsolutePosition.X) / VolSliderBar.AbsoluteSize.X, 0, 1)
+        VolSliderFill.Size = UDim2.new(pos, 0, 1, 0)
+        VolSliderKnob.Position = UDim2.new(pos, -7, 0.5, -7)
+        local volValue = math.floor(pos * 100)
+        _G.MusicVolume = volValue
+        VolTextLabel.Text = "THỂ TÍCH " .. volValue .. "%"
+        localSound.Volume = pos
+    end
+end)
+
+-- Đặt lại tốc độ
+Speed1Btn.MouseButton1Click:Connect(function()
+    localSound.PlaybackSpeed = 1
+    SpeedTextLabel.Text = "TỐC ĐỘ 1x"
+    SpeedSliderFill.Size = UDim2.new(0.5, 0, 1, 0)
+    SpeedSliderKnob.Position = UDim2.new(0.5, -7, 0.5, -7)
+end)
+
+Speed1XBtn.MouseButton1Click:Connect(function()
+    localSound.PlaybackSpeed = 1
+    SpeedTextLabel.Text = "TỐC ĐỘ 1x"
+    SpeedSliderFill.Size = UDim2.new(0.5, 0, 1, 0)
+    SpeedSliderKnob.Position = UDim2.new(0.5, -7, 0.5, -7)
+end)
+
+-- ==================== RAINBOW ANIMATION (ĐỔI MÀU BẢNG & NÚT & VIỀN) ====================
+
+local hue = 0
+RunService.Heartbeat:Connect(function(delta)
+    hue = (hue + delta * 0.35) % 1
+    currentRainbowColor = Color3.fromHSV(hue, 0.85, 1)
+
+    -- Đổi màu viền
+    TopLine.BackgroundColor3 = currentRainbowColor
+    Title.TextColor3 = currentRainbowColor
+    VersionLabel.TextColor3 = currentRainbowColor
+
+    for _, stroke in ipairs(RainbowStrokes) do
+        if stroke and stroke.Parent then 
+            stroke.Color = currentRainbowColor 
+        end
+    end
+
+    -- Đổi màu nền nút bấm liên tục
+    for _, btn in ipairs(RainbowButtons) do
+        if btn and btn.Parent then
+            btn.BackgroundColor3 = currentRainbowColor
+        end
+    end
+end)
