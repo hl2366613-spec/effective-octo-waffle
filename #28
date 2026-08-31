@@ -1,0 +1,1660 @@
+-- GUI Light Menu UI (Updated to V2.9 - Rainbow Icon & HUD Stats)
+-- Delta X VNG Mobile / Executor Compatible
+
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+local SoundService = game:GetService("SoundService")
+local HttpService = game:GetService("HttpService")
+local Stats = game:GetService("Stats")
+
+-- Xóa GUI cũ nếu đang tồn tại
+if CoreGui:FindFirstChild("LightMenuUI") then
+    CoreGui.LightMenuUI:Destroy()
+end
+
+-- ==================== SAVE / LOAD SYSTEM ====================
+
+local SAVE_FILE_NAME = "LightMenuUI_Config.json"
+
+_G.SavedMusicID = _G.SavedMusicID or {}
+_G.MusicLoopEnabled = _G.MusicLoopEnabled or false
+_G.MusicVolume = _G.MusicVolume or 50
+_G.MusicSpeed = _G.MusicSpeed or 1.0
+
+local function SaveSettings()
+    local data = {
+        SavedMusicID = _G.SavedMusicID,
+        MusicLoopEnabled = _G.MusicLoopEnabled,
+        MusicVolume = _G.MusicVolume,
+        MusicSpeed = _G.MusicSpeed
+    }
+    pcall(function()
+        if writefile then
+            writefile(SAVE_FILE_NAME, HttpService:JSONEncode(data))
+        end
+    end)
+end
+
+local function LoadSettings()
+    pcall(function()
+        if readfile and isfile and isfile(SAVE_FILE_NAME) then
+            local decoded = HttpService:JSONEncode(readfile(SAVE_FILE_NAME))
+            if decoded then
+                if decoded.SavedMusicID then _G.SavedMusicID = decoded.SavedMusicID end
+                if decoded.MusicLoopEnabled ~= nil then _G.MusicLoopEnabled = decoded.MusicLoopEnabled end
+                if decoded.MusicVolume then _G.MusicVolume = decoded.MusicVolume end
+                if decoded.MusicSpeed then _G.MusicSpeed = decoded.MusicSpeed end
+            end
+        end
+    end)
+end
+
+LoadSettings()
+
+-- ==================== SCREEN GUI & GLOBAL VARS ====================
+
+local currentRainbowColor = Color3.fromRGB(255, 255, 255)
+local RainbowStrokes = {}
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LightMenuUI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local EspFolder = Instance.new("Folder")
+EspFolder.Name = "LightESP_Folder"
+EspFolder.Parent = ScreenGui
+
+-- ==================== UTILITY FUNCTIONS ====================
+
+local function CreateCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.Parent = parent
+    return corner
+end
+
+local function CreateStroke(parent, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(160, 80, 255)
+    stroke.Thickness = thickness or 1.2
+    stroke.Transparency = 0
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = parent
+    return stroke
+end
+
+local function RegisterStroke(stroke)
+    if stroke then table.insert(RainbowStrokes, stroke) end
+end
+
+local function FormatTime(seconds)
+    if not seconds or seconds ~= seconds or seconds <= 0 then return "00:00" end
+    local mins = math.floor(seconds / 60)
+    local secs = math.floor(seconds % 60)
+    return string.format("%02d:%02d", mins, secs)
+end
+
+-- ==================== HUD STATS FRAME ====================
+
+local HudFrame = Instance.new("Frame")
+HudFrame.Name = "HudFrame"
+HudFrame.Size = UDim2.new(0, 210, 0, 36)
+HudFrame.Position = UDim2.new(0, 15, 0, 50)
+HudFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 10)
+HudFrame.BackgroundTransparency = 0.65
+HudFrame.BorderSizePixel = 0
+HudFrame.Parent = ScreenGui
+
+CreateCorner(HudFrame, 8)
+local HudStroke = CreateStroke(HudFrame, 1.3)
+
+local HudTitle = Instance.new("TextLabel")
+HudTitle.Size = UDim2.new(1, -12, 0, 14)
+HudTitle.Position = UDim2.new(0, 8, 0, 3)
+HudTitle.BackgroundTransparency = 1
+HudTitle.Text = "ライト • SYSTEM STATS"
+HudTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+HudTitle.TextSize = 10
+HudTitle.Font = Enum.Font.SourceSansBold
+HudTitle.TextXAlignment = Enum.TextXAlignment.Left
+HudTitle.Parent = HudFrame
+
+local HudInfoLabel = Instance.new("TextLabel")
+HudInfoLabel.Size = UDim2.new(1, -12, 0, 14)
+HudInfoLabel.Position = UDim2.new(0, 8, 0, 18)
+HudInfoLabel.BackgroundTransparency = 1
+HudInfoLabel.Text = "Ping: 0 ms  •  VN: 00:00:00"
+HudInfoLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+HudInfoLabel.TextSize = 10
+HudInfoLabel.Font = Enum.Font.SourceSansBold
+HudInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+HudInfoLabel.Parent = HudFrame
+
+task.spawn(function()
+    while task.wait(0.5) do
+        local pingVal = 0
+        pcall(function()
+            pingVal = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        end)
+        if pingVal == 0 then
+            pingVal = math.floor(Workspace:GetRealPhysicalResponseTime() * 1000)
+        end
+
+        local timeTable = os.date("!*t", os.time() + (7 * 3600))
+        HudInfoLabel.Text = string.format("Ping: %d ms  •  VN: %02d:%02d:%02d", 
+            pingVal, timeTable.hour, timeTable.min, timeTable.sec)
+    end
+end)
+
+-- ==================== OPEN BUTTON ====================
+
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Name = "OpenBtn"
+OpenBtn.Size = UDim2.new(0, 48, 0, 48)
+OpenBtn.Position = UDim2.new(0.035, 0, 0.12, 0)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(8, 7, 14)
+OpenBtn.BackgroundTransparency = 0.28
+OpenBtn.Text = "ライト"
+OpenBtn.TextColor3 = Color3.fromRGB(220, 150, 255)
+OpenBtn.TextSize = 11
+OpenBtn.Font = Enum.Font.SourceSansBold
+OpenBtn.Active = true
+OpenBtn.Draggable = true
+OpenBtn.AutoButtonColor = false
+OpenBtn.Parent = ScreenGui
+
+CreateCorner(OpenBtn, 100)
+local OpenBtnStroke = CreateStroke(OpenBtn, 2.3)
+
+-- ==================== MAIN MENU FRAME ====================
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 520, 0, 365)
+MainFrame.Position = UDim2.new(0.5, -260, 0.42, -180)
+MainFrame.BackgroundColor3 = Color3.fromRGB(8, 7, 13)
+MainFrame.BackgroundTransparency = 0.28
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
+
+CreateCorner(MainFrame, 14)
+local MainUIStroke = CreateStroke(MainFrame, 2)
+
+-- Banner chữ chạy
+local MarqueeFrame = Instance.new("Frame")
+MarqueeFrame.Size = UDim2.new(1, -24, 0, 20)
+MarqueeFrame.Position = UDim2.new(0, 12, 0, 32)
+MarqueeFrame.BackgroundColor3 = Color3.fromRGB(15, 12, 22)
+MarqueeFrame.BackgroundTransparency = 0.5
+MarqueeFrame.ClipsDescendants = true
+MarqueeFrame.Parent = MainFrame
+CreateCorner(MarqueeFrame, 6)
+RegisterStroke(CreateStroke(MarqueeFrame, 1))
+
+local MarqueeLabel = Instance.new("TextLabel")
+MarqueeLabel.Size = UDim2.new(0, 350, 1, 0)
+MarqueeLabel.Position = UDim2.new(1, 0, 0, 0)
+MarqueeLabel.BackgroundTransparency = 1
+MarqueeLabel.Text = "menu thuộc bản quyền của ライト [ raito ]"
+MarqueeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+MarqueeLabel.TextSize = 11
+MarqueeLabel.Font = Enum.Font.SourceSansBold
+MarqueeLabel.TextXAlignment = Enum.TextXAlignment.Left
+MarqueeLabel.Parent = MarqueeFrame
+
+task.spawn(function()
+    local pos = 1.0
+    while task.wait(0.02) do
+        pos = pos - 0.005
+        if pos < -0.7 then pos = 1.0 end
+        MarqueeLabel.Position = UDim2.new(pos, 0, 0, 0)
+    end
+end)
+
+-- Đường kẻ viền trên
+local TopLine = Instance.new("Frame")
+TopLine.Size = UDim2.new(1, -24, 0, 1)
+TopLine.Position = UDim2.new(0, 12, 0, 56)
+TopLine.BackgroundColor3 = Color3.fromRGB(180, 80, 255)
+TopLine.BackgroundTransparency = 0.15
+TopLine.BorderSizePixel = 0
+TopLine.Parent = MainFrame
+CreateCorner(TopLine, 10)
+
+-- Tiêu đề
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 65, 0, 25)
+Title.Position = UDim2.new(0, 13, 0, 4)
+Title.BackgroundTransparency = 1
+Title.Text = "ライト"
+Title.TextColor3 = Color3.fromRGB(220, 150, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.SourceSansBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+local VersionLabel = Instance.new("TextLabel")
+VersionLabel.Size = UDim2.new(0, 110, 0, 20)
+VersionLabel.Position = UDim2.new(0, 78, 0, 7)
+VersionLabel.BackgroundTransparency = 1
+VersionLabel.Text = "[raito] V2.9"
+VersionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+VersionLabel.TextSize = 10
+VersionLabel.Font = Enum.Font.SourceSansBold
+VersionLabel.TextXAlignment = Enum.TextXAlignment.Left
+VersionLabel.Parent = MainFrame
+
+-- Nút đóng (X)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -33, 0, 4)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(15, 12, 22)
+CloseBtn.BackgroundTransparency = 0.3
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseBtn.TextSize = 16
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.AutoButtonColor = false
+CloseBtn.Parent = MainFrame
+
+CreateCorner(CloseBtn, 7)
+local CloseStroke = CreateStroke(CloseBtn, 1)
+
+local SubFrame
+
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    if SubFrame then SubFrame.Visible = false end
+end)
+
+-- ==================== TAB BUTTONS AREA ====================
+
+local TabHolder = Instance.new("Frame")
+TabHolder.Size = UDim2.new(0, 110, 1, -65)
+TabHolder.Position = UDim2.new(0, 10, 0, 60)
+TabHolder.BackgroundTransparency = 1
+TabHolder.Parent = MainFrame
+
+local TabListLayout = Instance.new("UIListLayout")
+TabListLayout.Parent = TabHolder
+TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabListLayout.Padding = UDim.new(0, 6)
+
+local function CreateTabButton(name)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 32)
+    btn.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+    btn.BackgroundTransparency = 0.45
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 13
+    btn.Font = Enum.Font.SourceSansBold
+    btn.AutoButtonColor = false
+    btn.Parent = TabHolder
+
+    CreateCorner(btn, 7)
+    local stroke = CreateStroke(btn, 1)
+    RegisterStroke(stroke)
+    return btn, stroke
+end
+
+local HomeTabBtn, HomeTabStroke = CreateTabButton("Home")
+local MusicTabBtn, MusicTabStroke = CreateTabButton("Music")
+
+-- ==================== CONTENT CONTAINERS ====================
+
+local HomeContent = Instance.new("Frame")
+HomeContent.Size = UDim2.new(1, -135, 1, -65)
+HomeContent.Position = UDim2.new(0, 125, 0, 60)
+HomeContent.BackgroundTransparency = 1
+HomeContent.Visible = true
+HomeContent.Parent = MainFrame
+
+local MusicContent = Instance.new("Frame")
+MusicContent.Size = UDim2.new(1, -135, 1, -65)
+MusicContent.Position = UDim2.new(0, 125, 0, 60)
+MusicContent.BackgroundTransparency = 1
+MusicContent.Visible = false
+MusicContent.Parent = MainFrame
+
+local function SwitchTab(activeTab)
+    HomeContent.Visible = (activeTab == HomeContent)
+    MusicContent.Visible = (activeTab == MusicContent)
+end
+
+HomeTabBtn.MouseButton1Click:Connect(function() SwitchTab(HomeContent) end)
+MusicTabBtn.MouseButton1Click:Connect(function() SwitchTab(MusicContent) end)
+
+-- ==================== HOME TAB CONTENT ====================
+
+local Column1 = Instance.new("ScrollingFrame")
+Column1.Size = UDim2.new(0.485, 0, 1, 0)
+Column1.Position = UDim2.new(0, 0, 0, 0)
+Column1.BackgroundTransparency = 1
+Column1.BorderSizePixel = 0
+Column1.ScrollBarThickness = 2
+Column1.CanvasSize = UDim2.new(0, 0, 0, 0)
+Column1.Parent = HomeContent
+
+local LayoutCol1 = Instance.new("UIListLayout")
+LayoutCol1.Parent = Column1
+LayoutCol1.SortOrder = Enum.SortOrder.LayoutOrder
+LayoutCol1.Padding = UDim.new(0, 5)
+
+local Column2 = Instance.new("ScrollingFrame")
+Column2.Size = UDim2.new(0.485, 0, 1, 0)
+Column2.Position = UDim2.new(0.515, 0, 0, 0)
+Column2.BackgroundTransparency = 1
+Column2.BorderSizePixel = 0
+Column2.ScrollBarThickness = 2
+Column2.CanvasSize = UDim2.new(0, 0, 0, 0)
+Column2.Parent = HomeContent
+
+local LayoutCol2 = Instance.new("UIListLayout")
+LayoutCol2.Parent = Column2
+LayoutCol2.SortOrder = Enum.SortOrder.LayoutOrder
+LayoutCol2.Padding = UDim.new(0, 5)
+
+local function CreateCol1Button(parent, text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -4, 0, 28)
+    btn.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+    btn.BackgroundTransparency = 0.48
+    btn.Text = "● " .. text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 11
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.AutoButtonColor = false
+    btn.Parent = parent
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 9)
+    padding.Parent = btn
+
+    CreateCorner(btn, 7)
+    RegisterStroke(CreateStroke(btn, 1.2))
+    return btn
+end
+
+local function CreateAdjuster(parent, titleText, defaultValue)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -4, 0, 27)
+    frame.BackgroundColor3 = Color3.fromRGB(10, 8, 16)
+    frame.BackgroundTransparency = 0.5
+    frame.Parent = parent
+
+    CreateCorner(frame, 7)
+    RegisterStroke(CreateStroke(frame, 1.1))
+
+    local minusBtn = Instance.new("TextButton")
+    minusBtn.Size = UDim2.new(0, 25, 1, 0)
+    minusBtn.BackgroundColor3 = Color3.fromRGB(25, 18, 35)
+    minusBtn.Text = "-"
+    minusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minusBtn.Font = Enum.Font.SourceSansBold
+    minusBtn.Parent = frame
+    CreateCorner(minusBtn, 6)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -54, 1, 0)
+    label.Position = UDim2.new(0, 27, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = titleText .. ": " .. tostring(defaultValue)
+    label.TextColor3 = Color3.fromRGB(235, 235, 235)
+    label.TextSize = 10
+    label.Font = Enum.Font.SourceSansBold
+    label.Parent = frame
+
+    local plusBtn = Instance.new("TextButton")
+    plusBtn.Size = UDim2.new(0, 25, 1, 0)
+    plusBtn.Position = UDim2.new(1, -25, 0, 0)
+    plusBtn.BackgroundColor3 = Color3.fromRGB(25, 18, 35)
+    plusBtn.Text = "+"
+    plusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    plusBtn.Font = Enum.Font.SourceSansBold
+    plusBtn.Parent = frame
+    CreateCorner(plusBtn, 6)
+
+    return frame, minusBtn, plusBtn, label
+end
+
+local function CreateCol2Button(parent, text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -4, 0, 28)
+    btn.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+    btn.BackgroundTransparency = 0.48
+    btn.Text = "—> " .. text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.AutoButtonColor = false
+    btn.Parent = parent
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 9)
+    padding.Parent = btn
+
+    CreateCorner(btn, 7)
+    RegisterStroke(CreateStroke(btn, 1.2))
+    return btn
+end
+
+local function CreateSelectPlayerButton(parent, text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -4, 0, 25)
+    btn.BackgroundColor3 = Color3.fromRGB(8, 7, 14)
+    btn.BackgroundTransparency = 0.58
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+    btn.TextSize = 11
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.AutoButtonColor = false
+    btn.Parent = parent
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 9)
+    padding.Parent = btn
+
+    CreateCorner(btn, 6)
+    RegisterStroke(CreateStroke(btn, 1))
+    return btn
+end
+
+-- Controls Home
+local NoclipBtn = CreateCol1Button(Column1, "Noclip: OFF")
+local FlyjumpBtn = CreateCol1Button(Column1, "Flyjump: OFF")
+local EspToggleBtn = CreateCol1Button(Column1, "ESP: OFF")
+local XrayToggleBtn = CreateCol1Button(Column1, "Xray: OFF")
+local FullBrightBtn = CreateCol1Button(Column1, "FullBright: OFF")
+local FpsBoostBtn = CreateCol1Button(Column1, "FPS Booster")
+local SitBtn = CreateCol1Button(Column1, "Sit: OFF")
+local SpinBtn = CreateCol1Button(Column1, "Spin: OFF")
+
+Column1.CanvasSize = UDim2.new(0, 0, 0, 10 * 33)
+
+local GlueToggleBtn = CreateCol2Button(Column2, "Bám Như Keo 502: OFF")
+local SelectGluePlayerBtn = CreateSelectPlayerButton(Column2, "[ CHỌN PLAYER ]")
+local TeleportBtn = CreateCol2Button(Column2, "Teleport Đến Player")
+local SelectTPPlayerBtn = CreateSelectPlayerButton(Column2, "[ CHỌN PLAYER ]")
+local ViewToggleBtn = CreateCol2Button(Column2, "View Camera: OFF")
+local SelectViewPlayerBtn = CreateSelectPlayerButton(Column2, "[ CHỌN PLAYER ]")
+local AimToggleBtn = CreateCol2Button(Column2, "Aim Lock: OFF")
+local SelectAimPlayerBtn = CreateSelectPlayerButton(Column2, "[ AIM: GẦN NHẤT ]")
+local _, AimMinusBtn, AimPlusBtn, AimRadiusLabel = CreateAdjuster(Column2, "FOV Radius", 150)
+local KillToggleBtn = CreateCol2Button(Column2, "Kill: OFF")
+local SelectKillPlayerBtn = CreateSelectPlayerButton(Column2, "[ KILL: CHỌN PLAYER ]")
+local SwordKillToggleBtn = CreateCol2Button(Column2, "Kill With A Sword: OFF")
+local SelectSwordKillPlayerBtn = CreateSelectPlayerButton(Column2, "[ SWORD: RANDOM PLAYER ]")
+local FlyToggleBtn = CreateCol2Button(Column2, "Fly: OFF")
+local _, FlyMinusBtn, FlyPlusBtn, FlyValueLabel = CreateAdjuster(Column2, "Fly Speed", 1)
+local SpeedToggleBtn = CreateCol2Button(Column2, "Speed: OFF")
+local _, CharSpeedMinusBtn, CharSpeedPlusBtn, SpeedValueLabel = CreateAdjuster(Column2, "Speed", 50)
+local JumpToggleBtn = CreateCol2Button(Column2, "Jump: OFF")
+local _, JumpMinusBtn, JumpPlusBtn, JumpValueLabel = CreateAdjuster(Column2, "Jump Power", 50)
+
+Column2.CanvasSize = UDim2.new(0, 0, 0, 22 * 33)
+
+-- ==================== MUSIC CONTENT ====================
+
+local MusicScroll = Instance.new("ScrollingFrame")
+MusicScroll.Size = UDim2.new(1, 0, 1, 0)
+MusicScroll.BackgroundTransparency = 1
+MusicScroll.BorderSizePixel = 0
+MusicScroll.ScrollBarThickness = 2
+MusicScroll.CanvasSize = UDim2.new(0, 0, 0, 255)
+MusicScroll.Parent = MusicContent
+
+local MusicLayout = Instance.new("UIListLayout")
+MusicLayout.Parent = MusicScroll
+MusicLayout.SortOrder = Enum.SortOrder.LayoutOrder
+MusicLayout.Padding = UDim.new(0, 5)
+
+-- Nhập ID
+local MusicIDInput = Instance.new("TextBox")
+MusicIDInput.Size = UDim2.new(1, -4, 0, 30)
+MusicIDInput.BackgroundColor3 = Color3.fromRGB(15, 12, 22)
+MusicIDInput.BackgroundTransparency = 0.3
+MusicIDInput.PlaceholderText = "<Mã số âm thanh>"
+MusicIDInput.Text = ""
+MusicIDInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+MusicIDInput.Font = Enum.Font.SourceSansBold
+MusicIDInput.TextSize = 12
+MusicIDInput.Parent = MusicScroll
+CreateCorner(MusicIDInput, 7)
+RegisterStroke(CreateStroke(MusicIDInput, 1))
+
+-- Thông tin tên nhạc
+local MusicInfoLabel = Instance.new("TextLabel")
+MusicInfoLabel.Size = UDim2.new(1, -4, 0, 20)
+MusicInfoLabel.BackgroundColor3 = Color3.fromRGB(10, 8, 16)
+MusicInfoLabel.BackgroundTransparency = 0.5
+MusicInfoLabel.Text = "Chưa chọn nhạc"
+MusicInfoLabel.TextColor3 = Color3.fromRGB(220, 220, 255)
+MusicInfoLabel.Font = Enum.Font.SourceSansBold
+MusicInfoLabel.TextSize = 11
+MusicInfoLabel.Parent = MusicScroll
+CreateCorner(MusicInfoLabel, 6)
+
+-- Label Thời lượng Nhạc
+local MusicTimeLabel = Instance.new("TextLabel")
+MusicTimeLabel.Size = UDim2.new(1, -4, 0, 18)
+MusicTimeLabel.BackgroundColor3 = Color3.fromRGB(10, 8, 16)
+MusicTimeLabel.BackgroundTransparency = 0.7
+MusicTimeLabel.Text = "Thời lượng: 00:00 / 00:00"
+MusicTimeLabel.TextColor3 = Color3.fromRGB(180, 180, 220)
+MusicTimeLabel.Font = Enum.Font.SourceSansBold
+MusicTimeLabel.TextSize = 10
+MusicTimeLabel.Parent = MusicScroll
+CreateCorner(MusicTimeLabel, 6)
+
+-- Hàng chứa nút Playing & Lưu ID
+local MusicBtnRow1 = Instance.new("Frame")
+MusicBtnRow1.Size = UDim2.new(1, -4, 0, 30)
+MusicBtnRow1.BackgroundTransparency = 1
+MusicBtnRow1.Parent = MusicScroll
+
+local MusicPlayBtn = Instance.new("TextButton")
+MusicPlayBtn.Size = UDim2.new(0.48, 0, 1, 0)
+MusicPlayBtn.Position = UDim2.new(0, 0, 0, 0)
+MusicPlayBtn.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+MusicPlayBtn.BackgroundTransparency = 0.45
+MusicPlayBtn.Text = "playing"
+MusicPlayBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+MusicPlayBtn.Font = Enum.Font.SourceSansBold
+MusicPlayBtn.TextSize = 12
+MusicPlayBtn.Parent = MusicBtnRow1
+CreateCorner(MusicPlayBtn, 7)
+RegisterStroke(CreateStroke(MusicPlayBtn, 1))
+
+local SaveIDBtn = Instance.new("TextButton")
+SaveIDBtn.Size = UDim2.new(0.48, 0, 1, 0)
+SaveIDBtn.Position = UDim2.new(0.52, 0, 0, 0)
+SaveIDBtn.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+SaveIDBtn.BackgroundTransparency = 0.45
+SaveIDBtn.Text = "Lưu ID"
+SaveIDBtn.TextColor3 = Color3.fromRGB(255, 255, 100)
+SaveIDBtn.Font = Enum.Font.SourceSansBold
+SaveIDBtn.TextSize = 12
+SaveIDBtn.Parent = MusicBtnRow1
+CreateCorner(SaveIDBtn, 7)
+RegisterStroke(CreateStroke(SaveIDBtn, 1))
+
+-- Nút Lặp lại
+local LoopBtn = Instance.new("TextButton")
+LoopBtn.Size = UDim2.new(1, -4, 0, 28)
+LoopBtn.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+LoopBtn.BackgroundTransparency = 0.45
+LoopBtn.Text = _G.MusicLoopEnabled and "Lặp lại: BẬT" or "Lặp lại: TẮT"
+LoopBtn.TextColor3 = _G.MusicLoopEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+LoopBtn.Font = Enum.Font.SourceSansBold
+LoopBtn.TextSize = 11
+LoopBtn.Parent = MusicScroll
+CreateCorner(LoopBtn, 7)
+RegisterStroke(CreateStroke(LoopBtn, 1))
+
+-- Tốc độ nhạc
+local SpeedFrame = Instance.new("Frame")
+SpeedFrame.Size = UDim2.new(1, -4, 0, 28)
+SpeedFrame.BackgroundColor3 = Color3.fromRGB(10, 8, 16)
+SpeedFrame.BackgroundTransparency = 0.5
+SpeedFrame.Parent = MusicScroll
+CreateCorner(SpeedFrame, 7)
+RegisterStroke(CreateStroke(SpeedFrame, 1.1))
+
+local MusicSpeedMinusBtn = Instance.new("TextButton")
+MusicSpeedMinusBtn.Size = UDim2.new(0, 25, 1, 0)
+MusicSpeedMinusBtn.BackgroundColor3 = Color3.fromRGB(25, 18, 35)
+MusicSpeedMinusBtn.Text = "-"
+MusicSpeedMinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MusicSpeedMinusBtn.Font = Enum.Font.SourceSansBold
+MusicSpeedMinusBtn.Parent = SpeedFrame
+CreateCorner(MusicSpeedMinusBtn, 6)
+
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size = UDim2.new(1, -54, 1, 0)
+SpeedLabel.Position = UDim2.new(0, 27, 0, 0)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "Tốc độ: " .. string.format("%.1f", _G.MusicSpeed)
+SpeedLabel.TextColor3 = Color3.fromRGB(235, 235, 235)
+SpeedLabel.TextSize = 10
+SpeedLabel.Font = Enum.Font.SourceSansBold
+SpeedLabel.Parent = SpeedFrame
+
+local MusicSpeedPlusBtn = Instance.new("TextButton")
+MusicSpeedPlusBtn.Size = UDim2.new(0, 25, 1, 0)
+MusicSpeedPlusBtn.Position = UDim2.new(1, -25, 0, 0)
+MusicSpeedPlusBtn.BackgroundColor3 = Color3.fromRGB(25, 18, 35)
+MusicSpeedPlusBtn.Text = "+"
+MusicSpeedPlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MusicSpeedPlusBtn.Font = Enum.Font.SourceSansBold
+MusicSpeedPlusBtn.Parent = SpeedFrame
+CreateCorner(MusicSpeedPlusBtn, 6)
+
+-- Âm lượng Slider
+local VolumeFrame = Instance.new("Frame")
+VolumeFrame.Size = UDim2.new(1, -4, 0, 32)
+VolumeFrame.BackgroundColor3 = Color3.fromRGB(10, 8, 16)
+VolumeFrame.BackgroundTransparency = 0.5
+VolumeFrame.Parent = MusicScroll
+CreateCorner(VolumeFrame, 7)
+RegisterStroke(CreateStroke(VolumeFrame, 1.1))
+
+local VolumeLabel = Instance.new("TextLabel")
+VolumeLabel.Size = UDim2.new(1, 0, 0, 14)
+VolumeLabel.Position = UDim2.new(0, 0, 0, 2)
+VolumeLabel.BackgroundTransparency = 1
+VolumeLabel.Text = "Âm lượng: " .. tostring(_G.MusicVolume)
+VolumeLabel.TextColor3 = Color3.fromRGB(235, 235, 235)
+VolumeLabel.TextSize = 10
+VolumeLabel.Font = Enum.Font.SourceSansBold
+VolumeLabel.Parent = VolumeFrame
+
+local SliderBack = Instance.new("Frame")
+SliderBack.Size = UDim2.new(0.9, 0, 0, 6)
+SliderBack.Position = UDim2.new(0.05, 0, 0, 20)
+SliderBack.BackgroundColor3 = Color3.fromRGB(30, 25, 45)
+SliderBack.Parent = VolumeFrame
+CreateCorner(SliderBack, 3)
+
+local SliderFill = Instance.new("Frame")
+SliderFill.Size = UDim2.new(_G.MusicVolume / 100, 0, 1, 0)
+SliderFill.BackgroundColor3 = Color3.fromRGB(180, 80, 255)
+SliderFill.Parent = SliderBack
+CreateCorner(SliderFill, 3)
+
+local SliderBtn = Instance.new("TextButton")
+SliderBtn.Size = UDim2.new(1, 0, 1, 0)
+SliderBtn.BackgroundTransparency = 1
+SliderBtn.Text = ""
+SliderBtn.Parent = SliderBack
+
+-- Nút ID đã lưu
+local SavedIDBtn = Instance.new("TextButton")
+SavedIDBtn.Size = UDim2.new(1, -4, 0, 28)
+SavedIDBtn.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+SavedIDBtn.BackgroundTransparency = 0.45
+SavedIDBtn.Text = "ID đã lưu"
+SavedIDBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SavedIDBtn.Font = Enum.Font.SourceSansBold
+SavedIDBtn.TextSize = 11
+SavedIDBtn.Parent = MusicScroll
+CreateCorner(SavedIDBtn, 7)
+RegisterStroke(CreateStroke(SavedIDBtn, 1))
+
+-- Danh sách ID đã lưu
+local SavedIDListFrame = Instance.new("Frame")
+SavedIDListFrame.Size = UDim2.new(0, 170, 0, 200)
+SavedIDListFrame.Position = UDim2.new(1, 7, 0, 100)
+SavedIDListFrame.BackgroundColor3 = Color3.fromRGB(8, 7, 14)
+SavedIDListFrame.BackgroundTransparency = 0.25
+SavedIDListFrame.Visible = false
+SavedIDListFrame.Parent = MusicContent
+CreateCorner(SavedIDListFrame, 9)
+RegisterStroke(CreateStroke(SavedIDListFrame, 1.6))
+
+local SavedIDScroll = Instance.new("ScrollingFrame")
+SavedIDScroll.Size = UDim2.new(0.9, 0, 0.9, 0)
+SavedIDScroll.Position = UDim2.new(0.05, 0, 0.05, 0)
+SavedIDScroll.BackgroundTransparency = 1
+SavedIDScroll.ScrollBarThickness = 2
+SavedIDScroll.Parent = SavedIDListFrame
+
+local SavedIDLayout = Instance.new("UIListLayout")
+SavedIDLayout.Parent = SavedIDScroll
+SavedIDLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SavedIDLayout.Padding = UDim.new(0, 4)
+
+-- Audio Player Object Local
+local localSound = Instance.new("Sound")
+localSound.Name = "LocalMusicPlayer"
+localSound.Parent = SoundService
+
+local isPlayingMusic = false
+local isLoopEnabled = _G.MusicLoopEnabled
+
+local function UpdateAudioSettings()
+    local vol = _G.MusicVolume / 100
+    local spd = _G.MusicSpeed
+    localSound.Volume = vol
+    localSound.PlaybackSpeed = spd
+    SaveSettings()
+end
+
+localSound.Ended:Connect(function()
+    if isLoopEnabled and isPlayingMusic then
+        localSound:Play()
+    end
+end)
+
+-- Vòng lặp cập nhật thời gian nhạc đang chạy thực tế
+task.spawn(function()
+    while task.wait(0.3) do
+        if isPlayingMusic and localSound.IsPlaying then
+            local current = FormatTime(localSound.TimePosition)
+            local total = FormatTime(localSound.TimeLength)
+            MusicTimeLabel.Text = "Thời lượng: " .. current .. " / " .. total
+        elseif not isPlayingMusic then
+            MusicTimeLabel.Text = "Thời lượng: 00:00 / 00:00"
+        end
+    end
+end)
+
+-- Slider Dragging
+local isDraggingSlider = false
+local function UpdateSlider(input)
+    local pos = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
+    _G.MusicVolume = math.floor(pos * 100)
+    SliderFill.Size = UDim2.new(pos, 0, 1, 0)
+    VolumeLabel.Text = "Âm lượng: " .. tostring(_G.MusicVolume)
+    UpdateAudioSettings()
+end
+
+SliderBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isDraggingSlider = true
+        UpdateSlider(input)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if isDraggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        UpdateSlider(input)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isDraggingSlider = false
+    end
+end)
+
+-- Controls Tốc độ nhạc
+MusicSpeedMinusBtn.MouseButton1Click:Connect(function()
+    if _G.MusicSpeed > 0.2 then
+        _G.MusicSpeed = math.max(0.1, _G.MusicSpeed - 0.1)
+        SpeedLabel.Text = "Tốc độ: " .. string.format("%.1f", _G.MusicSpeed)
+        UpdateAudioSettings()
+    end
+end)
+
+MusicSpeedPlusBtn.MouseButton1Click:Connect(function()
+    if _G.MusicSpeed < 3.0 then
+        _G.MusicSpeed = _G.MusicSpeed + 0.1
+        SpeedLabel.Text = "Tốc độ: " .. string.format("%.1f", _G.MusicSpeed)
+        UpdateAudioSettings()
+    end
+end)
+
+-- Controls Phát nhạc
+MusicPlayBtn.MouseButton1Click:Connect(function()
+    local id = MusicIDInput.Text:gsub("%D", "")
+    if id == "" then return end
+
+    isPlayingMusic = not isPlayingMusic
+    if isPlayingMusic then
+        local assetId = "rbxassetid://" .. id
+        localSound.SoundId = assetId
+        UpdateAudioSettings()
+        localSound:Play()
+
+        MusicPlayBtn.Text = "stoping"
+        MusicPlayBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+
+        task.spawn(function()
+            local success, info = pcall(function()
+                return game:GetService("MarketplaceService"):GetProductInfo(tonumber(id), Enum.InfoType.Asset)
+            end)
+            if success and info then
+                MusicInfoLabel.Text = "Nhạc: " .. tostring(info.Name)
+            else
+                MusicInfoLabel.Text = "Nhạc ID: " .. id
+            end
+        end)
+    else
+        localSound:Stop()
+        MusicPlayBtn.Text = "playing"
+        MusicPlayBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+    end
+end)
+
+-- Lưu ID Logic
+SaveIDBtn.MouseButton1Click:Connect(function()
+    local id = MusicIDInput.Text:gsub("%D", "")
+    if id ~= "" then
+        if not table.find(_G.SavedMusicID, id) then
+            table.insert(_G.SavedMusicID, id)
+            SaveSettings()
+            RefreshSavedIDList()
+        end
+    end
+end)
+
+LoopBtn.MouseButton1Click:Connect(function()
+    isLoopEnabled = not isLoopEnabled
+    _G.MusicLoopEnabled = isLoopEnabled
+    LoopBtn.Text = isLoopEnabled and "Lặp lại: BẬT" or "Lặp lại: TẮT"
+    LoopBtn.TextColor3 = isLoopEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    SaveSettings()
+end)
+
+SavedIDBtn.MouseButton1Click:Connect(function()
+    SavedIDListFrame.Visible = not SavedIDListFrame.Visible
+    if SavedIDListFrame.Visible then
+        RefreshSavedIDList()
+    end
+end)
+
+function RefreshSavedIDList()
+    for _, child in pairs(SavedIDScroll:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    local count = #_G.SavedMusicID
+    for i, id in ipairs(_G.SavedMusicID) do
+        local btn = Instance.new("TextButton", SavedIDScroll)
+        btn.Size = UDim2.new(1, 0, 0, 25)
+        btn.BackgroundColor3 = Color3.fromRGB(18, 15, 25)
+        btn.Text = "#" .. i .. " : " .. id
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 10
+        btn.Parent = SavedIDScroll
+        CreateCorner(btn, 6)
+        RegisterStroke(CreateStroke(btn, 1))
+
+        btn.MouseButton1Click:Connect(function()
+            MusicIDInput.Text = id
+            SavedIDListFrame.Visible = false
+        end)
+    end
+    SavedIDScroll.CanvasSize = UDim2.new(0, 0, 0, count * 29)
+end
+
+RefreshSavedIDList()
+
+-- ==================== SUB MENU & SCRIPT LOGIC ====================
+
+SubFrame = Instance.new("Frame")
+SubFrame.Size = UDim2.new(0, 165, 0, 190)
+SubFrame.Position = UDim2.new(1, 7, 0, 0)
+SubFrame.BackgroundColor3 = Color3.fromRGB(8, 7, 14)
+SubFrame.BackgroundTransparency = 0.25
+SubFrame.Visible = false
+SubFrame.Parent = MainFrame
+
+CreateCorner(SubFrame, 9)
+local SubUIStroke = CreateStroke(SubFrame, 1.6)
+
+local PlayerList = Instance.new("ScrollingFrame")
+PlayerList.Size = UDim2.new(0.9, 0, 0.9, 0)
+PlayerList.Position = UDim2.new(0.05, 0, 0.05, 0)
+PlayerList.BackgroundTransparency = 1
+PlayerList.CanvasSize = UDim2.new(0, 0, 0, 0)
+PlayerList.ScrollBarThickness = 2
+PlayerList.Parent = SubFrame
+
+local PlayerListLayout = Instance.new("UIListLayout")
+PlayerListLayout.Parent = PlayerList
+PlayerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+PlayerListLayout.Padding = UDim.new(0, 4)
+
+local FovFrame = Instance.new("Frame")
+FovFrame.Name = "AimFOV"
+FovFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+FovFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+FovFrame.Size = UDim2.new(0, 300, 0, 300)
+FovFrame.BackgroundTransparency = 1
+FovFrame.Visible = false
+FovFrame.Parent = ScreenGui
+
+CreateCorner(FovFrame, 999)
+local FovStroke = CreateStroke(FovFrame, 2)
+
+-- Trạng thái tính năng
+local noclipEnabled, noclipConnection = false, nil
+local flyjumpEnabled, flyjumpConnection = false, nil
+local fullBrightEnabled = false
+local origClockTime, origBrightness = Lighting.ClockTime, Lighting.Brightness
+local espEnabled, espObjects = false, {}
+local xrayEnabled, originalTransparencies = false, {}
+local speedEnabled, speedValue = false, 50
+local jumpEnabled, jumpValue = false, 50
+local flyEnabled, flySpeed = false, 1
+local flyConnection, flyBodyGyro, flyBodyVelocity = nil, nil, nil
+local isSitting, sitConnection = false, nil
+local isSpinning = false
+local aimEnabled, aimRadius, selectedAimPlayer = false, 150, nil
+local isGlueActive, selectedGluePlayer, glueConnection = false, nil, nil
+local selectedTPPlayer = nil
+local viewEnabled, selectedViewPlayer = false, nil
+local killEnabled, selectedKillPlayer, killConnection = false, nil, nil
+local swordKillEnabled, selectedSwordPlayer, currentSwordTarget, swordKillConnection = false, "RANDOM", nil, nil
+local subMenuMode = "glue"
+
+-- Adjusters Connection & Speed Logic Fix
+function ApplySpeed()
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = speedEnabled and speedValue or 16
+        end
+    end
+end
+
+function ApplyJump()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower = jumpEnabled and jumpValue or 50
+    end
+end
+
+CharSpeedMinusBtn.MouseButton1Click:Connect(function()
+    if speedValue > 5 then 
+        speedValue = speedValue - 5 
+        SpeedValueLabel.Text = "Speed: " .. speedValue 
+        if speedEnabled then ApplySpeed() end 
+    end
+end)
+
+CharSpeedPlusBtn.MouseButton1Click:Connect(function()
+    speedValue = speedValue + 5 
+    SpeedValueLabel.Text = "Speed: " .. speedValue 
+    if speedEnabled then ApplySpeed() end
+end)
+
+FlyMinusBtn.MouseButton1Click:Connect(function()
+    if flySpeed > 1 then flySpeed = flySpeed - 1 FlyValueLabel.Text = "Fly Speed: " .. flySpeed end
+end)
+
+FlyPlusBtn.MouseButton1Click:Connect(function()
+    flySpeed = flySpeed + 1 FlyValueLabel.Text = "Fly Speed: " .. flySpeed
+end)
+
+JumpMinusBtn.MouseButton1Click:Connect(function()
+    if jumpValue > 5 then jumpValue = jumpValue - 5 JumpValueLabel.Text = "Jump Power: " .. jumpValue if jumpEnabled then ApplyJump() end end
+end)
+
+JumpPlusBtn.MouseButton1Click:Connect(function()
+    jumpValue = jumpValue + 5 JumpValueLabel.Text = "Jump Power: " .. jumpValue if jumpEnabled then ApplyJump() end
+end)
+
+AimMinusBtn.MouseButton1Click:Connect(function()
+    if aimRadius > 30 then aimRadius = aimRadius - 20 end
+    AimRadiusLabel.Text = "FOV Radius: " .. aimRadius
+    FovFrame.Size = UDim2.new(0, aimRadius * 2, 0, aimRadius * 2)
+end)
+
+AimPlusBtn.MouseButton1Click:Connect(function()
+    aimRadius = aimRadius + 20
+    AimRadiusLabel.Text = "FOV Radius: " .. aimRadius
+    FovFrame.Size = UDim2.new(0, aimRadius * 2, 0, aimRadius * 2)
+end)
+
+-- Duy trì tốc độ liên tục khi nhân vật di chuyển / hồi sinh
+RunService.Stepped:Connect(function()
+    if speedEnabled then
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and hum.WalkSpeed ~= speedValue then
+                hum.WalkSpeed = speedValue
+            end
+        end
+    end
+end)
+
+local function GetClosestPlayerInFOV()
+    local Camera = Workspace.CurrentCamera
+    if not Camera then return nil end
+    local closestPlayer = nil
+    local shortestDistance = aimRadius
+    local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local targetPart = player.Character:FindFirstChild("Head") or player.Character:FindFirstChild("HumanoidRootPart")
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
+            if targetPart and hum and hum.Health > 0 then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                if onScreen then
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    if dist < shortestDistance then
+                        shortestDistance = dist
+                        closestPlayer = player
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+RunService.RenderStepped:Connect(function()
+    local Camera = Workspace.CurrentCamera
+    if aimEnabled and Camera then
+        local target = selectedAimPlayer or GetClosestPlayerInFOV()
+        if target and target.Character then
+            local targetPart = target.Character:FindFirstChild("Head") or target.Character:FindFirstChild("HumanoidRootPart")
+            local hum = target.Character:FindFirstChildOfClass("Humanoid")
+            if targetPart and hum and hum.Health > 0 then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+            end
+        end
+    end
+end)
+
+local function ToggleNoclip()
+    noclipEnabled = not noclipEnabled
+    NoclipBtn.Text = noclipEnabled and "● Noclip: ON" or "● Noclip: OFF"
+    NoclipBtn.TextColor3 = noclipEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    if noclipEnabled then
+        noclipConnection = RunService.Stepped:Connect(function()
+            if LocalPlayer.Character then
+                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = false end
+                end
+            end
+        end)
+    elseif noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+end
+
+local function ToggleFlyjump()
+    flyjumpEnabled = not flyjumpEnabled
+    FlyjumpBtn.Text = flyjumpEnabled and "● Flyjump: ON" or "● Flyjump: OFF"
+    FlyjumpBtn.TextColor3 = flyjumpEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    if flyjumpEnabled then
+        flyjumpConnection = UserInputService.JumpRequest:Connect(function()
+            if flyjumpEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+            end
+        end)
+    elseif flyjumpConnection then
+        flyjumpConnection:Disconnect()
+        flyjumpConnection = nil
+    end
+end
+
+local function ToggleFullBright()
+    fullBrightEnabled = not fullBrightEnabled
+    FullBrightBtn.Text = fullBrightEnabled and "● FullBright: ON" or "● FullBright: OFF"
+    FullBrightBtn.TextColor3 = fullBrightEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    Lighting.ClockTime = fullBrightEnabled and 12 or origClockTime
+    Lighting.Brightness = fullBrightEnabled and 2 or origBrightness
+    Lighting.GlobalShadows = not fullBrightEnabled
+end
+
+local function BoostFPS()
+    for _, item in pairs(Workspace:GetDescendants()) do
+        if item:IsA("BasePart") then item.Material = Enum.Material.SmoothPlastic
+        elseif item:IsA("Decal") or item:IsA("Texture") then item:Destroy() end
+    end
+    FpsBoostBtn.Text = "● FPS Boosted!"
+    FpsBoostBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+end
+
+local function ClearESP()
+    for _, item in pairs(espObjects) do
+        if item.Text then item.Text:Destroy() end
+        if item.Line then item.Line:Destroy() end
+        if item.BoxTop then item.BoxTop:Destroy() end
+        if item.BoxBottom then item.BoxBottom:Destroy() end
+        if item.BoxLeft then item.BoxLeft:Destroy() end
+        if item.BoxRight then item.BoxRight:Destroy() end
+    end
+    espObjects = {}
+    EspFolder:ClearAllChildren()
+end
+
+local function CreateBoxLine()
+    local line = Instance.new("Frame", EspFolder)
+    line.BorderSizePixel = 0
+    line.BackgroundColor3 = currentRainbowColor
+    line.Visible = false
+    return line
+end
+
+local function UpdateESP()
+    if not espEnabled then ClearESP() return end
+    local Camera = Workspace.CurrentCamera
+    if not Camera then return end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if not espObjects[player] then
+                local textLabel = Instance.new("TextLabel", EspFolder)
+                textLabel.BackgroundTransparency = 1
+                textLabel.Size = UDim2.new(0, 200, 0, 30)
+                textLabel.TextSize = 12
+                textLabel.Font = Enum.Font.SourceSansBold
+
+                local lineFrame = Instance.new("Frame", EspFolder)
+                lineFrame.BorderSizePixel = 0
+                lineFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+
+                espObjects[player] = { 
+                    Text = textLabel, Line = lineFrame,
+                    BoxTop = CreateBoxLine(), BoxBottom = CreateBoxLine(),
+                    BoxLeft = CreateBoxLine(), BoxRight = CreateBoxLine()
+                }
+            end
+
+            local data = espObjects[player]
+            local char = player.Character
+            local myChar = LocalPlayer.Character
+
+            if char and char:FindFirstChild("HumanoidRootPart") and myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or hrp
+                local head = char:FindFirstChild("Head")
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                local screenPosTorso, onScreen = Camera:WorldToViewportPoint(torso.Position)
+
+                if onScreen and hum and hum.Health > 0 then
+                    local dist = math.floor((myChar.HumanoidRootPart.Position - hrp.Position).Magnitude)
+                    local hp = math.floor((hum.Health / math.max(hum.MaxHealth, 1)) * 100)
+
+                    data.Text.Visible = true
+                    data.Text.Position = UDim2.new(0, screenPosTorso.X - 100, 0, screenPosTorso.Y - 35)
+                    data.Text.Text = string.format("%s\nMáu: %d%% | %dm", player.DisplayName, hp, dist)
+                    data.Text.TextColor3 = currentRainbowColor
+
+                    data.Line.Visible = true
+                    data.Line.BackgroundColor3 = currentRainbowColor
+                    local startPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y * 0.35)
+                    local distance = (Vector2.new(screenPosTorso.X, screenPosTorso.Y) - startPos).Magnitude
+                    local angle = math.atan2(screenPosTorso.Y - startPos.Y, screenPosTorso.X - startPos.X)
+                    data.Line.Size = UDim2.new(0, distance, 0, 1.5)
+                    data.Line.Position = UDim2.new(0, (startPos.X + screenPosTorso.X) / 2, 0, (startPos.Y + screenPosTorso.Y) / 2)
+                    data.Line.Rotation = math.deg(angle)
+
+                    local headPos = head and head.Position or (hrp.Position + Vector3.new(0, 2, 0))
+                    local headScreen = Camera:WorldToViewportPoint(headPos + Vector3.new(0, 0.5, 0))
+                    local legScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+                    local height = math.abs(headScreen.Y - legScreen.Y)
+                    local width = height * 0.6
+                    local boxX = screenPosTorso.X - (width / 2)
+                    local boxY = headScreen.Y
+
+                    data.BoxTop.Visible = true data.BoxTop.Position = UDim2.new(0, boxX, 0, boxY) data.BoxTop.Size = UDim2.new(0, width, 0, 1.5) data.BoxTop.BackgroundColor3 = currentRainbowColor
+                    data.BoxBottom.Visible = true data.BoxBottom.Position = UDim2.new(0, boxX, 0, boxY + height) data.BoxBottom.Size = UDim2.new(0, width, 0, 1.5) data.BoxBottom.BackgroundColor3 = currentRainbowColor
+                    data.BoxLeft.Visible = true data.BoxLeft.Position = UDim2.new(0, boxX, 0, boxY) data.BoxLeft.Size = UDim2.new(0, 1.5, 0, height) data.BoxLeft.BackgroundColor3 = currentRainbowColor
+                    data.BoxRight.Visible = true data.BoxRight.Position = UDim2.new(0, boxX + width, 0, boxY) data.BoxRight.Size = UDim2.new(0, 1.5, 0, height) data.BoxRight.BackgroundColor3 = currentRainbowColor
+                else
+                    data.Text.Visible, data.Line.Visible, data.BoxTop.Visible, data.BoxBottom.Visible, data.BoxLeft.Visible, data.BoxRight.Visible = false, false, false, false, false, false
+                end
+            else
+                data.Text.Visible, data.Line.Visible, data.BoxTop.Visible, data.BoxBottom.Visible, data.BoxLeft.Visible, data.BoxRight.Visible = false, false, false, false, false, false
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(UpdateESP)
+
+local function ToggleXray()
+    xrayEnabled = not xrayEnabled
+    XrayToggleBtn.Text = xrayEnabled and "● Xray: ON" or "● Xray: OFF"
+    XrayToggleBtn.TextColor3 = xrayEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    if xrayEnabled then
+        for _, part in ipairs(Workspace:GetDescendants()) do
+            if part:IsA("BasePart") and not part:IsDescendantOf(LocalPlayer.Character) then
+                originalTransparencies[part] = part.Transparency
+                part.Transparency = 0.6
+            end
+        end
+    else
+        for part, trans in pairs(originalTransparencies) do
+            if part and part.Parent then part.Transparency = trans end
+        end
+        originalTransparencies = {}
+    end
+end
+
+local function StopFly()
+    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+    if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+    if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
+    end
+end
+
+local function StartFly()
+    StopFly()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char.HumanoidRootPart
+    hum.PlatformStand = true
+
+    flyBodyGyro = Instance.new("BodyGyro", root)
+    flyBodyGyro.P = 9e4
+    flyBodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    flyBodyGyro.CFrame = root.CFrame
+
+    flyBodyVelocity = Instance.new("BodyVelocity", root)
+    flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    flyBodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+
+    flyConnection = RunService.RenderStepped:Connect(function()
+        local Camera = Workspace.CurrentCamera
+        if not flyEnabled or not Camera then StopFly() return end
+        local moveDir = hum.MoveDirection
+        local calcSpeed = flySpeed * 50
+
+        if moveDir.Magnitude > 0 then
+            local flyVec = Camera.CFrame:VectorToWorldSpace(CFrame.new(moveDir:Dot(Camera.CFrame.RightVector), 0, moveDir:Dot(-Camera.CFrame.LookVector)).Position)
+            flyBodyVelocity.Velocity = flyVec.Unit * calcSpeed
+        else
+            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        end
+        if hum.Jump then
+            flyBodyVelocity.Velocity = flyBodyVelocity.Velocity + Vector3.new(0, calcSpeed, 0)
+            hum.Jump = false
+        end
+        flyBodyGyro.CFrame = Camera.CFrame
+    end)
+end
+
+local function ToggleSit()
+    isSitting = not isSitting
+    SitBtn.Text = isSitting and "● Sit: ON" or "● Sit: OFF"
+    SitBtn.TextColor3 = isSitting and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    if isSitting then
+        sitConnection = RunService.Heartbeat:Connect(function()
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Sit = true
+            end
+        end)
+    else
+        if sitConnection then sitConnection:Disconnect() sitConnection = nil end
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Sit = false
+        end
+    end
+end
+
+local function ToggleSpin()
+    isSpinning = not isSpinning
+    SpinBtn.Text = isSpinning and "● Spin: ON" or "● Spin: OFF"
+    SpinBtn.TextColor3 = isSpinning and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+
+    if isSpinning then
+        local attach = hrp:FindFirstChild("SpinAttachment") or Instance.new("Attachment", hrp)
+        attach.Name = "SpinAttachment"
+        local spinVel = Instance.new("AngularVelocity", hrp)
+        spinVel.Name = "SpinVelocity"
+        spinVel.Attachment0 = attach
+        spinVel.MaxTorque = math.huge
+        spinVel.AngularVelocity = Vector3.new(0, 25, 0)
+    else
+        if hrp:FindFirstChild("SpinVelocity") then hrp.SpinVelocity:Destroy() end
+        if hrp:FindFirstChild("SpinAttachment") then hrp.SpinAttachment:Destroy() end
+    end
+end
+
+local function StopGlue()
+    if glueConnection then glueConnection:Disconnect() glueConnection = nil end
+end
+
+local function StartGlue()
+    StopGlue()
+    if not selectedGluePlayer then
+        isGlueActive = false
+        GlueToggleBtn.Text = "—> Bám Như Keo 502: OFF"
+        GlueToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        return
+    end
+
+    glueConnection = RunService.Heartbeat:Connect(function()
+        if not isGlueActive then StopGlue() return end
+        local targetChar, myChar = selectedGluePlayer.Character, LocalPlayer.Character
+        if not targetChar or not myChar then StopGlue() isGlueActive = false return end
+
+        local tHead = targetChar:FindFirstChild("Head") or targetChar:FindFirstChild("HumanoidRootPart")
+        local myHrp = myChar:FindFirstChild("HumanoidRootPart")
+        if tHead and myHrp then
+            local offset = tHead.CFrame:VectorToWorldSpace(Vector3.new(tHead.Size.X / 2 + 0.5, 0.3, 0))
+            myHrp.CFrame = CFrame.new(tHead.Position + offset)
+            myHrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        end
+    end)
+end
+
+local function TeleportToSelected()
+    if selectedTPPlayer and selectedTPPlayer.Character and LocalPlayer.Character then
+        local tHrp = selectedTPPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local myHrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if tHrp and myHrp then myHrp.CFrame = tHrp.CFrame + Vector3.new(0, 3, 0) end
+    end
+end
+
+local function ToggleView()
+    viewEnabled = not viewEnabled
+    local Camera = Workspace.CurrentCamera
+    if viewEnabled and selectedViewPlayer and selectedViewPlayer.Character and selectedViewPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        ViewToggleBtn.Text = "—> View Camera: ON"
+        ViewToggleBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        if Camera then Camera.CameraSubject = selectedViewPlayer.Character:FindFirstChildOfClass("Humanoid") end
+    else
+        viewEnabled = false
+        ViewToggleBtn.Text = "—> View Camera: OFF"
+        ViewToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") and Camera then
+            Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        end
+    end
+end
+
+local function StopKill()
+    if killConnection then killConnection:Disconnect() killConnection = nil end
+end
+
+local function StartKill()
+    StopKill()
+    killConnection = RunService.Heartbeat:Connect(function()
+        if not killEnabled then StopKill() return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        local tool = char:FindFirstChildOfClass("Tool")
+        if not tool then return end
+        local handle = tool:FindFirstChild("Handle") or tool:FindFirstChildOfClass("BasePart")
+        tool:Activate()
+
+        local targets = {}
+        if selectedKillPlayer == "ALL" then
+            for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(targets, p) end end
+        elseif typeof(selectedKillPlayer) == "Instance" and selectedKillPlayer:IsA("Player") then
+            table.insert(targets, selectedKillPlayer)
+        end
+
+        for _, target in pairs(targets) do
+            if target and target.Character then
+                local tHrp = target.Character:FindFirstChild("HumanoidRootPart") or target.Character:FindFirstChild("Head")
+                local tHum = target.Character:FindFirstChildOfClass("Humanoid")
+                if tHrp and tHum and tHum.Health > 0 and handle and handle:FindFirstChildOfClass("TouchTransmitter") then
+                    firetouchinterest(handle, tHrp, 0)
+                    firetouchinterest(handle, tHrp, 1)
+                end
+            end
+        end
+    end)
+end
+
+local function GetRandomValidPlayer()
+    local validPlayers = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local tHum = p.Character:FindFirstChildOfClass("Humanoid")
+            local tHrp = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Head")
+            if tHum and tHrp and tHum.Health > 0 then table.insert(validPlayers, p) end
+        end
+    end
+    return #validPlayers > 0 and validPlayers[math.random(1, #validPlayers)] or nil
+end
+
+local function StopSwordKill()
+    if swordKillConnection then swordKillConnection:Disconnect() swordKillConnection = nil end
+    currentSwordTarget = nil
+end
+
+local function StartSwordKill()
+    StopSwordKill()
+    swordKillConnection = RunService.Heartbeat:Connect(function()
+        if not swordKillEnabled then StopSwordKill() return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        local myHrp = char:FindFirstChild("HumanoidRootPart")
+        local tool = char:FindFirstChildOfClass("Tool")
+        if not myHrp or not tool then return end
+        local handle = tool:FindFirstChild("Handle") or tool:FindFirstChildOfClass("BasePart")
+
+        if selectedSwordPlayer == "RANDOM" then
+            local isTargetValid = false
+            if currentSwordTarget and currentSwordTarget.Parent and currentSwordTarget.Character then
+                local tHum = currentSwordTarget.Character:FindFirstChildOfClass("Humanoid")
+                local tHrp = currentSwordTarget.Character:FindFirstChild("HumanoidRootPart") or currentSwordTarget.Character:FindFirstChild("Head")
+                if tHum and tHrp and tHum.Health > 0 then isTargetValid = true end
+            end
+            if not isTargetValid then currentSwordTarget = GetRandomValidPlayer() end
+        else
+            currentSwordTarget = selectedSwordPlayer
+        end
+
+        if currentSwordTarget and currentSwordTarget.Character then
+            local tChar = currentSwordTarget.Character
+            local tHum = tChar:FindFirstChildOfClass("Humanoid")
+            local targetPart = tChar:FindFirstChild("Head") or tChar:FindFirstChild("UpperTorso") or tChar:FindFirstChild("Torso") or tChar:FindFirstChild("HumanoidRootPart")
+
+            if targetPart and tHum and tHum.Health > 0 then
+                myHrp.CFrame = targetPart.CFrame
+                myHrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                tool:Activate()
+                if handle and handle:FindFirstChildOfClass("TouchTransmitter") then
+                    for _, child in ipairs(tChar:GetChildren()) do
+                        if child:IsA("BasePart") then
+                            firetouchinterest(handle, child, 0)
+                            firetouchinterest(handle, child, 1)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function RefreshPlayerList()
+    for _, child in pairs(PlayerList:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+
+    if subMenuMode == "aim" then
+        local autoBtn = Instance.new("TextButton", PlayerList)
+        autoBtn.Size = UDim2.new(1, 0, 0, 25)
+        autoBtn.BackgroundColor3 = Color3.fromRGB(25, 20, 35)
+        autoBtn.Text = "[ Tự động: Gần nhất ]"
+        autoBtn.TextColor3 = Color3.fromRGB(255, 255, 100)
+        autoBtn.Font = Enum.Font.SourceSansBold
+        CreateCorner(autoBtn, 6)
+        RegisterStroke(CreateStroke(autoBtn, 1))
+        autoBtn.MouseButton1Click:Connect(function()
+            selectedAimPlayer = nil SelectAimPlayerBtn.Text = "[ AIM: GẦN NHẤT ]" SubFrame.Visible = false
+        end)
+    elseif subMenuMode == "kill" then
+        local allBtn = Instance.new("TextButton", PlayerList)
+        allBtn.Size = UDim2.new(1, 0, 0, 25)
+        allBtn.BackgroundColor3 = Color3.fromRGB(35, 15, 25)
+        allBtn.Text = "[ Tất cả Players ]"
+        allBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        allBtn.Font = Enum.Font.SourceSansBold
+        CreateCorner(allBtn, 6)
+        RegisterStroke(CreateStroke(allBtn, 1))
+        allBtn.MouseButton1Click:Connect(function()
+            selectedKillPlayer = "ALL" SelectKillPlayerBtn.Text = "[ KILL ]: ALL PLAYERS" SubFrame.Visible = false
+        end)
+    elseif subMenuMode == "swordkill" then
+        local randBtn = Instance.new("TextButton", PlayerList)
+        randBtn.Size = UDim2.new(1, 0, 0, 25)
+        randBtn.BackgroundColor3 = Color3.fromRGB(35, 15, 25)
+        randBtn.Text = "[ Random Player ]"
+        randBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        randBtn.Font = Enum.Font.SourceSansBold
+        CreateCorner(randBtn, 6)
+        RegisterStroke(CreateStroke(randBtn, 1))
+        randBtn.MouseButton1Click:Connect(function()
+            selectedSwordPlayer = "RANDOM" SelectSwordKillPlayerBtn.Text = "[ SWORD: RANDOM PLAYER ]" SubFrame.Visible = false
+        end)
+    end
+
+    local count = (subMenuMode == "aim" or subMenuMode == "kill" or subMenuMode == "swordkill") and 1 or 0
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            count = count + 1
+            local btn = Instance.new("TextButton", PlayerList)
+            btn.Size = UDim2.new(1, 0, 0, 25)
+            btn.BackgroundColor3 = Color3.fromRGB(18, 15, 25)
+            btn.Text = player.DisplayName
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.Font = Enum.Font.SourceSansBold
+            CreateCorner(btn, 6)
+            RegisterStroke(CreateStroke(btn, 1))
+            btn.MouseButton1Click:Connect(function()
+                if subMenuMode == "glue" then selectedGluePlayer = player SelectGluePlayerBtn.Text = "[ KEO 502 ]: " .. player.DisplayName
+                elseif subMenuMode == "tp" then selectedTPPlayer = player SelectTPPlayerBtn.Text = "[ TELEPORT ]: " .. player.DisplayName
+                elseif subMenuMode == "view" then selectedViewPlayer = player SelectViewPlayerBtn.Text = "[ VIEW ]: " .. player.DisplayName if viewEnabled then ToggleView() ToggleView() end
+                elseif subMenuMode == "aim" then selectedAimPlayer = player SelectAimPlayerBtn.Text = "[ AIM ]: " .. player.DisplayName
+                elseif subMenuMode == "kill" then selectedKillPlayer = player SelectKillPlayerBtn.Text = "[ KILL ]: " .. player.DisplayName
+                elseif subMenuMode == "swordkill" then selectedSwordPlayer = player SelectSwordKillPlayerBtn.Text = "[ SWORD ]: " .. player.DisplayName end
+                SubFrame.Visible = false
+            end)
+        end
+    end
+    PlayerList.CanvasSize = UDim2.new(0, 0, 0, count * 29)
+end
+
+-- Menu Trigger Connections
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+    if not MainFrame.Visible then SubFrame.Visible = false end
+end)
+
+NoclipBtn.MouseButton1Click:Connect(ToggleNoclip)
+FlyjumpBtn.MouseButton1Click:Connect(ToggleFlyjump)
+FlyToggleBtn.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    FlyToggleBtn.Text = flyEnabled and "—> Fly: ON" or "—> Fly: OFF"
+    FlyToggleBtn.TextColor3 = flyEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    if flyEnabled then StartFly() else StopFly() end
+end)
+SpeedToggleBtn.MouseButton1Click:Connect(function()
+    speedEnabled = not speedEnabled
+    SpeedToggleBtn.Text = speedEnabled and "—> Speed: ON" or "—> Speed: OFF"
+    SpeedToggleBtn.TextColor3 = speedEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    ApplySpeed()
+end)
+JumpToggleBtn.MouseButton1Click:Connect(function()
+    jumpEnabled = not jumpEnabled
+    JumpToggleBtn.Text = jumpEnabled and "—> Jump: ON" or "—> Jump: OFF"
+    JumpToggleBtn.TextColor3 = jumpEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    ApplyJump()
+end)
+EspToggleBtn.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    EspToggleBtn.Text = espEnabled and "● ESP: ON" or "● ESP: OFF"
+    EspToggleBtn.TextColor3 = espEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    if not espEnabled then ClearESP() end
+end)
+
+SitBtn.MouseButton1Click:Connect(ToggleSit)
+SpinBtn.MouseButton1Click:Connect(ToggleSpin)
+XrayToggleBtn.MouseButton1Click:Connect(ToggleXray)
+FullBrightBtn.MouseButton1Click:Connect(ToggleFullBright)
+FpsBoostBtn.MouseButton1Click:Connect(BoostFPS)
+
+GlueToggleBtn.MouseButton1Click:Connect(function()
+    isGlueActive = not isGlueActive
+    GlueToggleBtn.Text = isGlueActive and "—> Bám Như Keo 502: ON" or "—> Bám Như Keo 502: OFF"
+    GlueToggleBtn.TextColor3 = isGlueActive and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    if isGlueActive then StartGlue() else StopGlue() end
+end)
+SelectGluePlayerBtn.MouseButton1Click:Connect(function() subMenuMode = "glue" SubFrame.Visible = not SubFrame.Visible if SubFrame.Visible then RefreshPlayerList() end end)
+TeleportBtn.MouseButton1Click:Connect(TeleportToSelected)
+SelectTPPlayerBtn.MouseButton1Click:Connect(function() subMenuMode = "tp" SubFrame.Visible = not SubFrame.Visible if SubFrame.Visible then RefreshPlayerList() end end)
+ViewToggleBtn.MouseButton1Click:Connect(ToggleView)
+SelectViewPlayerBtn.MouseButton1Click:Connect(function() subMenuMode = "view" SubFrame.Visible = not SubFrame.Visible if SubFrame.Visible then RefreshPlayerList() end end)
+AimToggleBtn.MouseButton1Click:Connect(function()
+    aimEnabled = not aimEnabled
+    AimToggleBtn.Text = aimEnabled and "—> Aim Lock: ON" or "—> Aim Lock: OFF"
+    AimToggleBtn.TextColor3 = aimEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    FovFrame.Visible = aimEnabled
+    FovFrame.Size = UDim2.new(0, aimRadius * 2, 0, aimRadius * 2)
+end)
+SelectAimPlayerBtn.MouseButton1Click:Connect(function() subMenuMode = "aim" SubFrame.Visible = not SubFrame.Visible if SubFrame.Visible then RefreshPlayerList() end end)
+KillToggleBtn.MouseButton1Click:Connect(function()
+    killEnabled = not killEnabled
+    KillToggleBtn.Text = killEnabled and "—> Kill: ON" or "—> Kill: OFF"
+    KillToggleBtn.TextColor3 = killEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    if killEnabled then StartKill() else StopKill() end
+end)
+SelectKillPlayerBtn.MouseButton1Click:Connect(function() subMenuMode = "kill" SubFrame.Visible = not SubFrame.Visible if SubFrame.Visible then RefreshPlayerList() end end)
+SwordKillToggleBtn.MouseButton1Click:Connect(function()
+    swordKillEnabled = not swordKillEnabled
+    SwordKillToggleBtn.Text = swordKillEnabled and "—> Kill With A Sword: ON" or "—> Kill With A Sword: OFF"
+    SwordKillToggleBtn.TextColor3 = swordKillEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    if swordKillEnabled then StartSwordKill() else StopSwordKill() end
+end)
+SelectSwordKillPlayerBtn.MouseButton1Click:Connect(function() subMenuMode = "swordkill" SubFrame.Visible = not SubFrame.Visible if SubFrame.Visible then RefreshPlayerList() end end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if espObjects[player] then
+        if espObjects[player].Text then espObjects[player].Text:Destroy() end
+        if espObjects[player].Line then espObjects[player].Line:Destroy() end
+        if espObjects[player].BoxTop then espObjects[player].BoxTop:Destroy() end
+        if espObjects[player].BoxBottom then espObjects[player].BoxBottom:Destroy() end
+        if espObjects[player].BoxLeft then espObjects[player].BoxLeft:Destroy() end
+        if espObjects[player].BoxRight then espObjects[player].BoxRight:Destroy() end
+        espObjects[player] = nil
+    end
+end)
+
+-- Rainbow UI Animation Loop
+local hue = 0
+RunService.Heartbeat:Connect(function(delta)
+    hue = (hue + delta * 0.32) % 1
+    currentRainbowColor = Color3.fromHSV(hue, 0.88, 1)
+
+    -- Cập nhật màu viền
+    MainUIStroke.Color = currentRainbowColor
+    SubUIStroke.Color = currentRainbowColor
+    OpenBtnStroke.Color = currentRainbowColor
+    CloseStroke.Color = currentRainbowColor
+    HudStroke.Color = currentRainbowColor
+    TopLine.BackgroundColor3 = currentRainbowColor
+
+    for _, stroke in ipairs(RainbowStrokes) do
+        if stroke and stroke.Parent then stroke.Color = currentRainbowColor end
+    end
+
+    Title.TextColor3 = currentRainbowColor
+    VersionLabel.TextColor3 = currentRainbowColor
+    OpenBtn.TextColor3 = currentRainbowColor
+    MarqueeLabel.TextColor3 = currentRainbowColor
+    HudTitle.TextColor3 = currentRainbowColor
+
+    if not noclipEnabled then NoclipBtn.TextColor3 = currentRainbowColor end
+    if not flyjumpEnabled then FlyjumpBtn.TextColor3 = currentRainbowColor end
+    if not espEnabled then EspToggleBtn.TextColor3 = currentRainbowColor end
+    if not isSitting then SitBtn.TextColor3 = currentRainbowColor end
+    if not isSpinning then SpinBtn.TextColor3 = currentRainbowColor end
+    if not xrayEnabled then XrayToggleBtn.TextColor3 = currentRainbowColor end
+    if not fullBrightEnabled then FullBrightBtn.TextColor3 = currentRainbowColor end
+    if not flyEnabled then FlyToggleBtn.TextColor3 = currentRainbowColor end
+    if not speedEnabled then SpeedToggleBtn.TextColor3 = currentRainbowColor end
+    if not jumpEnabled then JumpToggleBtn.TextColor3 = currentRainbowColor end
+    if not aimEnabled then AimToggleBtn.TextColor3 = currentRainbowColor end
+    if not isGlueActive then GlueToggleBtn.TextColor3 = currentRainbowColor end
+end)
+
+MainFrame.Visible = true
