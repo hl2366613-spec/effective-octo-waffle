@@ -1,0 +1,737 @@
+--[[
+    ライト [RAITO] MOBILE MENU
+    V3.0.0 - UI SIMULATION ONLY
+    Roblox / Delta X VNG Mobile
+
+    ⚠️ Đây là giao diện mô phỏng.
+    Các chức năng Fly, Kill, Aim, Teleport... KHÔNG thực thi.
+]]
+
+--// SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Stats = game:GetService("Stats")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+--// REMOVE OLD UI
+pcall(function()
+    local old = PlayerGui:FindFirstChild("RAITO_MOBILE_MENU")
+    if old then old:Destroy() end
+end)
+
+--// COLORS
+local BG = Color3.fromRGB(12, 12, 18)
+local CARD = Color3.fromRGB(22, 22, 30)
+local CARD2 = Color3.fromRGB(28, 28, 38)
+local TEXT = Color3.fromRGB(245,245,250)
+local SUBTEXT = Color3.fromRGB(165,165,180)
+
+local rainbowHue = 0
+
+--// UTILITY
+local function corner(obj, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 10)
+    c.Parent = obj
+    return c
+end
+
+local function stroke(obj, thickness)
+    local s = Instance.new("UIStroke")
+    s.Thickness = thickness or 1
+    s.Transparency = 0
+    s.Parent = obj
+    return s
+end
+
+local function padding(obj, value)
+    local p = Instance.new("UIPadding")
+    p.PaddingTop = UDim.new(0,value)
+    p.PaddingBottom = UDim.new(0,value)
+    p.PaddingLeft = UDim.new(0,value)
+    p.PaddingRight = UDim.new(0,value)
+    p.Parent = obj
+end
+
+local function makeText(parent, text, size, bold)
+    local t = Instance.new("TextLabel")
+    t.BackgroundTransparency = 1
+    t.Text = text
+    t.TextColor3 = TEXT
+    t.TextSize = size or 14
+    t.Font = bold and Enum.Font.GothamBold or Enum.Font.Gotham
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    t.Parent = parent
+    return t
+end
+
+--// SCREEN GUI
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "RAITO_MOBILE_MENU"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.Parent = PlayerGui
+
+--// OPEN BUTTON
+local Open = Instance.new("TextButton")
+Open.Name = "OpenButton"
+Open.Size = UDim2.new(0,58,0,58)
+Open.Position = UDim2.new(0,15,0.5,-29)
+Open.BackgroundColor3 = BG
+Open.BackgroundTransparency = 0.12
+Open.Text = "ライト"
+Open.TextColor3 = TEXT
+Open.TextSize = 12
+Open.Font = Enum.Font.GothamBold
+Open.Parent = Gui
+corner(Open,18)
+local openStroke = stroke(Open,2)
+
+--// MAIN
+local Main = Instance.new("Frame")
+Main.Name = "MainMenu"
+Main.Size = UDim2.new(0,350,0,500)
+Main.Position = UDim2.new(0.5,-175,0.5,-250)
+Main.BackgroundColor3 = BG
+Main.BackgroundTransparency = 0.08
+Main.Parent = Gui
+corner(Main,18)
+
+local MainStroke = stroke(Main,2)
+
+--// HEADER
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1,0,0,65)
+Header.BackgroundTransparency = 1
+Header.Parent = Main
+
+local Title = makeText(Header,"ライト  [ RAITO ]",20,true)
+Title.Position = UDim2.new(0,18,0,8)
+Title.Size = UDim2.new(1,-80,0,27)
+
+local Version = makeText(Header,"MOBILE MENU  •  V3.0",10,false)
+Version.Position = UDim2.new(0,20,0,35)
+Version.Size = UDim2.new(1,-80,0,20)
+Version.TextColor3 = SUBTEXT
+
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0,38,0,38)
+Close.Position = UDim2.new(1,-50,0,13)
+Close.BackgroundColor3 = CARD2
+Close.BackgroundTransparency = 0.2
+Close.Text = "×"
+Close.TextSize = 25
+Close.TextColor3 = TEXT
+Close.Font = Enum.Font.GothamBold
+Close.Parent = Header
+corner(Close,12)
+
+--// TABS
+local Tabs = Instance.new("Frame")
+Tabs.Size = UDim2.new(1,-24,0,42)
+Tabs.Position = UDim2.new(0,12,0,66)
+Tabs.BackgroundColor3 = CARD
+Tabs.BackgroundTransparency = 0.25
+Tabs.Parent = Main
+corner(Tabs,12)
+
+local TabHome = Instance.new("TextButton")
+TabHome.Size = UDim2.new(0.5,-3,1,-6)
+TabHome.Position = UDim2.new(0,3,0,3)
+TabHome.BackgroundColor3 = Color3.fromRGB(55,55,70)
+TabHome.Text = "⌂  Home"
+TabHome.TextColor3 = TEXT
+TabHome.TextSize = 13
+TabHome.Font = Enum.Font.GothamBold
+TabHome.Parent = Tabs
+corner(TabHome,9)
+
+local TabMusic = Instance.new("TextButton")
+TabMusic.Size = UDim2.new(0.5,-3,1,-6)
+TabMusic.Position = UDim2.new(0.5,0,0,3)
+TabMusic.BackgroundTransparency = 1
+TabMusic.Text = "♫  Music"
+TabMusic.TextColor3 = SUBTEXT
+TabMusic.TextSize = 13
+TabMusic.Font = Enum.Font.GothamBold
+TabMusic.Parent = Tabs
+corner(TabMusic,9)
+
+--// CONTENT
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1,-20,1,-122)
+Content.Position = UDim2.new(0,10,0,115)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
+
+local HomePage = Instance.new("ScrollingFrame")
+HomePage.Size = UDim2.new(1,0,1,0)
+HomePage.BackgroundTransparency = 1
+HomePage.BorderSizePixel = 0
+HomePage.ScrollBarThickness = 3
+HomePage.ScrollBarImageTransparency = 0.3
+HomePage.CanvasSize = UDim2.new(0,0,0,0)
+HomePage.AutomaticCanvasSize = Enum.AutomaticSize.Y
+HomePage.Parent = Content
+
+local HomeLayout = Instance.new("UIListLayout")
+HomeLayout.Padding = UDim.new(0,7)
+HomeLayout.Parent = HomePage
+
+--// SECTION
+local function section(text)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1,0,0,30)
+    f.BackgroundTransparency = 1
+    f.Parent = HomePage
+
+    local t = makeText(f,text,11,true)
+    t.Size = UDim2.new(1,0,1,0)
+    t.TextColor3 = SUBTEXT
+
+    return f
+end
+
+--// PLAYER SELECTOR
+local PlayerPopup = Instance.new("Frame")
+PlayerPopup.Size = UDim2.new(0,285,0,300)
+PlayerPopup.Position = UDim2.new(0.5,-142,0.5,-150)
+PlayerPopup.BackgroundColor3 = BG
+PlayerPopup.BackgroundTransparency = 0.03
+PlayerPopup.Visible = false
+PlayerPopup.ZIndex = 20
+PlayerPopup.Parent = Gui
+corner(PlayerPopup,16)
+local PopupStroke = stroke(PlayerPopup,2)
+
+local PopupTitle = makeText(PlayerPopup,"SELECT PLAYER",15,true)
+PopupTitle.Position = UDim2.new(0,15,0,10)
+PopupTitle.Size = UDim2.new(1,-50,0,28)
+PopupTitle.ZIndex = 21
+
+local PopupClose = Instance.new("TextButton")
+PopupClose.Size = UDim2.new(0,32,0,32)
+PopupClose.Position = UDim2.new(1,-42,0,8)
+PopupClose.BackgroundTransparency = 1
+PopupClose.Text = "×"
+PopupClose.TextColor3 = TEXT
+PopupClose.TextSize = 22
+PopupClose.ZIndex = 21
+PopupClose.Parent = PlayerPopup
+
+local PlayerList = Instance.new("ScrollingFrame")
+PlayerList.Size = UDim2.new(1,-20,1,-55)
+PlayerList.Position = UDim2.new(0,10,0,48)
+PlayerList.BackgroundTransparency = 1
+PlayerList.BorderSizePixel = 0
+PlayerList.ScrollBarThickness = 3
+PlayerList.ZIndex = 21
+PlayerList.Parent = PlayerPopup
+
+local PlayerLayout = Instance.new("UIListLayout")
+PlayerLayout.Padding = UDim.new(0,6)
+PlayerLayout.Parent = PlayerList
+
+local selectedPlayer = "None"
+
+local function refreshPlayers()
+    for _,v in ipairs(PlayerList:GetChildren()) do
+        if v:IsA("TextButton") then
+            v:Destroy()
+        end
+    end
+
+    for _,plr in ipairs(Players:GetPlayers()) do
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(1,-4,0,42)
+        b.BackgroundColor3 = CARD
+        b.BackgroundTransparency = 0.15
+        b.Text = "  " .. plr.DisplayName .. "  @" .. plr.Name
+        b.TextColor3 = TEXT
+        b.TextSize = 12
+        b.TextXAlignment = Enum.TextXAlignment.Left
+        b.Font = Enum.Font.Gotham
+        b.ZIndex = 22
+        b.Parent = PlayerList
+        corner(b,10)
+
+        b.MouseButton1Click:Connect(function()
+            selectedPlayer = plr.Name
+            PlayerPopup.Visible = false
+        end)
+    end
+end
+
+Players.PlayerAdded:Connect(refreshPlayers)
+Players.PlayerRemoving:Connect(refreshPlayers)
+
+PopupClose.MouseButton1Click:Connect(function()
+    PlayerPopup.Visible = false
+end)
+
+local function playerButton(name)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1,0,0,44)
+    b.BackgroundColor3 = CARD
+    b.BackgroundTransparency = 0.15
+    b.Text = name .. "    <player>"
+    b.TextColor3 = TEXT
+    b.TextSize = 12
+    b.Font = Enum.Font.GothamMedium
+    b.TextXAlignment = Enum.TextXAlignment.Left
+    b.Parent = HomePage
+    corner(b,11)
+
+    local s = stroke(b,1)
+    s.Transparency = 0.65
+
+    b.MouseButton1Click:Connect(function()
+        refreshPlayers()
+        PlayerPopup.Visible = true
+    end)
+
+    return b
+end
+
+--// TOGGLE
+local function toggleButton(name)
+    local state = false
+
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1,0,0,44)
+    b.BackgroundColor3 = CARD
+    b.BackgroundTransparency = 0.12
+    b.Text = "  " .. name
+    b.TextColor3 = TEXT
+    b.TextSize = 12
+    b.Font = Enum.Font.GothamMedium
+    b.TextXAlignment = Enum.TextXAlignment.Left
+    b.Parent = HomePage
+    corner(b,11)
+
+    local s = stroke(b,1)
+    s.Transparency = 0.65
+
+    local indicator = Instance.new("TextLabel")
+    indicator.Size = UDim2.new(0,55,0,25)
+    indicator.Position = UDim2.new(1,-65,0.5,-12)
+    indicator.BackgroundColor3 = Color3.fromRGB(45,45,55)
+    indicator.Text = "OFF"
+    indicator.TextColor3 = SUBTEXT
+    indicator.TextSize = 10
+    indicator.Font = Enum.Font.GothamBold
+    indicator.Parent = b
+    corner(indicator,8)
+
+    b.MouseButton1Click:Connect(function()
+        state = not state
+
+        if state then
+            indicator.Text = "ON"
+            indicator.TextColor3 = Color3.fromRGB(255,255,255)
+            indicator.BackgroundColor3 = Color3.fromRGB(70,70,85)
+        else
+            indicator.Text = "OFF"
+            indicator.TextColor3 = SUBTEXT
+            indicator.BackgroundColor3 = Color3.fromRGB(45,45,55)
+        end
+    end)
+
+    return b
+end
+
+--// HOME CONTENT
+section("PLAYER / MOVEMENT")
+
+toggleButton("Fly")
+toggleButton("Flyjump")
+toggleButton("Noclip")
+toggleButton("ESP")
+toggleButton("Sit")
+toggleButton("Spin")
+
+section("MOVEMENT SETTINGS")
+
+local SpeedRow = Instance.new("Frame")
+SpeedRow.Size = UDim2.new(1,0,0,44)
+SpeedRow.BackgroundColor3 = CARD
+SpeedRow.BackgroundTransparency = 0.12
+SpeedRow.Parent = HomePage
+corner(SpeedRow,11)
+
+makeText(SpeedRow,"  Speed",12,true).Size = UDim2.new(0.45,0,1,0)
+
+local SpeedValue = makeText(SpeedRow,"1.0",12,true)
+SpeedValue.Position = UDim2.new(0.47,0,0,0)
+SpeedValue.Size = UDim2.new(0.18,0,1,0)
+SpeedValue.TextXAlignment = Enum.TextXAlignment.Center
+
+local SpeedMinus = Instance.new("TextButton")
+SpeedMinus.Size = UDim2.new(0,36,0,30)
+SpeedMinus.Position = UDim2.new(1,-80,0.5,-15)
+SpeedMinus.Text = "-"
+SpeedMinus.TextSize = 18
+SpeedMinus.TextColor3 = TEXT
+SpeedMinus.BackgroundColor3 = CARD2
+SpeedMinus.Parent = SpeedRow
+corner(SpeedMinus,8)
+
+local SpeedPlus = Instance.new("TextButton")
+SpeedPlus.Size = UDim2.new(0,36,0,30)
+SpeedPlus.Position = UDim2.new(1,-40,0.5,-15)
+SpeedPlus.Text = "+"
+SpeedPlus.TextSize = 18
+SpeedPlus.TextColor3 = TEXT
+SpeedPlus.BackgroundColor3 = CARD2
+SpeedPlus.Parent = SpeedRow
+corner(SpeedPlus,8)
+
+local speedValue = 1
+
+SpeedMinus.MouseButton1Click:Connect(function()
+    speedValue = math.max(0.1,speedValue-0.1)
+    SpeedValue.Text = string.format("%.1f",speedValue)
+end)
+
+SpeedPlus.MouseButton1Click:Connect(function()
+    speedValue += 0.1
+    SpeedValue.Text = string.format("%.1f",speedValue)
+end)
+
+local JumpRow = SpeedRow:Clone()
+JumpRow.Parent = HomePage
+JumpRow:ClearAllChildren()
+corner(JumpRow,11)
+
+makeText(JumpRow,"  Jump",12,true).Size = UDim2.new(0.45,0,1,0)
+
+local JumpValue = makeText(JumpRow,"1.0",12,true)
+JumpValue.Position = UDim2.new(0.47,0,0,0)
+JumpValue.Size = UDim2.new(0.18,0,1,0)
+JumpValue.TextXAlignment = Enum.TextXAlignment.Center
+
+local jumpMinus = Instance.new("TextButton")
+jumpMinus.Size = UDim2.new(0,36,0,30)
+jumpMinus.Position = UDim2.new(1,-80,0.5,-15)
+jumpMinus.Text = "-"
+jumpMinus.TextSize = 18
+jumpMinus.TextColor3 = TEXT
+jumpMinus.BackgroundColor3 = CARD2
+jumpMinus.Parent = JumpRow
+corner(jumpMinus,8)
+
+local jumpPlus = Instance.new("TextButton")
+jumpPlus.Size = UDim2.new(0,36,0,30)
+jumpPlus.Position = UDim2.new(1,-40,0.5,-15)
+jumpPlus.Text = "+"
+jumpPlus.TextSize = 18
+jumpPlus.TextColor3 = TEXT
+jumpPlus.BackgroundColor3 = CARD2
+jumpPlus.Parent = JumpRow
+corner(jumpPlus,8)
+
+local jumpValue = 1
+
+jumpMinus.MouseButton1Click:Connect(function()
+    jumpValue = math.max(0.1,jumpValue-0.1)
+    JumpValue.Text = string.format("%.1f",jumpValue)
+end)
+
+jumpPlus.MouseButton1Click:Connect(function()
+    jumpValue += 0.1
+    JumpValue.Text = string.format("%.1f",jumpValue)
+end)
+
+section("COMBAT / PLAYER")
+
+toggleButton("Kill")
+toggleButton("Kill with sword")
+toggleButton("Aim")
+
+playerButton("Aim player")
+playerButton("Sit on head")
+playerButton("Teleport")
+playerButton("View")
+
+--// MUSIC PAGE
+local MusicPage = Instance.new("Frame")
+MusicPage.Size = UDim2.new(1,0,1,0)
+MusicPage.BackgroundTransparency = 1
+MusicPage.Visible = false
+MusicPage.Parent = Content
+
+local function musicLabel(text,pos,size)
+    local t = makeText(MusicPage,text,12,true)
+    t.Position = pos
+    t.Size = size
+    return t
+end
+
+musicLabel("MUSIC PLAYER",UDim2.new(0,5,0,5),UDim2.new(1,-10,0,25))
+
+local IDBox = Instance.new("TextBox")
+IDBox.Size = UDim2.new(1,-10,0,45)
+IDBox.Position = UDim2.new(0,5,0,38)
+IDBox.BackgroundColor3 = CARD
+IDBox.BackgroundTransparency = 0.1
+IDBox.PlaceholderText = "Nhập ID nhạc..."
+IDBox.PlaceholderColor3 = SUBTEXT
+IDBox.Text = ""
+IDBox.TextColor3 = TEXT
+IDBox.TextSize = 13
+IDBox.Font = Enum.Font.Gotham
+IDBox.ClearTextOnFocus = false
+IDBox.Parent = MusicPage
+corner(IDBox,11)
+
+local Info = Instance.new("Frame")
+Info.Size = UDim2.new(1,-10,0,70)
+Info.Position = UDim2.new(0,5,0,92)
+Info.BackgroundColor3 = CARD
+Info.BackgroundTransparency = 0.1
+Info.Parent = MusicPage
+corner(Info,11)
+
+local InfoText = makeText(Info,"♪  Music information\n    ID: ---\n    Status: Stopped",11,false)
+InfoText.Position = UDim2.new(0,12,0,8)
+InfoText.Size = UDim2.new(1,-20,1,-10)
+InfoText.TextColor3 = SUBTEXT
+
+local Play = Instance.new("TextButton")
+Play.Size = UDim2.new(0.5,-7,0,42)
+Play.Position = UDim2.new(0,5,0,172)
+Play.BackgroundColor3 = CARD2
+Play.Text = "▶  PLAY"
+Play.TextColor3 = TEXT
+Play.TextSize = 12
+Play.Font = Enum.Font.GothamBold
+Play.Parent = MusicPage
+corner(Play,11)
+
+local Stop = Play:Clone()
+Stop.Position = UDim2.new(0.5,2,0,172)
+Stop.Text = "■  STOP"
+Stop.Parent = MusicPage
+
+local Save = Instance.new("TextButton")
+Save.Size = UDim2.new(1,-10,0,42)
+Save.Position = UDim2.new(0,5,0,222)
+Save.BackgroundColor3 = CARD
+Save.Text = "♡  SAVE ID"
+Save.TextColor3 = TEXT
+Save.TextSize = 12
+Save.Font = Enum.Font.GothamBold
+Save.Parent = MusicPage
+corner(Save,11)
+
+local SpeedMusic = Instance.new("Frame")
+SpeedMusic.Size = UDim2.new(1,-10,0,48)
+SpeedMusic.Position = UDim2.new(0,5,0,272)
+SpeedMusic.BackgroundColor3 = CARD
+SpeedMusic.Parent = MusicPage
+corner(SpeedMusic,11)
+
+makeText(SpeedMusic,"  Playback Speed",11,true).Size = UDim2.new(0.45,0,1,0)
+
+local MusicSpeedText = makeText(SpeedMusic,"1.0x",12,true)
+MusicSpeedText.Position = UDim2.new(0.45,0,0,0)
+MusicSpeedText.Size = UDim2.new(0.2,0,1,0)
+MusicSpeedText.TextXAlignment = Enum.TextXAlignment.Center
+
+local MMinus = Instance.new("TextButton")
+MMinus.Size = UDim2.new(0,38,0,32)
+MMinus.Position = UDim2.new(1,-85,0.5,-16)
+MMinus.Text = "-"
+MMinus.TextSize = 18
+MMinus.TextColor3 = TEXT
+MMinus.BackgroundColor3 = CARD2
+MMinus.Parent = SpeedMusic
+corner(MMinus,8)
+
+local MPlus = MMinus:Clone()
+MPlus.Position = UDim2.new(1,-43,0.5,-16)
+MPlus.Text = "+"
+MPlus.Parent = SpeedMusic
+
+local musicSpeed = 1
+
+MMinus.MouseButton1Click:Connect(function()
+    musicSpeed = math.max(0.1,musicSpeed-0.1)
+    MusicSpeedText.Text = string.format("%.1fx",musicSpeed)
+end)
+
+MPlus.MouseButton1Click:Connect(function()
+    musicSpeed += 0.1
+    MusicSpeedText.Text = string.format("%.1fx",musicSpeed)
+end)
+
+local Volume = Instance.new("TextLabel")
+Volume.Size = UDim2.new(1,-10,0,42)
+Volume.Position = UDim2.new(0,5,0,330)
+Volume.BackgroundColor3 = CARD
+Volume.Text = "  🔊 Volume        100%"
+Volume.TextColor3 = TEXT
+Volume.TextSize = 12
+Volume.TextXAlignment = Enum.TextXAlignment.Left
+Volume.Font = Enum.Font.GothamBold
+Volume.Parent = MusicPage
+corner(Volume,11)
+
+local volume = 100
+
+Volume.MouseButton1Click = function()
+    volume -= 10
+    if volume < 0 then volume = 100 end
+    Volume.Text = "  🔊 Volume        "..volume.."%"
+end
+
+Play.MouseButton1Click:Connect(function()
+    InfoText.Text = "♪  Music information\n    ID: "..(IDBox.Text ~= "" and IDBox.Text or "---").."\n    Status: Playing"
+end)
+
+Stop.MouseButton1Click:Connect(function()
+    InfoText.Text = "♪  Music information\n    ID: "..(IDBox.Text ~= "" and IDBox.Text or "---").."\n    Status: Stopped"
+end)
+
+Save.MouseButton1Click:Connect(function()
+    Save.Text = "✓  ID SAVED"
+    task.delay(1.2,function()
+        if Save then
+            Save.Text = "♡  SAVE ID"
+        end
+    end)
+end)
+
+--// TAB SWITCH
+TabHome.MouseButton1Click:Connect(function()
+    HomePage.Visible = true
+    MusicPage.Visible = false
+
+    TabHome.BackgroundColor3 = Color3.fromRGB(55,55,70)
+    TabHome.TextColor3 = TEXT
+
+    TabMusic.BackgroundTransparency = 1
+    TabMusic.TextColor3 = SUBTEXT
+end)
+
+TabMusic.MouseButton1Click:Connect(function()
+    HomePage.Visible = false
+    MusicPage.Visible = true
+
+    TabMusic.BackgroundColor3 = Color3.fromRGB(55,55,70)
+    TabMusic.BackgroundTransparency = 0
+    TabMusic.TextColor3 = TEXT
+
+    TabHome.BackgroundTransparency = 1
+    TabHome.TextColor3 = SUBTEXT
+end)
+
+--// OPEN / CLOSE
+Open.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
+end)
+
+Close.MouseButton1Click:Connect(function()
+    Main.Visible = false
+end)
+
+--// DRAG MOBILE
+local dragging = false
+local dragStart
+local startPos
+
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseMovement
+    ) then
+
+        local delta = input.Position - dragStart
+
+        Main.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+--// RAINBOW BORDER
+RunService.RenderStepped:Connect(function(dt)
+    rainbowHue = (rainbowHue + dt * 0.12) % 1
+
+    local rgb = Color3.fromHSV(rainbowHue,0.85,1)
+
+    MainStroke.Color = rgb
+    PopupStroke.Color = rgb
+    openStroke.Color = rgb
+end)
+
+--// HUD
+local HUD = Instance.new("Frame")
+HUD.Size = UDim2.new(0,145,0,48)
+HUD.Position = UDim2.new(1,-155,0,12)
+HUD.BackgroundColor3 = BG
+HUD.BackgroundTransparency = 0.18
+HUD.Parent = Gui
+corner(HUD,12)
+
+local HUDStroke = stroke(HUD,1)
+
+local PingText = makeText(HUD,"PING: -- ms",10,true)
+PingText.Position = UDim2.new(0,10,0,4)
+PingText.Size = UDim2.new(1,-15,0,18)
+
+local TimeText = makeText(HUD,"VN: --:--:--",10,true)
+TimeText.Position = UDim2.new(0,10,0,24)
+TimeText.Size = UDim2.new(1,-15,0,18)
+
+--// REAL VIETNAM TIME
+local function vietnamTime()
+    local utc = os.time(os.date("!*t"))
+    local vn = utc + (7*60*60)
+    return os.date("!%H:%M:%S",vn)
+end
+
+--// PING + TIME
+task.spawn(function()
+    while Gui.Parent do
+        local ping = "--"
+
+        pcall(function()
+            local network = Stats.Network
+            local serverStats = network.ServerStatsItem
+            local pingItem = serverStats["Data Ping"]
+            ping = math.floor(pingItem:GetValue())
+        end)
+
+        PingText.Text = "PING: "..tostring(ping).." ms"
+        TimeText.Text = "VN: "..vietnamTime()
+
+        task.wait(1)
+    end
+end)
+
+--// INITIAL
+refreshPlayers()
+Main.Visible = true
