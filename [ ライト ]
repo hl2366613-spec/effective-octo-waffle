@@ -1,0 +1,239 @@
+-- Roblox Fixed Menu UI (Theme: Transparent Diagonal RGB Gradient)
+-- Compatible with Delta, Hydrogen, Wave & Executor Mobile/PC
+
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+
+-- Xóa GUI cũ nếu đã tồn tại
+if CoreGui:FindFirstChild("RaitoDiagonalRGBMenu") then
+    CoreGui.RaitoDiagonalRGBMenu:Destroy()
+end
+
+-- ScreenGui Cố Định
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RaitoDiagonalRGBMenu"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Main Frame (Nền trong suốt)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 420, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -210, 0.5, -110)
+MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+MainFrame.BackgroundTransparency = 0.65 -- Độ trong suốt của nền Menu
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 14)
+MainCorner.Parent = MainFrame
+
+-- Gradient Đường Chéo Cho Nền Main
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Rotation = 45 -- Xoay đường chéo 45 độ
+MainGradient.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness = 2.5
+MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+MainStroke.Parent = MainFrame
+
+local StrokeGradient = Instance.new("UIGradient")
+StrokeGradient.Rotation = 45
+StrokeGradient.Parent = MainStroke
+
+-- Tiêu đề Menu
+local HeaderTitle = Instance.new("TextLabel")
+HeaderTitle.Size = UDim2.new(0, 200, 0, 30)
+HeaderTitle.Position = UDim2.new(0, 16, 0, 8)
+HeaderTitle.BackgroundTransparency = 1
+HeaderTitle.Text = "⚡ RAITO SYSTEM"
+HeaderTitle.TextSize = 16
+HeaderTitle.Font = Enum.Font.FredokaOne
+HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
+HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+HeaderTitle.Parent = MainFrame
+
+-- Nút [ X ] Đóng Menu
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 28, 0, 28)
+CloseBtn.Position = UDim2.new(1, -36, 0, 8)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+CloseBtn.BackgroundTransparency = 0.5
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+CloseBtn.TextSize = 14
+CloseBtn.Font = Enum.Font.FredokaOne
+CloseBtn.AutoButtonColor = false
+CloseBtn.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseBtn
+
+local CloseStroke = Instance.new("UIStroke")
+CloseStroke.Thickness = 1.5
+CloseStroke.Color = Color3.fromRGB(255, 80, 80)
+CloseStroke.Parent = CloseBtn
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Banner Chữ Chạy (Marquee)
+local MarqueeContainer = Instance.new("Frame")
+MarqueeContainer.Size = UDim2.new(1, -32, 0, 26)
+MarqueeContainer.Position = UDim2.new(0, 16, 0, 44)
+MarqueeContainer.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MarqueeContainer.BackgroundTransparency = 0.6
+MarqueeContainer.ClipsDescendants = true
+MarqueeContainer.Parent = MainFrame
+
+local MarqueeCorner = Instance.new("UICorner")
+MarqueeCorner.CornerRadius = UDim.new(0, 8)
+MarqueeCorner.Parent = MarqueeContainer
+
+local MarqueeStroke = Instance.new("UIStroke")
+MarqueeStroke.Thickness = 1.5
+MarqueeStroke.Parent = MarqueeContainer
+
+local MarqueeStrokeGradient = Instance.new("UIGradient")
+MarqueeStrokeGradient.Rotation = 45
+MarqueeStrokeGradient.Parent = MarqueeStroke
+
+local MarqueeLabel = Instance.new("TextLabel")
+MarqueeLabel.Size = UDim2.new(0, 400, 1, 0)
+MarqueeLabel.Position = UDim2.new(1, 0, 0, 0)
+MarqueeLabel.BackgroundTransparency = 1
+MarqueeLabel.Text = "✨ Menu Thuộc Bản Quyền Của ライト ✨"
+MarqueeLabel.TextSize = 13
+MarqueeLabel.Font = Enum.Font.FredokaOne
+MarqueeLabel.TextXAlignment = Enum.TextXAlignment.Left
+MarqueeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+MarqueeLabel.Parent = MarqueeContainer
+
+-- Vùng chứa 2 Nút Bấm
+local ButtonHolder = Instance.new("Frame")
+ButtonHolder.Size = UDim2.new(1, -32, 0, 110)
+ButtonHolder.Position = UDim2.new(0, 16, 0, 88)
+ButtonHolder.BackgroundTransparency = 1
+ButtonHolder.Parent = MainFrame
+
+-- Nút Bên Trái: "ライト I"
+local BtnLeft = Instance.new("TextButton")
+BtnLeft.Size = UDim2.new(0.48, -5, 0, 95)
+BtnLeft.Position = UDim2.new(0, 0, 0, 5)
+BtnLeft.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+BtnLeft.BackgroundTransparency = 0.7
+BtnLeft.Text = "ライト I"
+BtnLeft.TextColor3 = Color3.fromRGB(255, 255, 255)
+BtnLeft.TextSize = 18
+BtnLeft.Font = Enum.Font.FredokaOne
+BtnLeft.AutoButtonColor = false
+BtnLeft.Parent = ButtonHolder
+
+local LeftCorner = Instance.new("UICorner")
+LeftCorner.CornerRadius = UDim.new(0, 12)
+LeftCorner.Parent = BtnLeft
+
+local LeftGradient = Instance.new("UIGradient")
+LeftGradient.Rotation = 45
+LeftGradient.Parent = BtnLeft
+
+local LeftStroke = Instance.new("UIStroke")
+LeftStroke.Thickness = 4 -- Viền dày hơn
+LeftStroke.Parent = BtnLeft
+
+local LeftStrokeGradient = Instance.new("UIGradient")
+LeftStrokeGradient.Rotation = 45
+LeftStrokeGradient.Parent = LeftStroke
+
+-- Nút Bên Phải: "ライト II"
+local BtnRight = Instance.new("TextButton")
+BtnRight.Size = UDim2.new(0.48, -5, 0, 95)
+BtnRight.Position = UDim2.new(0.52, 5, 0, 5)
+BtnRight.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+BtnRight.BackgroundTransparency = 0.7
+BtnRight.Text = "ライト II"
+BtnRight.TextColor3 = Color3.fromRGB(255, 255, 255)
+BtnRight.TextSize = 18
+BtnRight.Font = Enum.Font.FredokaOne
+BtnRight.AutoButtonColor = false
+BtnRight.Parent = ButtonHolder
+
+local RightCorner = Instance.new("UICorner")
+RightCorner.CornerRadius = UDim.new(0, 12)
+RightCorner.Parent = BtnRight
+
+local RightGradient = Instance.new("UIGradient")
+RightGradient.Rotation = 45
+RightGradient.Parent = BtnRight
+
+local RightStroke = Instance.new("UIStroke")
+RightStroke.Thickness = 4 -- Viền dày hơn
+RightStroke.Parent = BtnRight
+
+local RightStrokeGradient = Instance.new("UIGradient")
+RightStrokeGradient.Rotation = 45
+RightStrokeGradient.Parent = RightStroke
+
+-- ==================== CHUYỂN MÀU ĐƯỜNG CHÉO LIÊN TỤC (DIAGONAL GRADIENT FLOW) ====================
+task.spawn(function()
+    local xPos = 1.0
+    local offset = 0
+
+    while task.wait(0.015) do
+        -- 1. Chữ chạy ngang
+        xPos = xPos - 0.006
+        if xPos < -1.1 then xPos = 1.0 end
+        MarqueeLabel.Position = UDim2.new(xPos, 0, 0, 0)
+
+        -- 2. Dịch chuyển dải màu cầu vồng theo thời gian
+        offset = (offset + 0.005) % 1
+
+        -- Tạo ColorSequence 3 điểm màu chuyển động theo đường chéo
+        local color1 = Color3.fromHSV(offset, 0.8, 0.9)
+        local color2 = Color3.fromHSV((offset + 0.33) % 1, 0.8, 0.9)
+        local color3 = Color3.fromHSV((offset + 0.66) % 1, 0.8, 0.9)
+
+        local dynamicSequence = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, color1),
+            ColorSequenceKeypoint.new(0.5, color2),
+            ColorSequenceKeypoint.new(1, color3)
+        })
+
+        -- Áp dụng Gradient Đường chéo cho Nền & Viền
+        MainGradient.Color = dynamicSequence
+        StrokeGradient.Color = dynamicSequence
+        MarqueeStrokeGradient.Color = dynamicSequence
+        
+        LeftGradient.Color = dynamicSequence
+        LeftStrokeGradient.Color = dynamicSequence
+        
+        RightGradient.Color = dynamicSequence
+        RightStrokeGradient.Color = dynamicSequence
+
+        -- Đổi màu tiêu đề theo nhịp màu
+        HeaderTitle.TextColor3 = color1
+    end
+end)
+
+-- ==================== XỬ LÝ SỰ KIỆN NÚT (LOAD SCRIPT + ẨN MENU) ====================
+
+BtnLeft.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false -- Ẩn Menu UI
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/hl2366613-spec/effective-octo-waffle/refs/heads/main/%2336"))()
+    end)
+end)
+
+BtnRight.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false -- Ẩn Menu UI
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/hl2366613-spec/effective-octo-waffle/refs/heads/main/*5"))()
+    end)
+end)
