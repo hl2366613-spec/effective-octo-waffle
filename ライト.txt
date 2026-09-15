@@ -1,0 +1,211 @@
+local CG=game:GetService("CoreGui")local P=game:GetService("Players")local LP=P.LocalPlayer local RS=game:GetService("RunService")local UIS=game:GetService("UserInputService")local W=game:GetService("Workspace")local L=game:GetService("Lighting")local SS=game:GetService("SoundService")local HS=game:GetService("HttpService")local ST=game:GetService("Stats")
+if CG:FindFirstChild("LightMenuUI")then CG.LightMenuUI:Destroy()end
+local T={Bg=Color3.fromRGB(255,240,243),C=Color3.fromRGB(255,250,250),B=Color3.fromRGB(255,226,230),D=Color3.fromRGB(115,75,85),Br=Color3.fromRGB(245,175,190),A=Color3.fromRGB(235,130,155),On=Color3.fromRGB(140,210,150),Off=Color3.fromRGB(240,120,120)}
+local IMG="rbxassetid://122639878233150"local SAVE="LightMenuUI_Config.json"
+_G.SM=_G.SM or{}_G.ML=_G.ML or false _G.MV=_G.MV or 50 _G.MSp=_G.MSp or 1.0 _G.ST=_G.ST or{}
+local function Save()pcall(function()if writefile then writefile(SAVE,HS:JSONEncode({m=_G.SM,l=_G.ML,v=_G.MV,s=_G.MSp,t=_G.ST}))end end)end
+local function Load()pcall(function()if readfile and isfile and isfile(SAVE)then local d=HS:JSONDecode(readfile(SAVE))if d then _G.SM=d.m or _G.SM _G.ML=d.l or _G.ML _G.MV=d.v or _G.MV _G.MSp=d.s or _G.MSp _G.ST=d.t or _G.ST end end end)end
+Load()
+local SG=Instance.new("ScreenGui")SG.Name="LightMenuUI"SG.Parent=CG SG.ResetOnSpawn=false SG.IgnoreGuiInset=true
+local function CN(p,r)local c=Instance.new("UICorner")c.CornerRadius=UDim.new(0,r or 12)c.Parent=p return c end
+local function SR(p,t,c)local s=Instance.new("UIStroke")s.Color=c or T.Br s.Thickness=t or 1.5 s.Parent=p return s end
+-- HUD
+local HUD=Instance.new("Frame")HUD.Size=UDim2.new(0,220,0,38)HUD.AnchorPoint=Vector2.new(0.5,0)HUD.Position=UDim2.new(0.5,0,0,15)HUD.BackgroundColor3=T.Bg HUD.BackgroundTransparency=0.1 HUD.BorderSizePixel=0 HUD.Parent=SG CN(HUD,12)SR(HUD,1.5)
+local HT=Instance.new("TextLabel")HT.Size=UDim2.new(1,-12,0,14)HT.Position=UDim2.new(0,8,0,4)HT.BackgroundTransparency=1 HT.Text="🌸 SYSTEM STATS 🌸"HT.TextColor3=T.D HT.TextSize=10 HT.Font=Enum.Font.FredokaOne HT.Parent=HUD
+local HI=Instance.new("TextLabel")HI.Size=UDim2.new(1,-12,0,14)HI.Position=UDim2.new(0,8,0,18)HI.BackgroundTransparency=1 HI.Text="Ping: 0ms"HI.TextColor3=T.A HI.TextSize=11 HI.Font=Enum.Font.FredokaOne HI.Parent=HUD
+task.spawn(function()while task.wait(0.5)do local p=0 pcall(function()p=math.floor(ST.Network.ServerStatsItem["Data Ping"]:GetValue())end)local tt=os.date("!*t",os.time()+7*3600)HI.Text=string.format("Ping: %dms | VN: %02d:%02d:%02d",p,tt.hour,tt.min,tt.sec)end end)
+-- Open button
+local OB=Instance.new("ImageButton")OB.Size=UDim2.new(0,52,0,52)OB.Position=UDim2.new(0.035,0,0.12,0)OB.BackgroundColor3=T.Bg OB.Image=IMG OB.Draggable=true OB.Parent=SG CN(OB,100)SR(OB,2)
+-- Main
+local MF=Instance.new("Frame")MF.Size=UDim2.new(0,520,0,365)MF.Position=UDim2.new(0.5,-260,0.42,-180)MF.BackgroundColor3=T.Bg MF.BackgroundTransparency=0.05 MF.BorderSizePixel=0 MF.Active=true MF.Draggable=true MF.Parent=SG CN(MF,16)SR(MF,2)
+local MI=Instance.new("ImageLabel")MI.Size=UDim2.new(0,26,0,26)MI.Position=UDim2.new(0,10,0,4)MI.BackgroundTransparency=1 MI.Image=IMG MI.Parent=MF CN(MI,100)
+local Ti=Instance.new("TextLabel")Ti.Size=UDim2.new(0,65,0,25)Ti.Position=UDim2.new(0,40,0,4)Ti.BackgroundTransparency=1 Ti.Text="ライト"Ti.TextColor3=T.A Ti.TextSize=18 Ti.Font=Enum.Font.FredokaOne Ti.TextXAlignment=Enum.TextXAlignment.Left Ti.Parent=MF
+local VL=Instance.new("TextLabel")VL.Size=UDim2.new(0,110,0,20)VL.Position=UDim2.new(0,105,0,7)VL.BackgroundTransparency=1 VL.Text="[raito] V3.0 Cute"VL.TextColor3=T.D VL.TextSize=11 VL.Font=Enum.Font.FredokaOne VL.TextXAlignment=Enum.TextXAlignment.Left VL.Parent=MF
+local CB=Instance.new("TextButton")CB.Size=UDim2.new(0,25,0,25)CB.Position=UDim2.new(1,-33,0,4)CB.BackgroundColor3=T.B CB.Text="✖"CB.TextColor3=T.Off CB.TextSize=14 CB.Font=Enum.Font.FredokaOne CB.AutoButtonColor=false CB.Parent=MF CN(CB,8)SR(CB,1)
+local Sub
+CB.MouseButton1Click:Connect(function()MF.Visible=false if Sub then Sub.Visible=false end end)
+-- Tabs
+local TH=Instance.new("Frame")TH.Size=UDim2.new(0,110,1,-65)TH.Position=UDim2.new(0,10,0,60)TH.BackgroundTransparency=1 TH.Parent=MF
+local TL=Instance.new("UIListLayout")TL.Parent=TH TL.Padding=UDim.new(0,6)
+local function TB(n)local b=Instance.new("TextButton")b.Size=UDim2.new(1,0,0,32)b.BackgroundColor3=T.B b.Text=n b.TextColor3=T.D b.TextSize=11 b.Font=Enum.Font.FredokaOne b.AutoButtonColor=false b.Parent=TH CN(b,10)SR(b,1)return b end
+local HmB=TB("🏠 Home")local OtB=TB("⚙️ Khác")local MiB=TB("📦 Linh Tinh")local MuB=TB("🎵 Music")local TpB=TB("📍 Telepot")
+local function MKCont()local f=Instance.new("Frame")f.Size=UDim2.new(1,-135,1,-65)f.Position=UDim2.new(0,125,0,60)f.BackgroundTransparency=1 f.Parent=MF return f end
+local HC=MKCont()local OC=MKCont()local MC=MKCont()local UC=MKCont()local TC=MKCont()
+HC.Visible=true OC.Visible=false MC.Visible=false UC.Visible=false TC.Visible=false
+local function SwitchTab(a)HC.Visible=a==HC OC.Visible=a==OC MC.Visible=a==MC UC.Visible=a==UC TC.Visible=a==TC if Sub then Sub.Visible=false end end
+HmB.MouseButton1Click:Connect(function()SwitchTab(HC)end)
+OtB.MouseButton1Click:Connect(function()SwitchTab(OC)end)
+MiB.MouseButton1Click:Connect(function()SwitchTab(MC)end)
+MuB.MouseButton1Click:Connect(function()SwitchTab(UC)end)
+TpB.MouseButton1Click:Connect(function()SwitchTab(TC)end)
+-- Button creators
+local function B1(p,t)local b=Instance.new("TextButton")b.Size=UDim2.new(1,-4,0,28)b.BackgroundColor3=T.B b.Text="🐾 "..t b.TextColor3=T.D b.TextSize=11 b.Font=Enum.Font.FredokaOne b.TextXAlignment=Enum.TextXAlignment.Left b.AutoButtonColor=false b.Parent=p local pd=Instance.new("UIPadding")pd.PaddingLeft=UDim.new(0,9)pd.Parent=b CN(b,8)SR(b,1)return b end
+local function B2(p,t)local b=Instance.new("TextButton")b.Size=UDim2.new(1,-4,0,28)b.BackgroundColor3=T.B b.Text="🎀 "..t b.TextColor3=T.D b.TextSize=11 b.Font=Enum.Font.FredokaOne b.TextXAlignment=Enum.TextXAlignment.Left b.AutoButtonColor=false b.Parent=p local pd=Instance.new("UIPadding")pd.PaddingLeft=UDim.new(0,9)pd.Parent=b CN(b,8)SR(b,1)return b end
+local function SEL(p,t)local b=Instance.new("TextButton")b.Size=UDim2.new(1,-4,0,25)b.BackgroundColor3=T.C b.Text=t b.TextColor3=T.A b.TextSize=11 b.Font=Enum.Font.FredokaOne b.TextXAlignment=Enum.TextXAlignment.Left b.AutoButtonColor=false b.Parent=p local pd=Instance.new("UIPadding")pd.PaddingLeft=UDim.new(0,9)pd.Parent=b CN(b,6)SR(b,1)return b end
+local function ADJ(p,tt,dv)local f=Instance.new("Frame")f.Size=UDim2.new(1,-4,0,27)f.BackgroundColor3=T.C f.Parent=p CN(f,8)SR(f,1)local m=Instance.new("TextButton")m.Size=UDim2.new(0,25,1,0)m.BackgroundColor3=T.B m.Text="-"m.TextColor3=T.D m.Font=Enum.Font.FredokaOne m.Parent=f CN(m,6)local l=Instance.new("TextLabel")l.Size=UDim2.new(1,-54,1,0)l.Position=UDim2.new(0,27,0,0)l.BackgroundTransparency=1 l.Text=tt..": "..tostring(dv)l.TextColor3=T.D l.TextSize=10 l.Font=Enum.Font.FredokaOne l.Parent=f local pl=Instance.new("TextButton")pl.Size=UDim2.new(0,25,1,0)pl.Position=UDim2.new(1,-25,0,0)pl.BackgroundColor3=T.B pl.Text="+"pl.TextColor3=T.D pl.Font=Enum.Font.FredokaOne pl.Parent=f CN(pl,6)return f,m,pl,l end
+-- HOME
+local HS=Instance.new("ScrollingFrame")HS.Size=UDim2.new(1,0,1,0)HS.BackgroundTransparency=1 HS.BorderSizePixel=0 HS.ScrollBarThickness=3 HS.CanvasSize=UDim2.new(0,0,0,0)HS.Parent=HC
+local HL=Instance.new("UIListLayout")HL.Parent=HS HL.Padding=UDim.new(0,5)
+local NB=B1(HS,"Noclip: OFF")local FJ=B1(HS,"Flyjump: OFF")local EB=B1(HS,"ESP: OFF")local XB=B1(HS,"Xray: OFF")local FB=B1(HS,"FullBright: OFF")
+HS.CanvasSize=UDim2.new(0,0,0,165)
+-- OTHER
+local O1=Instance.new("ScrollingFrame")O1.Size=UDim2.new(0.485,0,1,0)O1.BackgroundTransparency=1 O1.BorderSizePixel=0 O1.ScrollBarThickness=3 O1.Parent=OC
+local L1=Instance.new("UIListLayout")L1.Parent=O1 L1.Padding=UDim.new(0,5)
+local O2=Instance.new("ScrollingFrame")O2.Size=UDim2.new(0.485,0,1,0)O2.Position=UDim2.new(0.515,0,0,0)O2.BackgroundTransparency=1 O2.BorderSizePixel=0 O2.ScrollBarThickness=3 O2.Parent=OC
+local L2=Instance.new("UIListLayout")L2.Parent=O2 L2.Padding=UDim.new(0,5)
+local FB2=B1(O1,"Fly: OFF")local _,FM,FP,FL=ADJ(O1,"Fly Speed",1)
+local SB=B1(O1,"Speed: OFF")local _,SM,SP,SL=ADJ(O1,"Speed",50)
+local JB=B1(O1,"Jump: OFF")local _,JM,JP,JL=ADJ(O1,"Jump Power",50)
+local KB=B1(O1,"Kill: OFF")local KSB=SEL(O1,"[ KILL: CHỌN ]")
+local SWB=B1(O1,"Sword Kill: OFF")local SWSB=SEL(O1,"[ SWORD: RANDOM ]")
+O1.CanvasSize=UDim2.new(0,0,0,330)
+local GB=B2(O2,"Bám onii: OFF")local GSB=SEL(O2,"[ CHỌN ]")
+local TPB=B2(O2,"Teleport Player")local TPSB=SEL(O2,"[ CHỌN ]")
+local VB=B2(O2,"View Cam: OFF")local VSB=SEL(O2,"[ CHỌN ]")
+local AB=B2(O2,"Aim Lock: OFF")local ASB=SEL(O2,"[ GẦN NHẤT ]")local _,AM,AP,AL=ADJ(O2,"FOV",150)
+O2.CanvasSize=UDim2.new(0,0,0,300)
+-- MISC
+local MS=Instance.new("ScrollingFrame")MS.Size=UDim2.new(1,0,1,0)MS.BackgroundTransparency=1 MS.BorderSizePixel=0 MS.ScrollBarThickness=3 MS.Parent=MC
+local ML=Instance.new("UIListLayout")ML.Parent=MS ML.Padding=UDim.new(0,5)
+local SitB=B1(MS,"Sit: OFF")local SpinB=B1(MS,"Spin: OFF")local EV2=B1(MS,"ESP V2 NPC: OFF")
+MS.CanvasSize=UDim2.new(0,0,0,100)
+-- TELEPOT
+local TS=Instance.new("ScrollingFrame")TS.Size=UDim2.new(1,0,1,0)TS.BackgroundTransparency=1 TS.BorderSizePixel=0 TS.ScrollBarThickness=3 TS.CanvasSize=UDim2.new(0,0,0,200)TS.Parent=TC
+local TL2=Instance.new("UIListLayout")TL2.Parent=TS TL2.Padding=UDim.new(0,6)
+local TPR=Instance.new("Frame")TPR.Size=UDim2.new(1,-4,0,30)TPR.BackgroundTransparency=1 TPR.Parent=TS
+local TPGo=Instance.new("TextButton")TPGo.Size=UDim2.new(0.48,0,1,0)TPGo.BackgroundColor3=T.B TPGo.Text="Dịch Chuyển"TPGo.TextColor3=T.D TPGo.TextSize=11 TPGo.Font=Enum.Font.FredokaOne TPGo.Parent=TPR CN(TPGo,8)SR(TPGo,1)
+local TPSel=Instance.new("TextButton")TPSel.Size=UDim2.new(0.48,0,1,0)TPSel.Position=UDim2.new(0.52,0,0,0)TPSel.BackgroundColor3=T.B TPSel.Text="Chọn"TPSel.TextColor3=T.D TPSel.TextSize=11 TPSel.Font=Enum.Font.FredokaOne TPSel.Parent=TPR CN(TPSel,8)SR(TPSel,1)
+local TSL=Instance.new("TextLabel")TSL.Size=UDim2.new(1,-4,0,30)TSL.BackgroundColor3=T.C TSL.Text="[ Chưa chọn ]"TSL.TextColor3=T.A TSL.TextSize=11 TSL.Font=Enum.Font.FredokaOne TSL.Parent=TS CN(TSL,8)SR(TSL,1)
+local TMR=Instance.new("Frame")TMR.Size=UDim2.new(1,-4,0,30)TMR.BackgroundTransparency=1 TMR.Parent=TS
+local TSave=Instance.new("TextButton")TSave.Size=UDim2.new(0.48,0,1,0)TSave.BackgroundColor3=T.B TSave.Text="Lưu"TSave.TextColor3=T.D TSave.TextSize=11 TSave.Font=Enum.Font.FredokaOne TSave.Parent=TMR CN(TSave,8)SR(TSave,1)
+local TDel=Instance.new("TextButton")TDel.Size=UDim2.new(0.48,0,1,0)TDel.Position=UDim2.new(0.52,0,0,0)TDel.BackgroundColor3=T.B TDel.Text="Xóa"TDel.TextColor3=T.Off TDel.TextSize=11 TDel.Font=Enum.Font.FredokaOne TDel.Parent=TMR CN(TDel,8)SR(TDel,1)
+local TInfo=Instance.new("TextLabel")TInfo.Size=UDim2.new(1,-4,0,25)TInfo.BackgroundTransparency=1 TInfo.Text="Có thể lưu nhiều địa điểm"TInfo.TextColor3=T.D TInfo.TextSize=10 TInfo.Font=Enum.Font.FredokaOne TInfo.Parent=TS
+local selTP=nil local tpMode=nil
+local TMF=Instance.new("Frame")TMF.Size=UDim2.new(0,180,0,180)TMF.Position=UDim2.new(1,8,0,0)TMF.BackgroundColor3=T.Bg TMF.Visible=false TMF.ZIndex=20 TMF.Parent=TC CN(TMF,12)SR(TMF,1.5)
+local TMS=Instance.new("ScrollingFrame")TMS.Size=UDim2.new(0.9,0,0.9,0)TMS.Position=UDim2.new(0.05,0,0.05,0)TMS.BackgroundTransparency=1 TMS.ScrollBarThickness=3 TMS.ZIndex=21 TMS.Parent=TMF
+local TML=Instance.new("UIListLayout")TML.Parent=TMS TML.Padding=UDim.new(0,4)
+local function RefreshTP()for _,c in ipairs(TMS:GetChildren())do if c:IsA("TextButton")then c:Destroy()end end local locs=_G.ST or{}for i,v in ipairs(locs)do local b=Instance.new("TextButton")b.Size=UDim2.new(1,0,0,27)b.BackgroundColor3=T.B b.Text="#Địa Điểm "..i b.TextColor3=T.D b.TextSize=10 b.Font=Enum.Font.FredokaOne b.ZIndex=22 b.Parent=TMS CN(b,7)SR(b,1)b.MouseButton1Click:Connect(function()if tpMode=="select"then selTP=i TSL.Text="Đã chọn "..i TSL.TextColor3=T.On TPSel.Text="Địa Điểm "..i elseif tpMode=="delete"then table.remove(_G.ST,i)if selTP==i then selTP=nil TSL.Text="[ Chưa chọn ]"TSL.TextColor3=T.A TPSel.Text="Chọn"elseif selTP and selTP>i then selTP=selTP-1 end Save()TInfo.Text="Đã xóa "..i end TMF.Visible=false end)end TMS.CanvasSize=UDim2.new(0,0,0,math.max(#locs*31,0))end
+TSave.MouseButton1Click:Connect(function()local c=LP.Character if not c then TInfo.Text="Không có char"return end local h=c:FindFirstChild("HumanoidRootPart")if not h then return end local cf=h.CFrame table.insert(_G.ST,{X=cf.Position.X,Y=cf.Position.Y,Z=cf.Position.Z,R00=cf.RightVector.X,R01=cf.UpVector.X,R02=cf.LookVector.X,R10=cf.RightVector.Y,R11=cf.UpVector.Y,R12=cf.LookVector.Y,R20=cf.RightVector.Z,R21=cf.UpVector.Z,R22=cf.LookVector.Z})local n=#_G.ST selTP=n TSL.Text="Đã lưu "..n TSL.TextColor3=T.On TPSel.Text="Địa Điểm "..n Save()RefreshTP()TInfo.Text="Đã lưu "..n end)
+TPSel.MouseButton1Click:Connect(function()tpMode="select"RefreshTP()TMF.Visible=not TMF.Visible end)
+TDel.MouseButton1Click:Connect(function()if #_G.ST==0 then TInfo.Text="Chưa có"return end tpMode="delete"RefreshTP()TMF.Visible=not TMF.Visible end)
+TPGo.MouseButton1Click:Connect(function()if not selTP then TInfo.Text="Chọn trước"return end local d=_G.ST[selTP]if not d then selTP=nil return end local c=LP.Character if not c then return end local h=c:FindFirstChild("HumanoidRootPart")if not h then return end local pos=Vector3.new(d.X,d.Y,d.Z)local rt=Vector3.new(d.R00,d.R10,d.R20)local up=Vector3.new(d.R01,d.R11,d.R21)local lk=Vector3.new(d.R02,d.R12,d.R22)h.CFrame=CFrame.fromMatrix(pos,rt,up,-lk)TInfo.Text="Đã đến "..selTP end)
+-- MUSIC
+local US=Instance.new("ScrollingFrame")US.Size=UDim2.new(1,0,1,0)US.BackgroundTransparency=1 US.BorderSizePixel=0 US.ScrollBarThickness=3 US.CanvasSize=UDim2.new(0,0,0,280)US.Parent=UC
+local UL=Instance.new("UIListLayout")UL.Parent=US UL.Padding=UDim.new(0,5)
+local MIn=Instance.new("TextBox")MIn.Size=UDim2.new(1,-4,0,30)MIn.BackgroundColor3=T.C MIn.PlaceholderText="<Mã số>"MIn.Text=""MIn.TextColor3=T.D MIn.Font=Enum.Font.FredokaOne MIn.TextSize=12 MIn.Parent=US CN(MIn,8)SR(MIn,1)
+local MI2=Instance.new("TextLabel")MI2.Size=UDim2.new(1,-4,0,20)MI2.BackgroundColor3=T.C MI2.Text="Chưa chọn nhạc"MI2.TextColor3=T.A MI2.Font=Enum.Font.FredokaOne MI2.TextSize=11 MI2.Parent=US CN(MI2,6)
+local MT=Instance.new("TextLabel")MT.Size=UDim2.new(1,-4,0,18)MT.BackgroundColor3=T.C MT.Text="00:00/00:00"MT.TextColor3=T.D MT.Font=Enum.Font.FredokaOne MT.TextSize=10 MT.Parent=US CN(MT,6)
+local MR1=Instance.new("Frame")MR1.Size=UDim2.new(1,-4,0,30)MR1.BackgroundTransparency=1 MR1.Parent=US
+local MP=Instance.new("TextButton")MP.Size=UDim2.new(0.48,0,1,0)MP.BackgroundColor3=T.B MP.Text="playing"MP.TextColor3=T.On MP.Font=Enum.Font.FredokaOne MP.TextSize=12 MP.Parent=MR1 CN(MP,8)SR(MP,1)
+local MSv=Instance.new("TextButton")MSv.Size=UDim2.new(0.48,0,1,0)MSv.Position=UDim2.new(0.52,0,0,0)MSv.BackgroundColor3=T.B MSv.Text="Lưu ID"MSv.TextColor3=T.D MSv.Font=Enum.Font.FredokaOne MSv.TextSize=12 MSv.Parent=MR1 CN(MSv,8)SR(MSv,1)
+local LB=Instance.new("TextButton")LB.Size=UDim2.new(1,-4,0,28)LB.BackgroundColor3=T.B LB.Text=_G.ML and"Lặp: BẬT"or"Lặp: TẮT"LB.TextColor3=_G.ML and T.On or T.Off LB.Font=Enum.Font.FredokaOne LB.TextSize=11 LB.Parent=US CN(LB,8)SR(LB,1)
+local SF=Instance.new("Frame")SF.Size=UDim2.new(1,-4,0,28)SF.BackgroundColor3=T.C SF.Parent=US CN(SF,8)SR(SF,1)
+local MSM=Instance.new("TextButton")MSM.Size=UDim2.new(0,25,1,0)MSM.BackgroundColor3=T.B MSM.Text="-"MSM.TextColor3=T.D MSM.Font=Enum.Font.FredokaOne MSM.Parent=SF CN(MSM,6)
+local SL2=Instance.new("TextLabel")SL2.Size=UDim2.new(1,-54,1,0)SL2.Position=UDim2.new(0,27,0,0)SL2.BackgroundTransparency=1 SL2.Text="Tốc độ: "..string.format("%.1f",_G.MSp)SL2.TextColor3=T.D SL2.TextSize=10 SL2.Font=Enum.Font.FredokaOne SL2.Parent=SF
+local MSP=Instance.new("TextButton")MSP.Size=UDim2.new(0,25,1,0)MSP.Position=UDim2.new(1,-25,0,0)MSP.BackgroundColor3=T.B MSP.Text="+"MSP.TextColor3=T.D MSP.Font=Enum.Font.FredokaOne MSP.Parent=SF CN(MSP,6)
+local VF=Instance.new("Frame")VF.Size=UDim2.new(1,-4,0,32)VF.BackgroundColor3=T.C VF.Parent=US CN(VF,8)SR(VF,1)
+local VLB=Instance.new("TextLabel")VLB.Size=UDim2.new(1,0,0,14)VLB.Position=UDim2.new(0,0,0,2)VLB.BackgroundTransparency=1 VLB.Text="Âm lượng: "..tostring(_G.MV)VLB.TextColor3=T.D VLB.TextSize=10 VLB.Font=Enum.Font.FredokaOne VLB.Parent=VF
+local SLB=Instance.new("Frame")SLB.Size=UDim2.new(0.9,0,0,6)SLB.Position=UDim2.new(0.05,0,0,20)SLB.BackgroundColor3=T.B SLB.Parent=VF CN(SLB,3)
+local SLF=Instance.new("Frame")SLF.Size=UDim2.new(_G.MV/100,0,1,0)SLF.BackgroundColor3=T.A SLF.Parent=SLB CN(SLF,3)
+local SlB=Instance.new("TextButton")SlB.Size=UDim2.new(1,0,1,0)SlB.BackgroundTransparency=1 SlB.Text=""SlB.Parent=SLB
+local SID=Instance.new("TextButton")SID.Size=UDim2.new(1,-4,0,28)SID.BackgroundColor3=T.B SID.Text="ID đã lưu"SID.TextColor3=T.D SID.Font=Enum.Font.FredokaOne SID.TextSize=11 SID.Parent=US CN(SID,8)SR(SID,1)
+local SIL=Instance.new("Frame")SIL.Size=UDim2.new(0,170,0,200)SIL.Position=UDim2.new(1,7,0,100)SIL.BackgroundColor3=T.Bg SIL.Visible=false SIL.Parent=UC CN(SIL,12)SR(SIL,1.5)
+local SIS=Instance.new("ScrollingFrame")SIS.Size=UDim2.new(0.9,0,0.9,0)SIS.Position=UDim2.new(0.05,0,0.05,0)SIS.BackgroundTransparency=1 SIS.ScrollBarThickness=3 SIS.Parent=SIL
+local SIL2=Instance.new("UIListLayout")SIL2.Parent=SIS SIL2.Padding=UDim.new(0,4)
+local Snd=Instance.new("Sound")Snd.Name="LocalMusicPlayer"Snd.Parent=SS
+local isPM=false local isLE=_G.ML
+local function UpA()Snd.Volume=_G.MV/100 Snd.PlaybackSpeed=_G.MSp Save()end
+Snd.Ended:Connect(function()if isLE and isPM then Snd:Play()end end)
+task.spawn(function()while task.wait(0.3)do if isPM and Snd.IsPlaying then local function FT(s)if not s or s<=0 then return"00:00"end return string.format("%02d:%02d",math.floor(s/60),math.floor(s%60))end MT.Text=FT(Snd.TimePosition).."/"..FT(Snd.TimeLength)elseif not isPM then MT.Text="00:00/00:00"end end end)
+local dSl=false
+local function USl(i)local pos=math.clamp((i.Position.X-SLB.AbsolutePosition.X)/SLB.AbsoluteSize.X,0,1)_G.MV=math.floor(pos*100)SLF.Size=UDim2.new(pos,0,1,0)VLB.Text="Âm lượng: ".._G.MV UpA()end
+SlB.InputBegan:Connect(function(i)if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dSl=true USl(i)end end)
+UIS.InputChanged:Connect(function(i)if dSl and(i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch)then USl(i)end end)
+UIS.InputEnded:Connect(function(i)if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dSl=false end end)
+MSM.MouseButton1Click:Connect(function()if _G.MSp>0.2 then _G.MSp=math.max(0.1,_G.MSp-0.1)SL2.Text="Tốc độ: "..string.format("%.1f",_G.MSp)UpA()end end)
+MSP.MouseButton1Click:Connect(function()if _G.MSp<3.0 then _G.MSp=_G.MSp+0.1 SL2.Text="Tốc độ: "..string.format("%.1f",_G.MSp)UpA()end end)
+MP.MouseButton1Click:Connect(function()local id=MIn.Text:gsub("%D","")if id==""then return end isPM=not isPM if isPM then Snd.SoundId="rbxassetid://"..id UpA()Snd:Play()MP.Text="stoping"MP.TextColor3=T.Off task.spawn(function()local ok,inf=pcall(function()return game:GetService("MarketplaceService"):GetProductInfo(tonumber(id),Enum.InfoType.Asset)end)if ok and inf then MI2.Text="Nhạc: "..inf.Name else MI2.Text="ID: "..id end end)else Snd:Stop()MP.Text="playing"MP.TextColor3=T.On end end)
+MSv.MouseButton1Click:Connect(function()local id=MIn.Text:gsub("%D","")if id~=""and not table.find(_G.SM,id)then table.insert(_G.SM,id)Save()RefreshSID()end end)
+LB.MouseButton1Click:Connect(function()isLE=not isLE _G.ML=isLE LB.Text=isLE and"Lặp: BẬT"or"Lặp: TẮT"LB.TextColor3=isLE and T.On or T.Off Save()end)
+SID.MouseButton1Click:Connect(function()SIL.Visible=not SIL.Visible if SIL.Visible then RefreshSID()end end)
+function RefreshSID()for _,c in pairs(SIS:GetChildren())do if c:IsA("TextButton")then c:Destroy()end end for i,id in ipairs(_G.SM)do local b=Instance.new("TextButton",SIS)b.Size=UDim2.new(1,0,0,25)b.BackgroundColor3=T.B b.Text="#"..i..": "..id b.TextColor3=T.D b.Font=Enum.Font.FredokaOne b.TextSize=10 CN(b,6)SR(b,1)b.MouseButton1Click:Connect(function()MIn.Text=id SIL.Visible=false end)end SIS.CanvasSize=UDim2.new(0,0,0,#_G.SM*29)end
+RefreshSID()
+-- SUB MENU
+Sub=Instance.new("Frame")Sub.Size=UDim2.new(0,165,0,190)Sub.Position=UDim2.new(1,7,0,0)Sub.BackgroundColor3=T.Bg Sub.Visible=false Sub.Parent=MF CN(Sub,12)SR(Sub,1.5)
+local PL=Instance.new("ScrollingFrame")PL.Size=UDim2.new(0.9,0,0.9,0)PL.Position=UDim2.new(0.05,0,0.05,0)PL.BackgroundTransparency=1 PL.CanvasSize=UDim2.new(0,0,0,0)PL.ScrollBarThickness=3 PL.Parent=Sub
+local PLL=Instance.new("UIListLayout")PLL.Parent=PL PLL.Padding=UDim.new(0,4)
+local Fov=Instance.new("Frame")Fov.AnchorPoint=Vector2.new(0.5,0.5)Fov.Position=UDim2.new(0.5,0,0.5,0)Fov.Size=UDim2.new(0,300,0,300)Fov.BackgroundTransparency=1 Fov.Visible=false Fov.Parent=SG CN(Fov,999)SR(Fov,2,T.A)
+-- States
+local nc,ncc=false,nil local fj,fjc=false,nil local fb2=false local oCT,oBr=L.ClockTime,L.Brightness
+local esp,espO=false,{} local espN,espNO=false,{} local xray,xT=false,{}
+local spd,spdV=false,50 local jmp,jmpV=false,50 local fly,flyS=false,1
+local fc,fbg,fbv=nil,nil,nil local sit,sitC=false,nil local spin=false
+local aim,aimR,aimP=false,150,nil local glue,glueP,glueC=false,nil,nil
+local tpP=nil local view,viewP=false,nil local kill,killP,killC=false,nil,nil
+local swKill,swP,swT,swC=false,"RANDOM",nil,nil local sMM="glue"
+-- Functions
+local function TN()nc=not nc NB.Text=nc and"🐾 Noclip: ON"or"🐾 Noclip: OFF"NB.TextColor3=nc and T.On or T.Off if nc then ncc=RS.Stepped:Connect(function()if nc and LP.Character then for _,p in ipairs(LP.Character:GetDescendants())do if p:IsA("BasePart")then p.CanCollide=false end end end end)elseif ncc then ncc:Disconnect()ncc=nil end end
+local function AS()local c=LP.Character if c then local h=c:FindFirstChildOfClass("Humanoid")if h then h.WalkSpeed=spd and spdV or 16 end end end
+local function AJ()if LP.Character then local h=LP.Character:FindFirstChildOfClass("Humanoid")if h then h.JumpPower=jmp and jmpV or 50 end end end
+local function TFJ()fj=not fj FJ.Text=fj and"🐾 Flyjump: ON"or"🐾 Flyjump: OFF"FJ.TextColor3=fj and T.On or T.Off if fj then fjc=UIS.JumpRequest:Connect(function()if fj and LP.Character then local h=LP.Character:FindFirstChildOfClass("Humanoid")if h then h:ChangeState("Jumping")end end end)elseif fjc then fjc:Disconnect()fjc=nil end end
+local function TFB()fb2=not fb2 FB.Text=fb2 and"🐾 FullBright: ON"or"🐾 FullBright: OFF"FB.TextColor3=fb2 and T.On or T.Off L.ClockTime=fb2 and 12 or oCT L.Brightness=fb2 and 2 or oBr L.GlobalShadows=not fb2 end
+local function TX()xray=not xray XB.Text=xray and"🐾 Xray: ON"or"🐾 Xray: OFF"XB.TextColor3=xray and T.On or T.Off if xray then for _,p in ipairs(W:GetDescendants())do if p:IsA("BasePart")and not p:IsDescendantOf(LP.Character)then xT[p]=p.Transparency p.Transparency=0.6 end end else for p,t in pairs(xT)do if p and p.Parent then p.Transparency=t end end xT={}end end
+local function TSit()sit=not sit SitB.Text=sit and"🐾 Sit: ON"or"🐾 Sit: OFF"SitB.TextColor3=sit and T.On or T.Off if sit then sitC=RS.Heartbeat:Connect(function()if LP.Character then local h=LP.Character:FindFirstChildOfClass("Humanoid")if h then h.Sit=true end end end)else if sitC then sitC:Disconnect()sitC=nil end if LP.Character then local h=LP.Character:FindFirstChildOfClass("Humanoid")if h then h.Sit=false end end end end
+local function TSp()spin=not spin SpinB.Text=spin and"🐾 Spin: ON"or"🐾 Spin: OFF"SpinB.TextColor3=spin and T.On or T.Off local c=LP.Character if not c then return end local h=c:FindFirstChild("HumanoidRootPart")if not h then return end if spin then local a=h:FindFirstChild("SA")or Instance.new("Attachment",h)a.Name="SA"local v=Instance.new("AngularVelocity",h)v.Name="SV"v.Attachment0=a v.MaxTorque=math.huge v.AngularVelocity=Vector3.new(0,25,0)else if h:FindFirstChild("SV")then h.SV:Destroy()end if h:FindFirstChild("SA")then h.SA:Destroy()end end end
+local function SFly()if fc then fc:Disconnect()fc=nil end if fbg then fbg:Destroy()fbg=nil end if fbv then fbv:Destroy()fbv=nil end if LP.Character then local h=LP.Character:FindFirstChildOfClass("Humanoid")if h then h.PlatformStand=false end end end
+local function SFly2()SFly()local c=LP.Character if not c then return end local h=c:FindFirstChildOfClass("Humanoid")local r=c:FindFirstChild("HumanoidRootPart")if not h or not r then return end h.PlatformStand=true fbg=Instance.new("BodyGyro",r)fbg.P=9e4 fbg.MaxTorque=Vector3.new(9e9,9e9,9e9)fbg.CFrame=r.CFrame fbv=Instance.new("BodyVelocity",r)fbv.Velocity=Vector3.new(0,0,0)fbv.MaxForce=Vector3.new(9e9,9e9,9e9)fc=RS.RenderStepped:Connect(function()local cam=W.CurrentCamera if not fly or not cam then SFly()return end local md=h.MoveDirection local cs=flyS*50 if md.Magnitude>0 then local fv=cam.CFrame:VectorToWorldSpace(CFrame.new(md:Dot(cam.CFrame.RightVector),0,md:Dot(-cam.CFrame.LookVector)).Position)fbv.Velocity=fv.Unit*cs else fbv.Velocity=Vector3.new(0,0,0)end if h.Jump then fbv.Velocity=fbv.Velocity+Vector3.new(0,cs,0)h.Jump=false end fbg.CFrame=cam.CFrame end)end
+local function SGlue()if glueC then glueC:Disconnect()glueC=nil end end
+local function SGlue2()SGlue()if not glueP then glue=false GB.Text="🎀 Bám onii: OFF"GB.TextColor3=T.Off return end glueC=RS.Heartbeat:Connect(function()if not glue then SGlue()return end local tc=glueP.Character local mc=LP.Character if not tc or not mc then return end local th=tc:FindFirstChild("Head")or tc:FindFirstChild("HumanoidRootPart")local mh=mc:FindFirstChild("HumanoidRootPart")if th and mh then local o=th.CFrame:VectorToWorldSpace(Vector3.new(th.Size.X/2+0.5,0.3,0))mh.CFrame=CFrame.new(th.Position+o)mh.AssemblyLinearVelocity=Vector3.new(0,0,0)end end)end
+local function STP()if tpP and tpP.Character and LP.Character then local th=tpP.Character:FindFirstChild("HumanoidRootPart")local mh=LP.Character:FindFirstChild("HumanoidRootPart")if th and mh then mh.CFrame=th.CFrame+Vector3.new(0,3,0)end end end
+local function TV()view=not view local cam=W.CurrentCamera if view and viewP and viewP.Character and viewP.Character:FindFirstChildOfClass("Humanoid")then VB.Text="🎀 View: ON"VB.TextColor3=T.On if cam then cam.CameraSubject=viewP.Character:FindFirstChildOfClass("Humanoid")end else view=false VB.Text="🎀 View: OFF"VB.TextColor3=T.Off if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")and cam then cam.CameraSubject=LP.Character:FindFirstChildOfClass("Humanoid")end end end
+local function SKill()if killC then killC:Disconnect()killC=nil end end
+local function SKill2()SKill()killC=RS.Heartbeat:Connect(function()if not kill then SKill()return end local c=LP.Character if not c then return end local t=c:FindFirstChildOfClass("Tool")if not t then return end local h=t:FindFirstChild("Handle")or t:FindFirstChildOfClass("BasePart")t:Activate()local ts={}if killP=="ALL"then for _,p in pairs(P:GetPlayers())do if p~=LP then table.insert(ts,p)end end elseif typeof(killP)=="Instance"and killP:IsA("Player")then table.insert(ts,killP)end for _,tg in pairs(ts)do if tg and tg.Character then local th=tg.Character:FindFirstChild("HumanoidRootPart")or tg.Character:FindFirstChild("Head")local th2=tg.Character:FindFirstChildOfClass("Humanoid")if th and th2 and th2.Health>0 and h and h:FindFirstChildOfClass("TouchTransmitter")then firetouchinterest(h,th,0)firetouchinterest(h,th,1)end end end end)end
+local function GRP()local v={}for _,p in pairs(P:GetPlayers())do if p~=LP and p.Character then local h=p.Character:FindFirstChildOfClass("Humanoid")local r=p.Character:FindFirstChild("HumanoidRootPart")or p.Character:FindFirstChild("Head")if h and r and h.Health>0 then table.insert(v,p)end end end return#v>0 and v[math.random(1,#v)]or nil end
+local function SSW()if swC then swC:Disconnect()swC=nil end swT=nil end
+local function SSW2()SSW()swC=RS.Heartbeat:Connect(function()if not swKill then SSW()return end local c=LP.Character if not c then return end local mh=c:FindFirstChild("HumanoidRootPart")local t=c:FindFirstChildOfClass("Tool")if not mh or not t then return end local h=t:FindFirstChild("Handle")or t:FindFirstChildOfClass("BasePart")if swP=="RANDOM"then local v=false if swT and swT.Parent and swT.Character then local th=swT.Character:FindFirstChildOfClass("Humanoid")local tr=swT.Character:FindFirstChild("HumanoidRootPart")or swT.Character:FindFirstChild("Head")if th and tr and th.Health>0 then v=true end end if not v then swT=GRP()end else swT=swP end if swT and swT.Character then local tc=swT.Character local th=tc:FindFirstChildOfClass("Humanoid")local tp=tc:FindFirstChild("Head")or tc:FindFirstChild("UpperTorso")or tc:FindFirstChild("Torso")or tc:FindFirstChild("HumanoidRootPart")if tp and th and th.Health>0 then mh.CFrame=tp.CFrame mh.AssemblyLinearVelocity=Vector3.new(0,0,0)t:Activate()if h and h:FindFirstChildOfClass("TouchTransmitter")then for _,ch in ipairs(tc:GetChildren())do if ch:IsA("BasePart")then firetouchinterest(h,ch,0)firetouchinterest(h,ch,1)end end end end end end)end
+local function GCP()local cam=W.CurrentCamera if not cam then return nil end local cp=nil local sd=aimR local mp=Vector2.new(cam.ViewportSize.X/2,cam.ViewportSize.Y/2)for _,p in pairs(P:GetPlayers())do if p~=LP and p.Character then local tp=p.Character:FindFirstChild("Head")or p.Character:FindFirstChild("HumanoidRootPart")local h=p.Character:FindFirstChildOfClass("Humanoid")if tp and h and h.Health>0 then local sp,os=cam:WorldToViewportPoint(tp.Position)if os then local d=(Vector2.new(sp.X,sp.Y)-mp).Magnitude if d<sd then sd=d cp=p end end end end end return cp end
+local function RPL()for _,c in pairs(PL:GetChildren())do if c:IsA("TextButton")then c:Destroy()end end if sMM=="aim"then local ab=Instance.new("TextButton",PL)ab.Size=UDim2.new(1,0,0,25)ab.BackgroundColor3=T.B ab.Text="[ Tự động ]"ab.TextColor3=T.D ab.Font=Enum.Font.FredokaOne CN(ab,6)SR(ab,1)ab.MouseButton1Click:Connect(function()aimP=nil ASB.Text="[ GẦN NHẤT ]"Sub.Visible=false end)elseif sMM=="kill"then local ab=Instance.new("TextButton",PL)ab.Size=UDim2.new(1,0,0,25)ab.BackgroundColor3=T.B ab.Text="[ Tất cả ]"ab.TextColor3=T.Off ab.Font=Enum.Font.FredokaOne CN(ab,6)SR(ab,1)ab.MouseButton1Click:Connect(function()killP="ALL"KSB.Text="[ KILL ]: ALL"Sub.Visible=false end)elseif sMM=="swordkill"then local ab=Instance.new("TextButton",PL)ab.Size=UDim2.new(1,0,0,25)ab.BackgroundColor3=T.B ab.Text="[ Random ]"ab.TextColor3=T.Off ab.Font=Enum.Font.FredokaOne CN(ab,6)SR(ab,1)ab.MouseButton1Click:Connect(function()swP="RANDOM"SWSB.Text="[ SWORD: RANDOM ]"Sub.Visible=false end)end local cnt=(sMM=="aim"or sMM=="kill"or sMM=="swordkill")and 1 or 0 for _,p in pairs(P:GetPlayers())do if p~=LP then cnt=cnt+1 local b=Instance.new("TextButton",PL)b.Size=UDim2.new(1,0,0,25)b.BackgroundColor3=T.C b.Text=p.DisplayName b.TextColor3=T.D b.Font=Enum.Font.FredokaOne CN(b,6)SR(b,1)b.MouseButton1Click:Connect(function()if sMM=="glue"then glueP=p GSB.Text="[ ONII ]: "..p.DisplayName elseif sMM=="tp"then tpP=p TPSB.Text="[ TP ]: "..p.DisplayName elseif sMM=="view"then viewP=p VSB.Text="[ VIEW ]: "..p.DisplayName if view then TV()TV()end elseif sMM=="aim"then aimP=p ASB.Text="[ AIM ]: "..p.DisplayName elseif sMM=="kill"then killP=p KSB.Text="[ KILL ]: "..p.DisplayName elseif sMM=="swordkill"then swP=p SWSB.Text="[ SWORD ]: "..p.DisplayName end Sub.Visible=false end)end end PL.CanvasSize=UDim2.new(0,0,0,cnt*29)end
+-- ADJ
+SM.MouseButton1Click:Connect(function()if spdV>5 then spdV=spdV-5 SL.Text="Speed: "..spdV if spd then AS()end end end)
+SP.MouseButton1Click:Connect(function()spdV=spdV+5 SL.Text="Speed: "..spdV if spd then AS()end end)
+FM.MouseButton1Click:Connect(function()if flyS>1 then flyS=flyS-1 FL.Text="Fly Speed: "..flyS end end)
+FP.MouseButton1Click:Connect(function()flyS=flyS+1 FL.Text="Fly Speed: "..flyS end)
+JM.MouseButton1Click:Connect(function()if jmpV>5 then jmpV=jmpV-5 JL.Text="Jump Power: "..jmpV if jmp then AJ()end end end)
+JP.MouseButton1Click:Connect(function()jmpV=jmpV+5 JL.Text="Jump Power: "..jmpV if jmp then AJ()end end)
+AM.MouseButton1Click:Connect(function()if aimR>30 then aimR=aimR-20 end AL.Text="FOV: "..aimR Fov.Size=UDim2.new(0,aimR*2,0,aimR*2)end)
+AP.MouseButton1Click:Connect(function()aimR=aimR+20 AL.Text="FOV: "..aimR Fov.Size=UDim2.new(0,aimR*2,0,aimR*2)end)
+-- BTN
+NB.MouseButton1Click:Connect(TN)
+FJ.MouseButton1Click:Connect(TFJ)
+FB.MouseButton1Click:Connect(TFB)
+XB.MouseButton1Click:Connect(TX)
+SitB.MouseButton1Click:Connect(TSit)
+SpinB.MouseButton1Click:Connect(TSp)
+FB2.MouseButton1Click:Connect(function()fly=not fly FB2.Text=fly and"🐾 Fly: ON"or"🐾 Fly: OFF"FB2.TextColor3=fly and T.On or T.Off if fly then SFly2()else SFly()end end)
+SB.MouseButton1Click:Connect(function()spd=not spd SB.Text=spd and"🐾 Speed: ON"or"🐾 Speed: OFF"SB.TextColor3=spd and T.On or T.Off AS()end)
+JB.MouseButton1Click:Connect(function()jmp=not jmp JB.Text=jmp and"🐾 Jump: ON"or"🐾 Jump: OFF"JB.TextColor3=jmp and T.On or T.Off AJ()end)
+EB.MouseButton1Click:Connect(function()esp=not esp EB.Text=esp and"🐾 ESP: ON"or"🐾 ESP: OFF"EB.TextColor3=esp and T.On or T.Off if not esp then for _,d in pairs(espO)do if d.Text then d.Text:Destroy()end if d.Line then d.Line:Destroy()end end espO={}end end)
+EV2.MouseButton1Click:Connect(function()espN=not espN EV2.Text=espN and"🐾 ESP V2: ON"or"🐾 ESP V2: OFF"EV2.TextColor3=espN and T.On or T.Off if not espN then for _,d in pairs(espNO)do if d.Text then d.Text:Destroy()end end espNO={}end end)
+GB.MouseButton1Click:Connect(function()glue=not glue GB.Text=glue and"🎀 Bám onii: ON"or"🎀 Bám onii: OFF"GB.TextColor3=glue and T.On or T.Off if glue then SGlue2()else SGlue()end end)
+GSB.MouseButton1Click:Connect(function()sMM="glue"Sub.Visible=not Sub.Visible if Sub.Visible then RPL()end end)
+TPB.MouseButton1Click:Connect(STP)
+TPSB.MouseButton1Click:Connect(function()sMM="tp"Sub.Visible=not Sub.Visible if Sub.Visible then RPL()end end)
+VB.MouseButton1Click:Connect(TV)
+VSB.MouseButton1Click:Connect(function()sMM="view"Sub.Visible=not Sub.Visible if Sub.Visible then RPL()end end)
+AB.MouseButton1Click:Connect(function()aim=not aim AB.Text=aim and"🎀 Aim: ON"or"🎀 Aim: OFF"AB.TextColor3=aim and T.On or T.Off Fov.Visible=aim Fov.Size=UDim2.new(0,aimR*2,0,aimR*2)end)
+ASB.MouseButton1Click:Connect(function()sMM="aim"Sub.Visible=not Sub.Visible if Sub.Visible then RPL()end end)
+KB.MouseButton1Click:Connect(function()kill=not kill KB.Text=kill and"🐾 Kill: ON"or"🐾 Kill: OFF"KB.TextColor3=kill and T.On or T.Off if kill then SKill2()else SKill()end end)
+KSB.MouseButton1Click:Connect(function()sMM="kill"Sub.Visible=not Sub.Visible if Sub.Visible then RPL()end end)
+SWB.MouseButton1Click:Connect(function()swKill=not swKill SWB.Text=swKill and"🐾 Sword: ON"or"🐾 Sword: OFF"SWB.TextColor3=swKill and T.On or T.Off if swKill then SSW2()else SSW()end end)
+SWSB.MouseButton1Click:Connect(function()sMM="swordkill"Sub.Visible=not Sub.Visible if Sub.Visible then RPL()end end)
+OB.MouseButton1Click:Connect(function()MF.Visible=not MF.Visible if not MF.Visible then Sub.Visible=false TMF.Visible=false SIL.Visible=false end end)
+-- ESP UPDATE
+RS.RenderStepped:Connect(function()if not esp then return end local cam=W.CurrentCamera if not cam then return end for _,p in pairs(P:GetPlayers())do if p~=LP then local c=p.Character local mc=LP.Character if c and mc then local r=c:FindFirstChild("HumanoidRootPart")local mr=mc:FindFirstChild("HumanoidRootPart")local h=c:FindFirstChildOfClass("Humanoid")if r and mr and h and h.Health>0 then local sp,os=cam:WorldToViewportPoint(r.Position)if os then if not espO[p]then local tl=Instance.new("TextLabel",SG)tl.BackgroundTransparency=1 tl.Size=UDim2.new(0,200,0,30)tl.TextSize=12 tl.Font=Enum.Font.FredokaOne espO[p]={Text=tl}end local tl=espO[p].Text local d=math.floor((mr.Position-r.Position).Magnitude)local hp=math.floor((h.Health/math.max(h.MaxHealth,1))*100)tl.Visible=true tl.Position=UDim2.new(0,sp.X-100,0,sp.Y-35)tl.Text=string.format("%s\nHP: %d%% | %dm",p.DisplayName,hp,d)tl.TextColor3=T.A elseif espO[p]then espO[p].Text.Visible=false end end end end end end)
+RS.RenderStepped:Connect(function()if not espN then return end local cam=W.CurrentCamera local mc=LP.Character if not cam or not mc then return end local mr=mc:FindFirstChild("HumanoidRootPart")if not mr then return end for _,o in ipairs(W:GetDescendants())do if o:IsA("Model")and o~=mc and not P:GetPlayerFromCharacter(o)then local h=o:FindFirstChildOfClass("Humanoid")local r=o:FindFirstChild("HumanoidRootPart")if h and r and h.Health>0 then if not espNO[o]then local tl=Instance.new("TextLabel",SG)tl.BackgroundTransparency=1 tl.Size=UDim2.new(0,200,0,30)tl.TextSize=12 tl.Font=Enum.Font.FredokaOne espNO[o]={Text=tl}end local tl=espNO[o].Text local sp,os=cam:WorldToViewportPoint(r.Position)if os then local d=math.floor((mr.Position-r.Position).Magnitude)local hp=math.floor((h.Health/math.max(h.MaxHealth,1))*100)tl.Visible=true tl.Position=UDim2.new(0,sp.X-100,0,sp.Y-35)tl.Text=string.format("[NPC] %s\nHP: %d%% | %dm",o.Name,hp,d)tl.TextColor3=Color3.fromRGB(255,180,100)else tl.Visible=false end end end end end)
+-- AIM + SPEED LOOP
+RS.RenderStepped:Connect(function()local cam=W.CurrentCamera if aim and cam then local tg=aimP or GCP()if tg and tg.Character then local tp=tg.Character:FindFirstChild("Head")or tg.Character:FindFirstChild("HumanoidRootPart")local h=tg.Character:FindFirstChildOfClass("Humanoid")if tp and h and h.Health>0 then cam.CFrame=CFrame.new(cam.CFrame.Position,tp.Position)end end end end)
+RS.Stepped:Connect(function()if spd then local c=LP.Character if c then local h=c:FindFirstChildOfClass("Humanoid")if h and h.WalkSpeed~=spdV then h.WalkSpeed=spdV end end end end)
+P.PlayerRemoving:Connect(function(p)if espO[p]then if espO[p].Text then espO[p].Text:Destroy()end espO[p]=nil end end)
+RefreshTP()
+MF.Visible=true
+print("[raito] V3 loaded OK")
