@@ -551,6 +551,7 @@ local SpinBtn = CreateCol1Button(MiscScroll, "Spin: OFF")
 local EspV2ToggleBtn = CreateCol1Button(MiscScroll, "ESP V2 (NPC): OFF")
 
 MiscScroll.CanvasSize = UDim2.new(0, 0, 0, 4 * 33)
+
 local MusicScroll = Instance.new("ScrollingFrame")
 MusicScroll.Size = UDim2.new(1, 0, 1, 0)
 MusicScroll.BackgroundTransparency = 1
