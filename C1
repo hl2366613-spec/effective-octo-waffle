@@ -1,0 +1,231 @@
+-- Delta Roblox Script - Shark V4 + T-Rex Slash Style (Fixed Kill & 3D Claws)
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+-- Cấu hình
+local BACKGROUND_IMAGE_ID = "rbxassetid://120169480898776"
+local SLASH_RANGE = 15 -- Khoảng 3 blocks (15 studs)
+local SLASH_DAMAGE = 50
+
+local isActive = false
+local createdClaws = {}
+local auraParticles = {}
+
+-- Tạo GUI Menu dạng 3x3
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DeltaSharkV4Menu"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("ImageLabel")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 180, 0, 180)
+mainFrame.Position = UDim2.new(0.5, -90, 0.4, -90)
+mainFrame.Image = BACKGROUND_IMAGE_ID
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 30, 50)
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.Parent = mainFrame
+
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(135, 206, 250)
+uiStroke.Thickness = 2
+uiStroke.Parent = mainFrame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "SHARK V4 MENU"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 13
+title.Font = Enum.Font.SourceSansBold
+title.Parent = mainFrame
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+toggleBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+toggleBtn.Text = "OFF"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 16
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.Parent = mainFrame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = toggleBtn
+
+-- Hàm tạo móng vuốt 3D nổi bật gắn chắc vào tay
+local function createClaws3D(hand)
+    if not hand then return end
+    
+    for i = -1, 1 do
+        -- Phần gốc vuốt gắn vào tay
+        local clawBase = Instance.new("Part")
+        clawBase.Name = "3DClaw"
+        clawBase.Size = Vector3.new(0.15, 0.25, 1.6)
+        clawBase.Color = Color3.fromRGB(180, 240, 255)
+        clawBase.Material = Enum.Material.SmoothPlastic
+        clawBase.CanCollide = false
+        clawBase.Massless = true
+        
+        -- Thêm khối Mesh để tạo độ cong/nhọn 3D
+        local mesh = Instance.new("SpecialMesh")
+        mesh.MeshType = Enum.MeshType.FileMesh
+        mesh.MeshId = "rbxassetid://430549020" -- Mesh hình vuốt/lưỡi nhọn
+        mesh.Scale = Vector3.new(0.003, 0.003, 0.006)
+        mesh.Parent = clawBase
+
+        -- Lớp phát sáng 3D neon xung quanh móng
+        local selectionBox = Instance.new("SelectionBox")
+        selectionBox.Adornee = clawBase
+        selectionBox.Color3 = Color3.fromRGB(100, 220, 255)
+        selectionBox.LineThickness = 0.03
+        selectionBox.Parent = clawBase
+
+        -- Hàn móng vuốt vào bàn tay
+        local weld = Instance.new("Weld")
+        weld.Part0 = hand
+        weld.Part1 = clawBase
+        weld.C0 = CFrame.new(i * 0.28, -0.1, -0.8) * CFrame.Angles(math.rad(30), math.rad(i * 10), 0)
+        weld.Parent = clawBase
+
+        clawBase.Parent = Character
+        table.insert(createdClaws, clawBase)
+    end
+end
+
+-- Hiệu ứng Hào quang Shark V4
+local function createSharkAura(rootPart)
+    if not rootPart then return end
+    local particle = Instance.new("ParticleEmitter")
+    particle.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(120, 210, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 220))
+    })
+    particle.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1.2),
+        NumberSequenceKeypoint.new(1, 0.2)
+    })
+    particle.Lifetime = NumberRange.new(0.4, 0.8)
+    particle.Rate = 35
+    particle.Speed = NumberRange.new(2, 5)
+    particle.Transparency = NumberSequence.new(0.1, 1)
+    particle.Parent = rootPart
+    table.insert(auraParticles, particle)
+end
+
+local function removeEffects()
+    for _, item in ipairs(createdClaws) do if item then item:Destroy() end end
+    for _, item in ipairs(auraParticles) do if item then item:Destroy() end end
+    createdClaws = {}
+    auraParticles = {}
+end
+
+local function applyEffects()
+    removeEffects()
+    local rightHand = Character:FindFirstChild("RightHand") or Character:FindFirstChild("Right Arm")
+    local leftHand = Character:FindFirstChild("LeftHand") or Character:FindFirstChild("Left Arm")
+    local root = Character:FindFirstChild("HumanoidRootPart")
+
+    if rightHand then createClaws3D(rightHand) end
+    if leftHand then createClaws3D(leftHand) end
+    if root then createSharkAura(root) end
+end
+
+toggleBtn.MouseButton1Click:Connect(function()
+    isActive = not isActive
+    if isActive then
+        toggleBtn.Text = "ON"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
+        applyEffects()
+    else
+        toggleBtn.Text = "OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        removeEffects()
+    end
+end)
+
+-- Hiệu ứng chém dồn dập kiểu T-Rex (Màu Trắng/Xanh Lam) & Xử lý tiêu diệt mục tiêu
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not isActive then return end
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        local rootPart = Character:FindFirstChild("HumanoidRootPart")
+        if not rootPart then return end
+
+        -- Sóng chém cuồng sát kiểu T-Rex Blox Fruit (Đổi màu White/Light-Blue)
+        for wave = 1, 3 do
+            task.delay((wave - 1) * 0.05, function()
+                for i = -1, 1 do
+                    local slashWave = Instance.new("Part")
+                    slashWave.Size = Vector3.new(0.2, 1.5, SLASH_RANGE)
+                    slashWave.Color = (i == 0) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(120, 220, 255)
+                    slashWave.Material = Enum.Material.Neon
+                    slashWave.Anchored = true
+                    slashWave.CanCollide = false
+                    
+                    local cframeOffset = rootPart.CFrame * CFrame.new(i * 1.8, (wave - 2) * 0.5, -SLASH_RANGE / 2)
+                    slashWave.CFrame = cframeOffset * CFrame.Angles(math.rad(math.random(-20, 20)), math.rad(i * 15), math.rad(60 * wave))
+                    slashWave.Parent = Workspace
+
+                    TweenService:Create(slashWave, TweenInfo.new(0.25), {
+                        Transparency = 1,
+                        Size = Vector3.new(0, 0, SLASH_RANGE * 1.2)
+                    }):Play()
+                    game:GetService("Debris"):AddItem(slashWave, 0.25)
+                end
+            end)
+        end
+
+        -- QUÉT VÀ TIÊU DIỆT MỤC TIÊU (Trừ trực tiếp Máu ép hạ gục/kết liễu)
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj ~= Character then
+                local targetHumanoid = obj:FindFirstChildOfClass("Humanoid")
+                local targetRoot = obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart
+
+                if targetHumanoid and targetRoot and targetHumanoid.Health > 0 then
+                    local distance = (targetRoot.Position - rootPart.Position).Magnitude
+                    if distance <= SLASH_RANGE + 4 then
+                        
+                        -- Trừ máu chuẩn
+                        if targetHumanoid.Health <= SLASH_DAMAGE then
+                            -- Ép chết/kết liễu lập tức nếu sát thương đủ kết liễu
+                            targetHumanoid.Health = 0
+                            
+                            local isPlayer = Players:GetPlayerFromCharacter(obj)
+                            if not isPlayer then
+                                -- Nếu là NPC thì làm biến mất ngay
+                                task.wait(0.05)
+                                obj:Destroy()
+                            end
+                        else
+                            -- Nếu chưa đủ chết thì trừ đúng 50 HP
+                            targetHumanoid.Health = targetHumanoid.Health - SLASH_DAMAGE
+                        end
+                        
+                    end
+                end
+            end
+        end
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    if isActive then
+        task.wait(0.6)
+        applyEffects()
+    end
+end)
