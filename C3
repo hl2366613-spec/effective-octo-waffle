@@ -1,0 +1,251 @@
+--[[ 
+    DELTA EXECUTOR SCRIPT - SHARK V4 & T-REX CLAWS
+    Tác giả: Custom Script
+    Tính năng: Menu 3x3, Hào quang, Móng vuốt T-Rex, Chém 3 block, Sát thương chuẩn Server.
+--]]
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- === CẤU HÌNH ===
+local IMAGE_ID = "rbxassetid://108332620971864"
+local ATTACK_RANGE = 3
+local DAMAGE = 50
+local IS_ON = false
+local COOLDOWN = 0.5 -- Giảm hồi chiêu để đánh nhanh hơn
+local canAttack = true
+
+-- === 1. TẠO GIAO DIỆN MENU 3x3 ===
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DeltaMenu_V4"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 150, 0, 150)
+mainFrame.Position = UDim2.new(0, 20, 0.5, -75)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+mainFrame.BorderSizePixel = 2
+mainFrame.BorderColor3 = Color3.fromRGB(100, 150, 255)
+mainFrame.Parent = screenGui
+
+local bgImage = Instance.new("ImageLabel")
+bgImage.Size = UDim2.new(1, 0, 1, 0)
+bgImage.BackgroundTransparency = 1
+bgImage.Image = IMAGE_ID
+bgImage.ScaleType = Enum.ScaleType.Crop
+bgImage.Parent = mainFrame
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0.8, 0, 0.3, 0)
+toggleBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+toggleBtn.Text = "OFF"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 24
+toggleBtn.Parent = mainFrame
+
+-- === 2. HIỆU ỨNG HÀO QUANG CÁ V4 & MÓNG VUỐT T-REX ===
+local aura = Instance.new("PointLight")
+aura.Color = Color3.fromRGB(0, 150, 255) -- Xanh dương đậm hơn (Cá V4)
+aura.Range = 15
+aura.Brightness = 0
+aura.Parent = humanoidRootPart
+
+-- Hiệu ứng hạt (Particle) giống Cá V4
+local auraParticles = Instance.new("ParticleEmitter")
+auraParticles.Texture = "rbxassetid://243660364" -- Hạt sáng xanh
+auraParticles.Color = ColorSequence.new(Color3.fromRGB(0, 150, 255), Color3.fromRGB(255, 255, 255))
+auraParticles.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0)})
+auraParticles.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.2, 0.5), NumberSequenceKeypoint.new(1, 1)})
+auraParticles.Lifetime = NumberRange.new(0.5, 1)
+auraParticles.Rate = 0
+auraParticles.Speed = NumberRange.new(2, 4)
+auraParticles.SpreadAngle = Vector2.new(180, 180)
+auraParticles.Parent = humanoidRootPart
+
+-- Tạo móng vuốt T-Rex (Dài và nhọn hơn)
+local claws = {}
+local function createClaws()
+    for _, claw in pairs(claws) do if claw and claw.Parent then claw:Destroy() end end
+    claws = {}
+    local leftHand = character:FindFirstChild("LeftHand") or character:FindFirstChild("Left Arm")
+    local rightHand = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")
+    
+    local function addClaws(hand)
+        if hand then
+            for i = 1, 3 do
+                local claw = Instance.new("Part")
+                claw.Size = Vector3.new(0.15, 0.8, 0.15) -- Dài hơn để giống T-Rex
+                claw.Color = Color3.fromRGB(255, 255, 255) -- Trắng sáng
+                claw.Material = Enum.Material.Neon
+                claw.CanCollide = false
+                claw.Transparency = IS_ON and 0 or 1
+                claw.Parent = hand
+                local weld = Instance.new("Weld")
+                weld.Part0 = hand
+                weld.Part1 = claw
+                -- Chỉnh góc vuốt cong và nhọn hơn
+                weld.C0 = CFrame.new(0, -0.9, 0) * CFrame.Angles(math.rad(-15), 0, math.rad((i-2)*20))
+                weld.Parent = claw
+                table.insert(claws, claw)
+            end
+        end
+    end
+    addClaws(leftHand)
+    addClaws(rightHand)
+end
+task.wait(1)
+createClaws()
+
+-- === 3. HIỆU ỨNG CHÉM ===
+local function createSlashEffect(position, lookVector)
+    for i = 1, 3 do
+        local slash = Instance.new("Part")
+        slash.Size = Vector3.new(0.2, 5, 0.2)
+        slash.Color = (i % 2 == 0) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(0, 150, 255) -- Trắng và Xanh Cá V4
+        slash.Material = Enum.Material.Neon
+        slash.Anchored = true
+        slash.CanCollide = false
+        slash.CFrame = CFrame.new(position + (lookVector * (i * 1.5))) * CFrame.Angles(0, 0, math.rad(i * 45))
+        slash.Parent = workspace
+        
+        local tween = TweenService:Create(slash, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Transparency = 1, Size = Vector3.new(0, 10, 0)})
+        tween:Play()
+        tween.Completed:Connect(function() slash:Destroy() end)
+    end
+end
+
+-- === 4. HÀM GÂY SÁT THƯƠNG (BẢN NÂNG CẤP CHỐNG ANTI-CHEAT) ===
+local function damageTarget(targetCharacter)
+    local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
+    if not targetHumanoid or targetHumanoid.Health <= 0 then return end
+    
+    -- CÁCH TỐT NHẤT TRÊN DELTA: Tìm vũ khí mạnh nhất trong túi đồ của bạn và tự động kích hoạt nó
+    -- (Vì Server chỉ tin tưởng sát thương từ Tool chính thức của game)
+    local backpack = player:FindFirstChild("Backpack")
+    local charTools = character:GetChildren()
+    
+    local bestTool = nil
+    -- Tìm tool trong ba lô hoặc trên tay
+    for _, item in pairs(backpack:GetChildren()) do
+        if item:IsA("Tool") and item:FindFirstChild("Handle") then
+            bestTool = item
+            break
+        end
+    end
+    if not bestTool then
+        for _, item in pairs(charTools) do
+            if item:IsA("Tool") and item:FindFirstChild("Handle") then
+                bestTool = item
+                break
+            end
+        end
+    end
+    
+    if bestTool then
+        -- Ép nhân vật trang bị vũ khí đó
+        humanoidRootPart.Parent:FindFirstChildOfClass("Humanoid"):EquipTool(bestTool)
+        
+        -- Kích hoạt vũ khí (Mô phỏng click chuột)
+        bestTool:Activate()
+        
+        -- Nếu vũ khí có chứa code gây sát thương (như kiếm), Server sẽ tự tính toán
+        -- Chúng ta không cần gọi TakeDamage nữa vì Server sẽ làm việc đó.
+        print("Đã kích hoạt vũ khí: " .. bestTool.Name)
+    else
+        -- Nếu game không có vũ khí (ví dụ game thuần đấm), dùng Tool ảo (có thể bị chặn tùy game)
+        local tool = Instance.new("Tool")
+        tool.Name = "HitTool"
+        tool.CanBeDropped = false
+        tool.RequiresHandle = false
+        
+        local script = Instance.new("Script")
+        script.Source = [[
+            local tool = script.Parent
+            local target = tool:GetAttribute("Target")
+            if target then
+                local hum = target:FindFirstChildOfClass("Humanoid")
+                if hum then hum:TakeDamage(]] .. DAMAGE .. [[) end
+            end
+            tool:Destroy()
+        ]]
+        script.Parent = tool
+        tool:SetAttribute("Target", targetCharacter)
+        
+        if backpack then
+            tool.Parent = backpack
+            if character:FindFirstChildOfClass("Humanoid") then tool.Parent = character end
+        end
+    end
+end
+
+-- === 5. LOGIC TẤN CÔNG ===
+local function performAttack()
+    if not IS_ON or not canAttack then return end
+    canAttack = false
+    
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    createSlashEffect(root.Position, root.CFrame.LookVector)
+    
+    for _, obj in pairs(workspace:GetChildren()) do
+        if (obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj ~= character) then
+            local targetRoot = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso")
+            if targetRoot and (root.Position - targetRoot.Position).Magnitude <= ATTACK_RANGE then
+                damageTarget(obj)
+            end
+        end
+    end
+    
+    task.wait(COOLDOWN)
+    canAttack = true
+end
+
+-- === 6. XỬ LÝ SỰ KIỆN ===
+toggleBtn.MouseButton1Click:Connect(function()
+    IS_ON = not IS_ON
+    if IS_ON then
+        toggleBtn.Text = "ON"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        TweenService:Create(aura, TweenInfo.new(0.5), {Brightness = 5}):Play()
+        auraParticles.Rate = 50 -- Bật hạt sáng
+        for _, claw in pairs(claws) do if claw and claw.Parent then claw.Transparency = 0 end end
+    else
+        toggleBtn.Text = "OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        TweenService:Create(aura, TweenInfo.new(0.5), {Brightness = 0}):Play()
+        auraParticles.Rate = 0 -- Tắt hạt sáng
+        for _, claw in pairs(claws) do if claw and claw.Parent then claw.Transparency = 1 end end
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        performAttack()
+    end
+end)
+
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    task.wait(1)
+    aura.Parent = humanoidRootPart
+    auraParticles.Parent = humanoidRootPart
+    createClaws()
+    if IS_ON then
+        aura.Brightness = 5
+        auraParticles.Rate = 50
+        for _, claw in pairs(claws) do if claw then claw.Transparency = 0 end end
+    end
+end)
