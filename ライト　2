@@ -1,0 +1,214 @@
+-- Delta Roblox Claw Script
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+
+-- Configuration
+local BACKGROUND_IMAGE_ID = "rbxassetid://YOUR_IMAGE_ID" -- Replace with your uploaded Roblox Decal ID
+local SLASH_RANGE = 12 -- Approximately 3 stud blocks
+local SLASH_DAMAGE = 50
+
+local isActive = false
+local createdClaws = {}
+local auraParticles = {}
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DeltaClawMenu"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Main Menu Frame (Compact 3x3 style)
+local mainFrame = Instance.new("ImageLabel")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 180, 0, 180) -- Compact UI size
+mainFrame.Position = UDim2.new(0.5, -90, 0.4, -90)
+mainFrame.Image = BACKGROUND_IMAGE_ID
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.Parent = mainFrame
+
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(150, 220, 255)
+uiStroke.Thickness = 2
+uiStroke.Parent = mainFrame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "DELTA CLAW"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 14
+title.Font = Enum.Font.SourceSansBold
+title.Parent = mainFrame
+
+-- Toggle Button
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+toggleBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+toggleBtn.Text = "OFF"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 16
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.Parent = mainFrame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = toggleBtn
+
+-- Helper function to create 3 claws on a hand
+local function createClawsForHand(hand)
+    if not hand then return end
+    for i = -1, 1 do
+        local claw = Instance.new("Part")
+        claw.Size = Vector3.new(0.1, 0.1, 1.2)
+        claw.Color = Color3.fromRGB(180, 235, 255)
+        claw.Material = Enum.Material.Neon
+        claw.CanCollide = false
+        claw.Massless = true
+
+        local weld = Instance.new("Weld")
+        weld.Part0 = hand
+        weld.Part1 = claw
+        weld.C0 = CFrame.new(i * 0.25, -0.2, -0.8) * CFrame.Angles(math.rad(15), 0, 0)
+        weld.Parent = claw
+
+        claw.Parent = Character
+        table.insert(createdClaws, claw)
+    end
+end
+
+-- Helper function to add light-blue and white aura
+local function createAura(rootPart)
+    if not rootPart then return end
+    local particle = Instance.new("ParticleEmitter")
+    particle.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(135, 206, 250))
+    })
+    particle.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.5),
+        NumberSequenceKeypoint.new(1, 0)
+    })
+    particle.Lifetime = NumberRange.new(0.4, 0.8)
+    particle.Rate = 25
+    particle.Speed = NumberRange.new(1, 3)
+    particle.Transparency = NumberSequence.new(0.2, 1)
+    particle.Parent = rootPart
+    table.insert(auraParticles, particle)
+end
+
+-- Clear visual effects
+local function removeEffects()
+    for _, item in ipairs(createdClaws) do
+        if item then item:Destroy() end
+    end
+    for _, item in ipairs(auraParticles) do
+        if item then item:Destroy() end
+    end
+    createdClaws = {}
+    auraParticles = {}
+end
+
+-- Enable visual effects
+local function applyEffects()
+    removeEffects()
+    local rightHand = Character:FindFirstChild("RightHand") or Character:FindFirstChild("Right Arm")
+    local leftHand = Character:FindFirstChild("LeftHand") or Character:FindFirstChild("Left Arm")
+    local rootPart = Character:FindFirstChild("HumanoidRootPart")
+
+    if rightHand then createClawsForHand(rightHand) end
+    if leftHand then createClawsForHand(leftHand) end
+    if rootPart then createAura(rootPart) end
+end
+
+-- Toggle Handler
+toggleBtn.MouseButton1Click:Connect(function()
+    isActive = not isActive
+    if isActive then
+        toggleBtn.Text = "ON"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
+        applyEffects()
+    else
+        toggleBtn.Text = "OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        removeEffects()
+    end
+end)
+
+-- Slash Effect and Damage Handler
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not isActive then return end
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        local rootPart = Character:FindFirstChild("HumanoidRootPart")
+        if not rootPart then return end
+
+        -- Create visual claw mark slash in front of player
+        for i = -1, 1 do
+            local slashPart = Instance.new("Part")
+            slashPart.Size = Vector3.new(0.1, 0.2, SLASH_RANGE)
+            slashPart.Color = (i == 0) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 220, 255)
+            slashPart.Material = Enum.Material.Neon
+            slashPart.Anchored = true
+            slashPart.CanCollide = false
+            
+            local offset = rootPart.CFrame * CFrame.new(i * 1.2, 0, -SLASH_RANGE / 2)
+            slashPart.CFrame = offset * CFrame.Angles(0, math.rad(15 * i), math.rad(45))
+            slashPart.Parent = Workspace
+
+            -- Fade out animation
+            TweenService:Create(slashPart, TweenInfo.new(0.3), {
+                Transparency = 1,
+                Size = Vector3.new(0, 0, SLASH_RANGE)
+            }):Play()
+            game:GetService("Debris"):AddItem(slashPart, 0.3)
+        end
+
+        -- Damage Detection (Players and NPCs within range)
+        for _, target in ipairs(Workspace:GetChildren()) do
+            if target ~= Character and target:FindFirstChild("Humanoid") and target:FindFirstChild("HumanoidRootPart") then
+                local targetRoot = target.HumanoidRootPart
+                local targetHumanoid = target.Humanoid
+
+                local distance = (targetRoot.Position - rootPart.Position).Magnitude
+                if distance <= SLASH_RANGE + 2 then
+                    -- Apply damage
+                    targetHumanoid:TakeDamage(SLASH_DAMAGE)
+
+                    -- If target died from this attack
+                    if targetHumanoid.Health <= 0 then
+                        local isPlayer = Players:GetPlayerFromCharacter(target)
+                        if not isPlayer then
+                            -- Instantly vanish NPCs
+                            target:Destroy()
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Re-apply effects if player respawns
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    Humanoid = Character:WaitForChild("Humanoid")
+    if isActive then
+        task.wait(0.5)
+        applyEffects()
+    end
+end)
