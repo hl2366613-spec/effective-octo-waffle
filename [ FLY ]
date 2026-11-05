@@ -1,0 +1,251 @@
+-- GUI Custom Fly Menu (Cute Pastel Anime Theme)
+-- Delta X VNG Mobile / Executor Compatible
+
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+
+-- Xóa GUI cũ nếu đang tồn tại
+if CoreGui:FindFirstChild("CustomFlyMenu") then
+    CoreGui.CustomFlyMenu:Destroy()
+end
+
+-- ==================== BẢNG MÀU PASTEL CUTE ====================
+local THEME = {
+    MainBg = Color3.fromRGB(255, 240, 243),        -- Hồng kem nhạt
+    ContainerBg = Color3.fromRGB(255, 250, 250),   -- Trắng kem
+    ButtonBg = Color3.fromRGB(255, 226, 230),      -- Hồng pastel
+    TextDark = Color3.fromRGB(115, 75, 85),        -- Nâu đỏ đất
+    Border = Color3.fromRGB(245, 175, 190),       -- Viền hồng
+    Accent = Color3.fromRGB(235, 130, 155),       -- Hồng nhấn
+    Active = Color3.fromRGB(255, 150, 180),       -- Hồng đậm khi BẬT
+    Inactive = Color3.fromRGB(240, 120, 120)      -- Đỏ nhạt / Tắt
+}
+
+local ASSET_IMAGE_ID = "rbxassetid://122639878233150"
+
+-- ==================== SCREEN GUI ====================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CustomFlyMenu"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local function CreateCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 12)
+    corner.Parent = parent
+    return corner
+end
+
+local function CreateStroke(parent, thickness, color)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color or THEME.Border
+    stroke.Thickness = thickness or 1.5
+    stroke.Parent = parent
+    return stroke
+end
+
+-- ==================== MAIN MENU (Tỷ lệ dài 5 - rộng 3) ====================
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 350, 0, 210) -- Tỷ lệ chuẩn gọn gàng
+MainFrame.Position = UDim2.new(0.5, -175, 0.4, -105)
+MainFrame.BackgroundColor3 = THEME.MainBg
+MainFrame.BackgroundTransparency = 0.05
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+CreateCorner(MainFrame, 16)
+CreateStroke(MainFrame, 2, THEME.Border)
+
+-- Tiêu đề Menu
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, 0, 0, 30)
+TitleLabel.Position = UDim2.new(0, 0, 0, 10)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "🌸 FLY CONTROL PANEL 🌸"
+TitleLabel.TextColor3 = THEME.TextDark
+TitleLabel.TextSize = 13
+TitleLabel.Font = Enum.Font.FredokaOne
+TitleLabel.Parent = MainFrame
+
+-- ==================== NÚT FLY ====================
+local FlyBtn = Instance.new("TextButton")
+FlyBtn.Size = UDim2.new(0.85, 0, 0, 40)
+FlyBtn.Position = UDim2.new(0.075, 0, 0, 48)
+FlyBtn.BackgroundColor3 = THEME.ButtonBg
+FlyBtn.Text = "Fly: OFF"
+FlyBtn.TextColor3 = THEME.TextDark
+FlyBtn.TextSize = 14
+FlyBtn.Font = Enum.Font.FredokaOne
+FlyBtn.AutoButtonColor = false
+FlyBtn.Parent = MainFrame
+
+CreateCorner(FlyBtn, 10)
+CreateStroke(FlyBtn, 1.5, THEME.Border)
+
+-- ==================== THANH CHỈNH TỐC ĐỘ (3 MỨC) ====================
+local SpeedContainer = Instance.new("Frame")
+SpeedContainer.Size = UDim2.new(0.85, 0, 0, 55)
+SpeedContainer.Position = UDim2.new(0.075, 0, 0, 100)
+SpeedContainer.BackgroundColor3 = THEME.ContainerBg
+SpeedContainer.Parent = MainFrame
+
+CreateCorner(SpeedContainer, 10)
+CreateStroke(SpeedContainer, 1, THEME.Border)
+
+local SpeedTitle = Instance.new("TextLabel")
+SpeedTitle.Size = UDim2.new(1, 0, 0, 20)
+SpeedTitle.Position = UDim2.new(0, 0, 0, 4)
+SpeedTitle.BackgroundTransparency = 1
+SpeedTitle.Text = "Tốc độ bay"
+SpeedTitle.TextColor3 = THEME.TextDark
+SpeedTitle.TextSize = 11
+SpeedTitle.Font = Enum.Font.FredokaOne
+SpeedTitle.Parent = SpeedContainer
+
+-- 3 nút mức tốc độ (Trung bình, Nhanh, Cực nhanh - không hiển thị chữ nhãn mức trên nút)
+local speeds = {50, 100, 200}
+local currentSpeedIndex = 1 -- Mặc định mức 1 (Trung bình)
+
+local SpeedButtons = {}
+local btnWidth = 0.28
+for i = 1, 3 do
+    local sBtn = Instance.new("TextButton")
+    sBtn.Size = UDim2.new(btnWidth, 0, 0, 24)
+    sBtn.Position = UDim2.new(0.04 + (i - 1) * 0.32, 0, 0, 26)
+    sBtn.BackgroundColor3 = (i == 1) and THEME.Active or THEME.ButtonBg
+    sBtn.Text = "" -- Không hiển thị chữ mức độ
+    sBtn.Parent = SpeedContainer
+    
+    CreateCorner(sBtn, 6)
+    CreateStroke(sBtn, 1, THEME.Border)
+    SpeedButtons[i] = sBtn
+    
+    sBtn.MouseButton1Click:Connect(function()
+        currentSpeedIndex = i
+        for j, btn in ipairs(SpeedButtons) do
+            btn.BackgroundColor3 = (j == i) and THEME.Active or THEME.ButtonBg
+        end
+    end)
+end
+
+-- ==================== HIỆU ỨNG CÁNH HOA ANH ĐÀO BAY ====================
+local SakuraFolder = Instance.new("Folder")
+SakuraFolder.Name = "SakuraParticles"
+SakuraFolder.Parent = ScreenGui
+
+local function SpawnSakuraPetals()
+    task.spawn(function()
+        while _G.FlyEnabled do
+            pcall(function()
+                local petal = Instance.new("ImageLabel")
+                petal.Size = UDim2.new(0, math.random(15, 25), 0, math.random(15, 25))
+                petal.Position = UDim2.new(math.random(), 0, -0.1, 0)
+                petal.BackgroundTransparency = 1
+                petal.Image = ASSET_IMAGE_ID
+                petal.ImageTransparency = math.random(2, 5) / 10
+                petal.Parent = SakuraFolder
+
+                local fallDuration = math.random(3, 6)
+                local endX = petal.Position.X.Scale + math.random(-20, 20) / 100
+                
+                local tween = game:GetService("TweenService"):Create(
+                    petal,
+                    TweenInfo.new(fallDuration, Enum.EasingStyle.Linear),
+                    {Position = UDim2.new(endX, 0, 1.1, 0), Rotation = math.random(0, 360)}
+                )
+                tween:Play()
+                
+                tween.Completed:Connect(function()
+                    petal:Destroy()
+                end)
+            end)
+            task.wait(0.3)
+        end
+    end)
+end
+
+-- ==================== LOGIC FLY (LẤY TỪ CODE FLY ĐẦU) ====================
+_G.FlyEnabled = false
+local flyConnection, bodyGyro, bodyVelocity = nil, nil, nil
+
+local function StartFly()
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = character.HumanoidRootPart
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.P = 9e4
+    bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bodyGyro.CFrame = hrp.CFrame
+    bodyGyro.Parent = hrp
+
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = Vector3.new(0, 0.1, 0)
+    bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bodyVelocity.Parent = hrp
+
+    humanoid.PlatformStand = true
+
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not _G.FlyEnabled then return end
+        local camera = Workspace.CurrentCamera
+        local moveDir = Vector3.new(0, 0, 0)
+        local currentSpeed = speeds[currentSpeedIndex]
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            moveDir = moveDir + camera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            moveDir = moveDir - camera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            moveDir = moveDir - camera.CFrame.RightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            moveDir = moveDir + camera.CFrame.RightVector
+        end
+
+        bodyVelocity.Velocity = moveDir * currentSpeed
+        bodyGyro.CFrame = camera.CFrame
+    end)
+end
+
+local function StopFly()
+    if flyConnection then flyConnection:Disconnect() end
+    if bodyGyro then bodyGyro:Destroy() end
+    if bodyVelocity then bodyVelocity:Destroy() end
+
+    local character = LocalPlayer.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+    SakuraFolder:ClearAllChildren()
+end
+
+-- Xử lý sự kiện nhấn nút Fly
+FlyBtn.MouseButton1Click:Connect(function()
+    _G.FlyEnabled = not _G.FlyEnabled
+    if _G.FlyEnabled then
+        FlyBtn.Text = "Fly: ON"
+        FlyBtn.BackgroundColor3 = THEME.Active -- Đổi sang màu hồng chủ đề (ID 122639878233150)
+        StartFly()
+        SpawnSakuraPetals()
+    else
+        FlyBtn.Text = "Fly: OFF"
+        FlyBtn.BackgroundColor3 = THEME.ButtonBg
+        StopFly()
+    end
+end)
