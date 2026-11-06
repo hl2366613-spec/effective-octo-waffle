@@ -1,5 +1,5 @@
 -- GUI Light Menu UI (Updated to Cute Pastel Anime Theme V3.0 + AuRa & Settings)
--- Delta X VNG Mobile / Executor Compatible
+-- Delta X VNG Mobile / Executor Compatible (FIXED)
 
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
@@ -12,9 +12,17 @@ local SoundService = game:GetService("SoundService")
 local HttpService = game:GetService("HttpService")
 local Stats = game:GetService("Stats")
 
--- Xóa GUI cũ nếu đang tồn tại
-if CoreGui:FindFirstChild("LightMenuUI") then
-    CoreGui.LightMenuUI:Destroy()
+-- ==================== FIX LỖI KHÔNG HIỆN MENU TRÊN MOBILE ====================
+local parentGui
+pcall(function()
+    parentGui = gethui and gethui() or game:GetService("CoreGui")
+end)
+if not parentGui then
+    parentGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
+
+if parentGui:FindFirstChild("LightMenuUI") then
+    parentGui.LightMenuUI:Destroy()
 end
 
 -- ==================== BẢNG MÀU PASTEL CUTE ====================
@@ -70,7 +78,7 @@ LoadSettings()
 -- ==================== SCREEN GUI & GLOBAL VARS ====================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "LightMenuUI"
-ScreenGui.Parent = CoreGui
+ScreenGui.Parent = parentGui
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -1027,7 +1035,7 @@ local ghostState = false
 local savedGhostCFrame = nil
 
 -- ==================== FIX LỖI APPLY SPEED/JUMP ====================
-function ApplySpeed()
+local function ApplySpeed()
     local char = LocalPlayer.Character
     if char then
         local hum = char:FindFirstChildOfClass("Humanoid")
@@ -1035,7 +1043,7 @@ function ApplySpeed()
     end
 end
 
-function ApplyJump()
+local function ApplyJump()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
         LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower = jumpEnabled and jumpValue or 50
     end
@@ -1419,6 +1427,25 @@ local function CreateBoxLine(folder)
     return line
 end
 
+-- Tối ưu hóa NPC (Fix lag đứng hình trên Mobile)
+local cachedNPCs = {}
+task.spawn(function()
+    while task.wait(1) do
+        if espNpcEnabled then
+            local temp = {}
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
+                    local hum = obj:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health > 0 then
+                        table.insert(temp, obj)
+                    end
+                end
+            end
+            cachedNPCs = temp
+        end
+    end
+end)
+
 local function UpdateESP()
     if not espEnabled then ClearESP() return end
     local Camera = Workspace.CurrentCamera
@@ -1532,99 +1559,97 @@ local function UpdateNPC_ESP()
     local myChar = LocalPlayer.Character
     if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
 
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj ~= myChar and not Players:GetPlayerFromCharacter(obj) then
-            local hum = obj:FindFirstChildOfClass("Humanoid")
-            local hrp = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("UpperTorso")
-            
-            if hum and hrp and hum.Health > 0 then
-                if not espNpcObjects[obj] then
-                    local textLabel = Instance.new("TextLabel", EspNpcFolder)
-                    textLabel.BackgroundTransparency = 1
-                    textLabel.Size = UDim2.new(0, 200, 0, 30)
-                    textLabel.TextSize = 12
-                    textLabel.Font = Enum.Font.FredokaOne
+    for _, obj in pairs(cachedNPCs) do
+        local hum = obj:FindFirstChildOfClass("Humanoid")
+        local hrp = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("UpperTorso")
+        
+        if hum and hrp and hum.Health > 0 then
+            if not espNpcObjects[obj] then
+                local textLabel = Instance.new("TextLabel", EspNpcFolder)
+                textLabel.BackgroundTransparency = 1
+                textLabel.Size = UDim2.new(0, 200, 0, 30)
+                textLabel.TextSize = 12
+                textLabel.Font = Enum.Font.FredokaOne
 
-                    local lineFrame = Instance.new("Frame", EspNpcFolder)
-                    lineFrame.BorderSizePixel = 0
-                    lineFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+                local lineFrame = Instance.new("Frame", EspNpcFolder)
+                lineFrame.BorderSizePixel = 0
+                lineFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 
-                    espNpcObjects[obj] = { 
-                        Text = textLabel, Line = lineFrame,
-                        BoxTop = CreateBoxLine(EspNpcFolder), BoxBottom = CreateBoxLine(EspNpcFolder),
-                        BoxLeft = CreateBoxLine(EspNpcFolder), BoxRight = CreateBoxLine(EspNpcFolder)
-                    }
+                espNpcObjects[obj] = { 
+                    Text = textLabel, Line = lineFrame,
+                    BoxTop = CreateBoxLine(EspNpcFolder), BoxBottom = CreateBoxLine(EspNpcFolder),
+                    BoxLeft = CreateBoxLine(EspNpcFolder), BoxRight = CreateBoxLine(EspNpcFolder)
+                }
+            end
+
+            local data = espNpcObjects[obj]
+            local head = obj:FindFirstChild("Head")
+            local screenPosTorso, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+
+            if onScreen then
+                local dist = math.floor((myChar.HumanoidRootPart.Position - hrp.Position).Magnitude)
+                local hp = math.floor((hum.Health / math.max(hum.MaxHealth, 1)) * 100)
+                local npcName = "[NPC] " .. obj.Name
+
+                local headPos = head and head.Position or (hrp.Position + Vector3.new(0, 2, 0))
+                local headScreen = Camera:WorldToViewportPoint(headPos + Vector3.new(0, 0.5, 0))
+                local legScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+                local height = math.abs(headScreen.Y - legScreen.Y)
+                local width = height * 0.6
+                local boxX = screenPosTorso.X - (width / 2)
+                local boxY = headScreen.Y
+
+                if currentESPMode == 1 then
+                    data.Text.Text = string.format("%s\nMáu: %d%% | %dm", npcName, hp, dist)
+                    data.Text.Position = UDim2.new(0, screenPosTorso.X - 100, 0, screenPosTorso.Y - 35)
+                    data.Line.Visible = true
+                    local startPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y * 0.35)
+                    local distance = (Vector2.new(screenPosTorso.X, screenPosTorso.Y) - startPos).Magnitude
+                    local angle = math.atan2(screenPosTorso.Y - startPos.Y, screenPosTorso.X - startPos.X)
+                    data.Line.Size = UDim2.new(0, distance, 0, 1.5)
+                    data.Line.Position = UDim2.new(0, (startPos.X + screenPosTorso.X) / 2, 0, (startPos.Y + screenPosTorso.Y) / 2)
+                    data.Line.Rotation = math.deg(angle)
+                    data.Line.BackgroundColor3 = Color3.fromRGB(255, 180, 100)
+                    data.BoxTop.Visible = true; data.BoxTop.Position = UDim2.new(0, boxX, 0, boxY); data.BoxTop.Size = UDim2.new(0, width, 0, 1.5)
+                    data.BoxBottom.Visible = true; data.BoxBottom.Position = UDim2.new(0, boxX, 0, boxY + height); data.BoxBottom.Size = UDim2.new(0, width, 0, 1.5)
+                    data.BoxLeft.Visible = true; data.BoxLeft.Position = UDim2.new(0, boxX, 0, boxY); data.BoxLeft.Size = UDim2.new(0, 1.5, 0, height)
+                    data.BoxRight.Visible = true; data.BoxRight.Position = UDim2.new(0, boxX + width, 0, boxY); data.BoxRight.Size = UDim2.new(0, 1.5, 0, height)
+                elseif currentESPMode == 2 then
+                    data.Text.Text = string.format("%s", npcName)
+                    data.Text.Position = UDim2.new(0, boxX, 0, boxY - 16)
+                    data.Line.Visible = true
+                    data.Line.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                    data.Line.Size = UDim2.new(0, 2, 0, height * (hp/100))
+                    data.Line.Position = UDim2.new(0, boxX - 5, 0, boxY + height - (height * (hp/100)))
+                    data.Line.Rotation = 0
+                    data.BoxTop.Visible = true; data.BoxTop.Position = UDim2.new(0, boxX, 0, boxY); data.BoxTop.Size = UDim2.new(0, width, 0, 1.5)
+                    data.BoxBottom.Visible = true; data.BoxBottom.Position = UDim2.new(0, boxX, 0, boxY + height); data.BoxBottom.Size = UDim2.new(0, width, 0, 1.5)
+                    data.BoxLeft.Visible = true; data.BoxLeft.Position = UDim2.new(0, boxX, 0, boxY); data.BoxLeft.Size = UDim2.new(0, 1.5, 0, height)
+                    data.BoxRight.Visible = true; data.BoxRight.Position = UDim2.new(0, boxX + width, 0, boxY); data.BoxRight.Size = UDim2.new(0, 1.5, 0, height)
+                elseif currentESPMode == 3 then
+                    data.Text.Text = string.format("%s [%dm]", npcName, dist)
+                    data.Text.Position = UDim2.new(0, screenPosTorso.X - 100, 0, screenPosTorso.Y - 35)
+                    data.Line.Visible = false
+                    data.BoxTop.Visible = false; data.BoxBottom.Visible = false; data.BoxLeft.Visible = false; data.BoxRight.Visible = false
+                elseif currentESPMode == 4 then
+                    data.Text.Text = string.format("%s", npcName)
+                    data.Text.Position = UDim2.new(0, boxX, 0, boxY - 16)
+                    data.Line.Visible = false
+                    data.BoxTop.Visible = true; data.BoxTop.Position = UDim2.new(0, boxX, 0, boxY); data.BoxTop.Size = UDim2.new(0, width, 0, 1.5)
+                    data.BoxBottom.Visible = true; data.BoxBottom.Position = UDim2.new(0, boxX, 0, boxY + height); data.BoxBottom.Size = UDim2.new(0, width, 0, 1.5)
+                    data.BoxLeft.Visible = true; data.BoxLeft.Position = UDim2.new(0, boxX, 0, boxY); data.BoxLeft.Size = UDim2.new(0, 1.5, 0, height)
+                    data.BoxRight.Visible = true; data.BoxRight.Position = UDim2.new(0, boxX + width, 0, boxY); data.BoxRight.Size = UDim2.new(0, 1.5, 0, height)
                 end
-
-                local data = espNpcObjects[obj]
-                local head = obj:FindFirstChild("Head")
-                local screenPosTorso, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-
-                if onScreen then
-                    local dist = math.floor((myChar.HumanoidRootPart.Position - hrp.Position).Magnitude)
-                    local hp = math.floor((hum.Health / math.max(hum.MaxHealth, 1)) * 100)
-                    local npcName = "[NPC] " .. obj.Name
-
-                    local headPos = head and head.Position or (hrp.Position + Vector3.new(0, 2, 0))
-                    local headScreen = Camera:WorldToViewportPoint(headPos + Vector3.new(0, 0.5, 0))
-                    local legScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
-                    local height = math.abs(headScreen.Y - legScreen.Y)
-                    local width = height * 0.6
-                    local boxX = screenPosTorso.X - (width / 2)
-                    local boxY = headScreen.Y
-
-                    if currentESPMode == 1 then
-                        data.Text.Text = string.format("%s\nMáu: %d%% | %dm", npcName, hp, dist)
-                        data.Text.Position = UDim2.new(0, screenPosTorso.X - 100, 0, screenPosTorso.Y - 35)
-                        data.Line.Visible = true
-                        local startPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y * 0.35)
-                        local distance = (Vector2.new(screenPosTorso.X, screenPosTorso.Y) - startPos).Magnitude
-                        local angle = math.atan2(screenPosTorso.Y - startPos.Y, screenPosTorso.X - startPos.X)
-                        data.Line.Size = UDim2.new(0, distance, 0, 1.5)
-                        data.Line.Position = UDim2.new(0, (startPos.X + screenPosTorso.X) / 2, 0, (startPos.Y + screenPosTorso.Y) / 2)
-                        data.Line.Rotation = math.deg(angle)
-                        data.Line.BackgroundColor3 = Color3.fromRGB(255, 180, 100)
-                        data.BoxTop.Visible = true; data.BoxTop.Position = UDim2.new(0, boxX, 0, boxY); data.BoxTop.Size = UDim2.new(0, width, 0, 1.5)
-                        data.BoxBottom.Visible = true; data.BoxBottom.Position = UDim2.new(0, boxX, 0, boxY + height); data.BoxBottom.Size = UDim2.new(0, width, 0, 1.5)
-                        data.BoxLeft.Visible = true; data.BoxLeft.Position = UDim2.new(0, boxX, 0, boxY); data.BoxLeft.Size = UDim2.new(0, 1.5, 0, height)
-                        data.BoxRight.Visible = true; data.BoxRight.Position = UDim2.new(0, boxX + width, 0, boxY); data.BoxRight.Size = UDim2.new(0, 1.5, 0, height)
-                    elseif currentESPMode == 2 then
-                        data.Text.Text = string.format("%s", npcName)
-                        data.Text.Position = UDim2.new(0, boxX, 0, boxY - 16)
-                        data.Line.Visible = true
-                        data.Line.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-                        data.Line.Size = UDim2.new(0, 2, 0, height * (hp/100))
-                        data.Line.Position = UDim2.new(0, boxX - 5, 0, boxY + height - (height * (hp/100)))
-                        data.Line.Rotation = 0
-                        data.BoxTop.Visible = true; data.BoxTop.Position = UDim2.new(0, boxX, 0, boxY); data.BoxTop.Size = UDim2.new(0, width, 0, 1.5)
-                        data.BoxBottom.Visible = true; data.BoxBottom.Position = UDim2.new(0, boxX, 0, boxY + height); data.BoxBottom.Size = UDim2.new(0, width, 0, 1.5)
-                        data.BoxLeft.Visible = true; data.BoxLeft.Position = UDim2.new(0, boxX, 0, boxY); data.BoxLeft.Size = UDim2.new(0, 1.5, 0, height)
-                        data.BoxRight.Visible = true; data.BoxRight.Position = UDim2.new(0, boxX + width, 0, boxY); data.BoxRight.Size = UDim2.new(0, 1.5, 0, height)
-                    elseif currentESPMode == 3 then
-                        data.Text.Text = string.format("%s [%dm]", npcName, dist)
-                        data.Text.Position = UDim2.new(0, screenPosTorso.X - 100, 0, screenPosTorso.Y - 35)
-                        data.Line.Visible = false
-                        data.BoxTop.Visible = false; data.BoxBottom.Visible = false; data.BoxLeft.Visible = false; data.BoxRight.Visible = false
-                    elseif currentESPMode == 4 then
-                        data.Text.Text = string.format("%s", npcName)
-                        data.Text.Position = UDim2.new(0, boxX, 0, boxY - 16)
-                        data.Line.Visible = false
-                        data.BoxTop.Visible = true; data.BoxTop.Position = UDim2.new(0, boxX, 0, boxY); data.BoxTop.Size = UDim2.new(0, width, 0, 1.5)
-                        data.BoxBottom.Visible = true; data.BoxBottom.Position = UDim2.new(0, boxX, 0, boxY + height); data.BoxBottom.Size = UDim2.new(0, width, 0, 1.5)
-                        data.BoxLeft.Visible = true; data.BoxLeft.Position = UDim2.new(0, boxX, 0, boxY); data.BoxLeft.Size = UDim2.new(0, 1.5, 0, height)
-                        data.BoxRight.Visible = true; data.BoxRight.Position = UDim2.new(0, boxX + width, 0, boxY); data.BoxRight.Size = UDim2.new(0, 1.5, 0, height)
-                    end
-                    
-                    data.Text.Visible = true
-                    data.Text.TextColor3 = Color3.fromRGB(255, 180, 100)
-                    data.BoxTop.BackgroundColor3 = Color3.fromRGB(255, 180, 100)
-                    data.BoxBottom.BackgroundColor3 = Color3.fromRGB(255, 180, 100)
-                    data.BoxLeft.BackgroundColor3 = Color3.fromRGB(255, 180, 100)
-                    data.BoxRight.BackgroundColor3 = Color3.fromRGB(255, 180, 100)
-                else
-                    if data then
-                        data.Text.Visible, data.Line.Visible, data.BoxTop.Visible, data.BoxBottom.Visible, data.BoxLeft.Visible, data.BoxRight.Visible = false, false, false, false, false, false
-                    end
+                
+                data.Text.Visible = true
+                data.Text.TextColor3 = Color3.fromRGB(255, 180, 100)
+                data.BoxTop.BackgroundColor3 = Color3.fromRGB(255, 180, 100)
+                data.BoxBottom.BackgroundColor3 = Color3.fromRGB(255, 180, 100)
+                data.BoxLeft.BackgroundColor3 = Color3.fromRGB(255, 180, 100)
+                data.BoxRight.BackgroundColor3 = Color3.fromRGB(255, 180, 100)
+            else
+                if data then
+                    data.Text.Visible, data.Line.Visible, data.BoxTop.Visible, data.BoxBottom.Visible, data.BoxLeft.Visible, data.BoxRight.Visible = false, false, false, false, false, false
                 end
             end
         end
@@ -2076,3 +2101,4 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 MainFrame.Visible = true
+print("🌸 Light Menu UI đã load thành công! 🌸")
