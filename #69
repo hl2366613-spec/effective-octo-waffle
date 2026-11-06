@@ -1,0 +1,734 @@
+-- GUI Light Menu UI (Updated to Cute Pastel Anime Theme V3.0 + AuRa & Settings)
+-- Delta X VNG Mobile / Executor Compatible - Fixed Version
+
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+local SoundService = game:GetService("SoundService")
+local HttpService = game:GetService("HttpService")
+local Stats = game:GetService("Stats")
+
+-- Xóa GUI cũ nếu đang tồn tại
+if CoreGui:FindFirstChild("LightMenuUI") then
+    CoreGui.LightMenuUI:Destroy()
+end
+
+-- ==================== BẢNG MÀU PASTEL CUTE ====================
+local THEME = {
+    MainBg = Color3.fromRGB(255, 240, 243),
+    ContainerBg = Color3.fromRGB(255, 250, 250),
+    ButtonBg = Color3.fromRGB(255, 226, 230),
+    ButtonHover = Color3.fromRGB(255, 200, 210),
+    TextDark = Color3.fromRGB(115, 75, 85),
+    TextLight = Color3.fromRGB(255, 255, 255),
+    Border = Color3.fromRGB(245, 175, 190),
+    Accent = Color3.fromRGB(235, 130, 155),
+    Active = Color3.fromRGB(140, 210, 150),
+    Inactive = Color3.fromRGB(240, 120, 120)
+}
+
+local ASSET_IMAGE_ID = "rbxassetid://122639878233150"
+
+-- ==================== SAVE / LOAD SYSTEM ====================
+local SAVE_FILE_NAME = "LightMenuUI_Config.json"
+_G.SavedMusicID = _G.SavedMusicID or {}
+_G.MusicLoopEnabled = _G.MusicLoopEnabled or false
+_G.MusicVolume = _G.MusicVolume or 50
+_G.MusicSpeed = _G.MusicSpeed or 1.0
+
+local function SaveSettings()
+    local data = {
+        SavedMusicID = _G.SavedMusicID,
+        MusicLoopEnabled = _G.MusicLoopEnabled,
+        MusicVolume = _G.MusicVolume,
+        MusicSpeed = _G.MusicSpeed
+    }
+    pcall(function()
+        if writefile then writefile(SAVE_FILE_NAME, HttpService:JSONEncode(data)) end
+    end)
+end
+
+local function LoadSettings()
+    pcall(function()
+        if readfile and isfile and isfile(SAVE_FILE_NAME) then
+            local decoded = HttpService:JSONDecode(readfile(SAVE_FILE_NAME))
+            if decoded then
+                if decoded.SavedMusicID then _G.SavedMusicID = decoded.SavedMusicID end
+                if decoded.MusicLoopEnabled ~= nil then _G.MusicLoopEnabled = decoded.MusicLoopEnabled end
+                if decoded.MusicVolume then _G.MusicVolume = decoded.MusicVolume end
+                if decoded.MusicSpeed then _G.MusicSpeed = decoded.MusicSpeed end
+            end
+        end
+    end)
+end
+LoadSettings()
+
+-- ==================== SCREEN GUI & GLOBAL VARS ====================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LightMenuUI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local EspFolder = Instance.new("Folder")
+EspFolder.Name = "LightESP_Folder"
+EspFolder.Parent = ScreenGui
+
+local EspNpcFolder = Instance.new("Folder")
+EspNpcFolder.Name = "LightESP_NPC_Folder"
+EspNpcFolder.Parent = ScreenGui
+
+-- ==================== UTILITY FUNCTIONS ====================
+local function CreateCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 12)
+    corner.Parent = parent
+    return corner
+end
+
+local function CreateStroke(parent, thickness, color)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color or THEME.Border
+    stroke.Thickness = thickness or 1.5
+    stroke.Transparency = 0
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = parent
+    return stroke
+end
+
+local function FormatTime(seconds)
+    if not seconds or seconds ~= seconds or seconds <= 0 then return "00:00" end
+    local mins = math.floor(seconds / 60)
+    local secs = math.floor(seconds % 60)
+    return string.format("%02d:%02d", mins, secs)
+end
+
+-- ==================== HUD STATS FRAME ====================
+local HudFrame = Instance.new("Frame")
+HudFrame.Name = "HudFrame"
+HudFrame.Size = UDim2.new(0, 220, 0, 38)
+HudFrame.AnchorPoint = Vector2.new(0.5, 0)
+HudFrame.Position = UDim2.new(0.5, 0, 0, 15)
+HudFrame.BackgroundColor3 = THEME.MainBg
+HudFrame.BackgroundTransparency = 0.1
+HudFrame.BorderSizePixel = 0
+HudFrame.Parent = ScreenGui
+
+CreateCorner(HudFrame, 12)
+CreateStroke(HudFrame, 1.5, THEME.Border)
+
+local HudTitle = Instance.new("TextLabel")
+HudTitle.Size = UDim2.new(1, -12, 0, 14)
+HudTitle.Position = UDim2.new(0, 8, 0, 4)
+HudTitle.BackgroundTransparency = 1
+HudTitle.Text = "🌸 SYSTEM STATS 🌸"
+HudTitle.TextColor3 = THEME.TextDark
+HudTitle.TextSize = 10
+HudTitle.Font = Enum.Font.FredokaOne
+HudTitle.TextXAlignment = Enum.TextXAlignment.Center
+HudTitle.Parent = HudFrame
+
+local HudInfoLabel = Instance.new("TextLabel")
+HudInfoLabel.Size = UDim2.new(1, -12, 0, 14)
+HudInfoLabel.Position = UDim2.new(0, 8, 0, 18)
+HudInfoLabel.BackgroundTransparency = 1
+HudInfoLabel.Text = "Ping: 0 ms  •  VN: 00:00:00"
+HudInfoLabel.TextColor3 = THEME.Accent
+HudInfoLabel.TextSize = 11
+HudInfoLabel.Font = Enum.Font.FredokaOne
+HudInfoLabel.TextXAlignment = Enum.TextXAlignment.Center
+HudInfoLabel.Parent = HudFrame
+
+task.spawn(function()
+    while task.wait(0.5) do
+        local pingVal = 0
+        pcall(function() pingVal = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
+        if pingVal == 0 then pingVal = math.floor(Workspace:GetRealPhysicalResponseTime() * 1000) end
+        local timeTable = os.date("!*t", os.time() + (7 * 3600))
+        HudInfoLabel.Text = string.format("Ping: %d ms  •  VN: %02d:%02d:%02d", pingVal, timeTable.hour, timeTable.min, timeTable.sec)
+    end
+end)
+
+-- ==================== OPEN BUTTON ====================
+local OpenBtn = Instance.new("ImageButton")
+OpenBtn.Name = "OpenBtn"
+OpenBtn.Size = UDim2.new(0, 52, 0, 52)
+OpenBtn.Position = UDim2.new(0.035, 0, 0.12, 0)
+OpenBtn.BackgroundColor3 = THEME.MainBg
+OpenBtn.Image = ASSET_IMAGE_ID
+OpenBtn.Active = true
+OpenBtn.Draggable = true
+OpenBtn.Parent = ScreenGui
+CreateCorner(OpenBtn, 100)
+CreateStroke(OpenBtn, 2, THEME.Border)
+
+-- ==================== MAIN MENU FRAME ====================
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 520, 0, 365)
+MainFrame.Position = UDim2.new(0.5, -260, 0.42, -180)
+MainFrame.BackgroundColor3 = THEME.MainBg
+MainFrame.BackgroundTransparency = 0.05
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
+CreateCorner(MainFrame, 16)
+CreateStroke(MainFrame, 2, THEME.Border)
+
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+local MascotImg = Instance.new("ImageLabel")
+MascotImg.Size = UDim2.new(0, 26, 0, 26)
+MascotImg.Position = UDim2.new(0, 10, 0, 4)
+MascotImg.BackgroundTransparency = 1
+MascotImg.Image = ASSET_IMAGE_ID
+MascotImg.Parent = MainFrame
+CreateCorner(MascotImg, 100)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 65, 0, 25)
+Title.Position = UDim2.new(0, 40, 0, 4)
+Title.BackgroundTransparency = 1
+Title.Text = "ライト"
+Title.TextColor3 = THEME.Accent
+Title.TextSize = 18
+Title.Font = Enum.Font.FredokaOne
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+local VersionLabel = Instance.new("TextLabel")
+VersionLabel.Size = UDim2.new(0, 110, 0, 20)
+VersionLabel.Position = UDim2.new(0, 105, 0, 7)
+VersionLabel.BackgroundTransparency = 1
+VersionLabel.Text = "[raito] V3.0 Cute"
+VersionLabel.TextColor3 = THEME.TextDark
+VersionLabel.TextSize = 11
+VersionLabel.Font = Enum.Font.FredokaOne
+VersionLabel.TextXAlignment = Enum.TextXAlignment.Left
+VersionLabel.Parent = MainFrame
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -33, 0, 4)
+CloseBtn.BackgroundColor3 = THEME.ButtonBg
+CloseBtn.Text = "✖"
+CloseBtn.TextColor3 = THEME.Inactive
+CloseBtn.TextSize = 14
+CloseBtn.Font = Enum.Font.FredokaOne
+CloseBtn.AutoButtonColor = false
+CloseBtn.Parent = MainFrame
+CreateCorner(CloseBtn, 8)
+CreateStroke(CloseBtn, 1, THEME.Border)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+local MarqueeFrame = Instance.new("Frame")
+MarqueeFrame.Size = UDim2.new(1, -24, 0, 20)
+MarqueeFrame.Position = UDim2.new(0, 12, 0, 32)
+MarqueeFrame.BackgroundColor3 = THEME.ContainerBg
+MarqueeFrame.ClipsDescendants = true
+MarqueeFrame.Parent = MainFrame
+CreateCorner(MarqueeFrame, 8)
+CreateStroke(MarqueeFrame, 1, THEME.Border)
+
+local MarqueeLabel = Instance.new("TextLabel")
+MarqueeLabel.Size = UDim2.new(0, 350, 1, 0)
+MarqueeLabel.Position = UDim2.new(1, 0, 0, 0)
+MarqueeLabel.BackgroundTransparency = 1
+MarqueeLabel.Text = "🌸 menu thuộc bản quyền của ライト [ raito ] 🌸"
+MarqueeLabel.TextColor3 = THEME.TextDark
+MarqueeLabel.TextSize = 11
+MarqueeLabel.Font = Enum.Font.FredokaOne
+MarqueeLabel.TextXAlignment = Enum.TextXAlignment.Left
+MarqueeLabel.Parent = MarqueeFrame
+
+task.spawn(function()
+    local pos = 1.0
+    while task.wait(0.02) do
+        pos = pos - 0.005
+        if pos < -0.7 then pos = 1.0 end
+        MarqueeLabel.Position = UDim2.new(pos, 0, 0, 0)
+    end
+end)
+
+-- ==================== TAB BUTTONS AREA ====================
+local TabHolder = Instance.new("Frame")
+TabHolder.Size = UDim2.new(0, 110, 1, -65)
+TabHolder.Position = UDim2.new(0, 10, 0, 60)
+TabHolder.BackgroundTransparency = 1
+TabHolder.Parent = MainFrame
+
+local TabListLayout = Instance.new("UIListLayout")
+TabListLayout.Parent = TabHolder
+TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabListLayout.Padding = UDim.new(0, 6)
+
+local function CreateTabButton(name)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 32)
+    btn.BackgroundColor3 = THEME.ButtonBg
+    btn.Text = name
+    btn.TextColor3 = THEME.TextDark
+    btn.TextSize = 11
+    btn.Font = Enum.Font.FredokaOne
+    btn.AutoButtonColor = false
+    btn.Parent = TabHolder
+    CreateCorner(btn, 10)
+    CreateStroke(btn, 1, THEME.Border)
+    return btn
+end
+
+local HomeTabBtn = CreateTabButton("🏠 Home")
+local GraphicTabBtn = CreateTabButton("🖼️ Độ Họa")
+local OtherTabBtn = CreateTabButton("⚙️ Chức Năng Khác")
+local AuraTabBtn = CreateTabButton("✨ AuRa")
+local MusicTabBtn = CreateTabButton("🎵 Music")
+local SettingsTabBtn = CreateTabButton("🛠️ Cài Đặt")
+
+-- ==================== CONTENT CONTAINERS ====================
+local HomeContent = Instance.new("Frame")
+HomeContent.Size = UDim2.new(1, -135, 1, -65)
+HomeContent.Position = UDim2.new(0, 125, 0, 60)
+HomeContent.BackgroundTransparency = 1
+HomeContent.Visible = true
+HomeContent.Parent = MainFrame
+
+local GraphicContent = Instance.new("Frame")
+GraphicContent.Size = UDim2.new(1, -135, 1, -65)
+GraphicContent.Position = UDim2.new(0, 125, 0, 60)
+GraphicContent.BackgroundTransparency = 1
+GraphicContent.Visible = false
+GraphicContent.Parent = MainFrame
+
+local OtherContent = Instance.new("Frame")
+OtherContent.Size = UDim2.new(1, -135, 1, -65)
+OtherContent.Position = UDim2.new(0, 125, 0, 60)
+OtherContent.BackgroundTransparency = 1
+OtherContent.Visible = false
+OtherContent.Parent = MainFrame
+
+local AuraContent = Instance.new("Frame")
+AuraContent.Size = UDim2.new(1, -135, 1, -65)
+AuraContent.Position = UDim2.new(0, 125, 0, 60)
+AuraContent.BackgroundTransparency = 1
+AuraContent.Visible = false
+AuraContent.Parent = MainFrame
+
+local MusicContent = Instance.new("Frame")
+MusicContent.Size = UDim2.new(1, -135, 1, -65)
+MusicContent.Position = UDim2.new(0, 125, 0, 60)
+MusicContent.BackgroundTransparency = 1
+MusicContent.Visible = false
+MusicContent.Parent = MainFrame
+
+local SettingsContent = Instance.new("Frame")
+SettingsContent.Size = UDim2.new(1, -135, 1, -65)
+SettingsContent.Position = UDim2.new(0, 125, 0, 60)
+SettingsContent.BackgroundTransparency = 1
+SettingsContent.Visible = false
+SettingsContent.Parent = MainFrame
+
+local function SwitchTab(activeTab)
+    HomeContent.Visible = (activeTab == HomeContent)
+    GraphicContent.Visible = (activeTab == GraphicContent)
+    OtherContent.Visible = (activeTab == OtherContent)
+    AuraContent.Visible = (activeTab == AuraContent)
+    MusicContent.Visible = (activeTab == MusicContent)
+    SettingsContent.Visible = (activeTab == SettingsContent)
+end
+
+HomeTabBtn.MouseButton1Click:Connect(function() SwitchTab(HomeContent) end)
+GraphicTabBtn.MouseButton1Click:Connect(function() SwitchTab(GraphicContent) end)
+OtherTabBtn.MouseButton1Click:Connect(function() SwitchTab(OtherContent) end)
+AuraTabBtn.MouseButton1Click:Connect(function() SwitchTab(AuraContent) end)
+MusicTabBtn.MouseButton1Click:Connect(function() SwitchTab(MusicContent) end)
+SettingsTabBtn.MouseButton1Click:Connect(function() SwitchTab(SettingsContent) end)
+
+-- UI Creators Utility
+local function CreateCol1Button(parent, text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -4, 0, 28)
+    btn.BackgroundColor3 = THEME.ButtonBg
+    btn.Text = "🐾 " .. text
+    btn.TextColor3 = THEME.TextDark
+    btn.TextSize = 11
+    btn.Font = Enum.Font.FredokaOne
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.AutoButtonColor = false
+    btn.Parent = parent
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 9)
+    padding.Parent = btn
+    CreateCorner(btn, 8)
+    CreateStroke(btn, 1, THEME.Border)
+    return btn
+end
+
+local function CreateCol2Button(parent, text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -4, 0, 28)
+    btn.BackgroundColor3 = THEME.ButtonBg
+    btn.Text = "🎀 " .. text
+    btn.TextColor3 = THEME.TextDark
+    btn.TextSize = 11
+    btn.Font = Enum.Font.FredokaOne
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.AutoButtonColor = false
+    btn.Parent = parent
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 9)
+    padding.Parent = btn
+    CreateCorner(btn, 8)
+    CreateStroke(btn, 1, THEME.Border)
+    return btn
+end
+
+local function CreateAdjuster(parent, titleText, defaultValue)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -4, 0, 27)
+    frame.BackgroundColor3 = THEME.ContainerBg
+    frame.Parent = parent
+    CreateCorner(frame, 8)
+    CreateStroke(frame, 1, THEME.Border)
+
+    local minusBtn = Instance.new("TextButton")
+    minusBtn.Size = UDim2.new(0, 25, 1, 0)
+    minusBtn.BackgroundColor3 = THEME.ButtonBg
+    minusBtn.Text = "-"
+    minusBtn.TextColor3 = THEME.TextDark
+    minusBtn.Font = Enum.Font.FredokaOne
+    minusBtn.Parent = frame
+    CreateCorner(minusBtn, 6)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -54, 1, 0)
+    label.Position = UDim2.new(0, 27, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = titleText .. ": " .. tostring(defaultValue)
+    label.TextColor3 = THEME.TextDark
+    label.TextSize = 10
+    label.Font = Enum.Font.FredokaOne
+    label.Parent = frame
+
+    local plusBtn = Instance.new("TextButton")
+    plusBtn.Size = UDim2.new(0, 25, 1, 0)
+    plusBtn.Position = UDim2.new(1, -25, 0, 0)
+    plusBtn.BackgroundColor3 = THEME.ButtonBg
+    plusBtn.Text = "+"
+    plusBtn.TextColor3 = THEME.TextDark
+    plusBtn.Font = Enum.Font.FredokaOne
+    plusBtn.Parent = frame
+    CreateCorner(plusBtn, 6)
+
+    return frame, minusBtn, plusBtn, label
+end
+
+local function CreateSelectPlayerButton(parent, text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -4, 0, 25)
+    btn.BackgroundColor3 = THEME.ContainerBg
+    btn.Text = text
+    btn.TextColor3 = THEME.Accent
+    btn.TextSize = 11
+    btn.Font = Enum.Font.FredokaOne
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.AutoButtonColor = false
+    btn.Parent = parent
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 9)
+    padding.Parent = btn
+    CreateCorner(btn, 6)
+    CreateStroke(btn, 1, THEME.Border)
+    return btn
+end
+
+-- ==================== HOME TAB CONTENT ====================
+local HomeScroll = Instance.new("ScrollingFrame")
+HomeScroll.Size = UDim2.new(1, 0, 1, 0)
+HomeScroll.BackgroundTransparency = 1
+HomeScroll.BorderSizePixel = 0
+HomeScroll.ScrollBarThickness = 3
+HomeScroll.ScrollBarImageColor3 = THEME.Border
+HomeScroll.CanvasSize = UDim2.new(0, 0, 0, 8 * 33)
+HomeScroll.Parent = HomeContent
+
+local HomeLayout = Instance.new("UIListLayout")
+HomeLayout.Parent = HomeScroll
+HomeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+HomeLayout.Padding = UDim.new(0, 5)
+
+CreateCol1Button(HomeScroll, "Noclip: OFF")
+CreateCol1Button(HomeScroll, "Flyjump: OFF")
+CreateCol1Button(HomeScroll, "ESP: OFF")
+CreateCol1Button(HomeScroll, "Xray: OFF")
+CreateCol1Button(HomeScroll, "Sit: OFF")
+CreateCol1Button(HomeScroll, "Spin: OFF")
+CreateCol1Button(HomeScroll, "Ghost")
+CreateCol1Button(HomeScroll, "ESP NPC: OFF")
+
+-- ==================== ĐỘ HỌA TAB ====================
+local GraphicScroll = Instance.new("ScrollingFrame")
+GraphicScroll.Size = UDim2.new(1, 0, 1, 0)
+GraphicScroll.BackgroundTransparency = 1
+GraphicScroll.BorderSizePixel = 0
+GraphicScroll.ScrollBarThickness = 3
+GraphicScroll.ScrollBarImageColor3 = THEME.Border
+GraphicScroll.CanvasSize = UDim2.new(0, 0, 0, 3 * 33)
+GraphicScroll.Parent = GraphicContent
+
+local GraphicLayout = Instance.new("UIListLayout")
+GraphicLayout.Parent = GraphicScroll
+GraphicLayout.SortOrder = Enum.SortOrder.LayoutOrder
+GraphicLayout.Padding = UDim.new(0, 5)
+
+CreateCol1Button(GraphicScroll, "Làm Sáng: OFF")
+CreateCol1Button(GraphicScroll, "Fix Lag: OFF")
+CreateCol1Button(GraphicScroll, "Shader: OFF")
+
+-- ==================== CHỨC NĂNG KHÁC TAB ====================
+local OtherCol1 = Instance.new("ScrollingFrame")
+OtherCol1.Size = UDim2.new(0.485, 0, 1, 0)
+OtherCol1.Position = UDim2.new(0, 0, 0, 0)
+OtherCol1.BackgroundTransparency = 1
+OtherCol1.BorderSizePixel = 0
+OtherCol1.ScrollBarThickness = 3
+OtherCol1.ScrollBarImageColor3 = THEME.Border
+OtherCol1.CanvasSize = UDim2.new(0, 0, 0, 10 * 33)
+OtherCol1.Parent = OtherContent
+
+local LayoutOtherCol1 = Instance.new("UIListLayout")
+LayoutOtherCol1.Parent = OtherCol1
+LayoutOtherCol1.SortOrder = Enum.SortOrder.LayoutOrder
+LayoutOtherCol1.Padding = UDim.new(0, 5)
+
+local OtherCol2 = Instance.new("ScrollingFrame")
+OtherCol2.Size = UDim2.new(0.485, 0, 1, 0)
+OtherCol2.Position = UDim2.new(0.515, 0, 0, 0)
+OtherCol2.BackgroundTransparency = 1
+OtherCol2.BorderSizePixel = 0
+OtherCol2.ScrollBarThickness = 3
+OtherCol2.ScrollBarImageColor3 = THEME.Border
+OtherCol2.CanvasSize = UDim2.new(0, 0, 0, 9 * 33)
+OtherCol2.Parent = OtherContent
+
+local LayoutOtherCol2 = Instance.new("UIListLayout")
+LayoutOtherCol2.Parent = OtherCol2
+LayoutOtherCol2.SortOrder = Enum.SortOrder.LayoutOrder
+LayoutOtherCol2.Padding = UDim.new(0, 5)
+
+CreateCol1Button(OtherCol1, "Fly: OFF")
+CreateAdjuster(OtherCol1, "Fly Speed", 1)
+CreateCol1Button(OtherCol1, "Speed: OFF")
+CreateAdjuster(OtherCol1, "Speed", 50)
+CreateCol1Button(OtherCol1, "Jump: OFF")
+CreateAdjuster(OtherCol1, "Jump Power", 50)
+CreateCol1Button(OtherCol1, "Kill: OFF")
+CreateSelectPlayerButton(OtherCol1, "[ KILL: CHỌN PLAYER ]")
+CreateCol1Button(OtherCol1, "Kill With A Sword: OFF")
+CreateSelectPlayerButton(OtherCol1, "[ SWORD: RANDOM PLAYER ]")
+
+CreateCol2Button(OtherCol2, "Bám onii chan: OFF")
+CreateSelectPlayerButton(OtherCol2, "[ CHỌN PLAYER ]")
+CreateCol2Button(OtherCol2, "Teleport Đến Player")
+CreateSelectPlayerButton(OtherCol2, "[ CHỌN PLAYER ]")
+CreateCol2Button(OtherCol2, "View Camera: OFF")
+CreateSelectPlayerButton(OtherCol2, "[ CHỌN PLAYER ]")
+CreateCol2Button(OtherCol2, "Aim Lock: OFF")
+CreateSelectPlayerButton(OtherCol2, "[ AIM: GẦN NHẤT ]")
+CreateAdjuster(OtherCol2, "FOV Radius", 150)
+
+-- ==================== AURA TAB CONTENT ====================
+local AuraScroll = Instance.new("ScrollingFrame")
+AuraScroll.Size = UDim2.new(1, 0, 1, 0)
+AuraScroll.BackgroundTransparency = 1
+AuraScroll.BorderSizePixel = 0
+AuraScroll.ScrollBarThickness = 3
+AuraScroll.ScrollBarImageColor3 = THEME.Border
+AuraScroll.CanvasSize = UDim2.new(0, 0, 0, 3 * 33)
+AuraScroll.Parent = AuraContent
+
+local AuraLayout = Instance.new("UIListLayout")
+AuraLayout.Parent = AuraScroll
+AuraLayout.SortOrder = Enum.SortOrder.LayoutOrder
+AuraLayout.Padding = UDim.new(0, 5)
+
+CreateCol1Button(AuraScroll, "Fram Aura: OFF")
+local SelectAuraBtn = CreateCol1Button(AuraScroll, "Chọn Aura")
+SelectAuraBtn.TextColor3 = THEME.Accent
+local AuraLabel = Instance.new("TextLabel")
+AuraLabel.Size = UDim2.new(1, -4, 0, 25)
+AuraLabel.BackgroundColor3 = THEME.ContainerBg
+AuraLabel.Text = "Aura hiện tại: Chưa chọn"
+AuraLabel.TextColor3 = THEME.TextDark
+AuraLabel.Font = Enum.Font.FredokaOne
+AuraLabel.TextSize = 11
+AuraLabel.Parent = AuraScroll
+CreateCorner(AuraLabel, 6)
+
+-- ==================== SETTINGS TAB CONTENT ====================
+local SettingsScroll = Instance.new("ScrollingFrame")
+SettingsScroll.Size = UDim2.new(1, 0, 1, 0)
+SettingsScroll.BackgroundTransparency = 1
+SettingsScroll.BorderSizePixel = 0
+SettingsScroll.ScrollBarThickness = 3
+SettingsScroll.ScrollBarImageColor3 = THEME.Border
+SettingsScroll.CanvasSize = UDim2.new(0, 0, 0, 2 * 33)
+SettingsScroll.Parent = SettingsContent
+
+local SettingsLayout = Instance.new("UIListLayout")
+SettingsLayout.Parent = SettingsScroll
+SettingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SettingsLayout.Padding = UDim.new(0, 5)
+
+local ESPModeBtn = CreateCol1Button(SettingsScroll, "ESP: Mặc định")
+ESPModeBtn.TextColor3 = THEME.Active
+local UIDBtn = CreateCol1Button(SettingsScroll, "UID: ON")
+UIDBtn.TextColor3 = THEME.Active
+
+-- ==================== MUSIC CONTENT ====================
+local MusicScroll = Instance.new("ScrollingFrame")
+MusicScroll.Size = UDim2.new(1, 0, 1, 0)
+MusicScroll.BackgroundTransparency = 1
+MusicScroll.BorderSizePixel = 0
+MusicScroll.ScrollBarThickness = 3
+MusicScroll.ScrollBarImageColor3 = THEME.Border
+MusicScroll.CanvasSize = UDim2.new(0, 0, 0, 255)
+MusicScroll.Parent = MusicContent
+
+local MusicLayout = Instance.new("UIListLayout")
+MusicLayout.Parent = MusicScroll
+MusicLayout.SortOrder = Enum.SortOrder.LayoutOrder
+MusicLayout.Padding = UDim.new(0, 5)
+
+local MusicIDInput = Instance.new("TextBox")
+MusicIDInput.Size = UDim2.new(1, -4, 0, 30)
+MusicIDInput.BackgroundColor3 = THEME.ContainerBg
+MusicIDInput.PlaceholderText = "<Mã số âm thanh>"
+MusicIDInput.Text = ""
+MusicIDInput.TextColor3 = THEME.TextDark
+MusicIDInput.Font = Enum.Font.FredokaOne
+MusicIDInput.TextSize = 12
+MusicIDInput.Parent = MusicScroll
+CreateCorner(MusicIDInput, 8)
+CreateStroke(MusicIDInput, 1, THEME.Border)
+
+local MusicInfoLabel = Instance.new("TextLabel")
+MusicInfoLabel.Size = UDim2.new(1, -4, 0, 20)
+MusicInfoLabel.BackgroundColor3 = THEME.ContainerBg
+MusicInfoLabel.Text = "Chưa chọn nhạc"
+MusicInfoLabel.TextColor3 = THEME.Accent
+MusicInfoLabel.Font = Enum.Font.FredokaOne
+MusicInfoLabel.TextSize = 11
+MusicInfoLabel.Parent = MusicScroll
+CreateCorner(MusicInfoLabel, 6)
+
+local MusicTimeLabel = Instance.new("TextLabel")
+MusicTimeLabel.Size = UDim2.new(1, -4, 0, 18)
+MusicTimeLabel.BackgroundColor3 = THEME.ContainerBg
+MusicTimeLabel.Text = "Thời lượng: 00:00 / 00:00"
+MusicTimeLabel.TextColor3 = THEME.TextDark
+MusicTimeLabel.Font = Enum.Font.FredokaOne
+MusicTimeLabel.TextSize = 10
+MusicTimeLabel.Parent = MusicScroll
+CreateCorner(MusicTimeLabel, 6)
+
+local MusicBtnRow1 = Instance.new("Frame")
+MusicBtnRow1.Size = UDim2.new(1, -4, 0, 30)
+MusicBtnRow1.BackgroundTransparency = 1
+MusicBtnRow1.Parent = MusicScroll
+
+local MusicPlayBtn = Instance.new("TextButton")
+MusicPlayBtn.Size = UDim2.new(0.48, 0, 1, 0)
+MusicPlayBtn.Position = UDim2.new(0, 0, 0, 0)
+MusicPlayBtn.BackgroundColor3 = THEME.ButtonBg
+MusicPlayBtn.Text = "playing"
+MusicPlayBtn.TextColor3 = THEME.Active
+MusicPlayBtn.Font = Enum.Font.FredokaOne
+MusicPlayBtn.TextSize = 12
+MusicPlayBtn.Parent = MusicBtnRow1
+CreateCorner(MusicPlayBtn, 8)
+CreateStroke(MusicPlayBtn, 1, THEME.Border)
+
+local SaveIDBtn = Instance.new("TextButton")
+SaveIDBtn.Size = UDim2.new(0.48, 0, 1, 0)
+SaveIDBtn.Position = UDim2.new(0.52, 0, 0, 0)
+SaveIDBtn.BackgroundColor3 = THEME.ButtonBg
+SaveIDBtn.Text = "Lưu ID"
+SaveIDBtn.TextColor3 = THEME.TextDark
+SaveIDBtn.Font = Enum.Font.FredokaOne
+SaveIDBtn.TextSize = 12
+SaveIDBtn.Parent = MusicBtnRow1
+CreateCorner(SaveIDBtn, 8)
+CreateStroke(SaveIDBtn, 1, THEME.Border)
+
+local LoopBtn = Instance.new("TextButton")
+LoopBtn.Size = UDim2.new(1, -4, 0, 28)
+LoopBtn.BackgroundColor3 = THEME.ButtonBg
+LoopBtn.Text = _G.MusicLoopEnabled and "Lặp lại: BẬT" or "Lặp lại: TẮT"
+LoopBtn.TextColor3 = _G.MusicLoopEnabled and THEME.Active or THEME.Inactive
+LoopBtn.Font = Enum.Font.FredokaOne
+LoopBtn.TextSize = 11
+LoopBtn.Parent = MusicScroll
+CreateCorner(LoopBtn, 8)
+CreateStroke(LoopBtn, 1, THEME.Border)
+
+local SpeedFrame = Instance.new("Frame")
+SpeedFrame.Size = UDim2.new(1, -4, 0, 28)
+SpeedFrame.BackgroundColor3 = THEME.ContainerBg
+SpeedFrame.Parent = MusicScroll
+CreateCorner(SpeedFrame, 8)
+CreateStroke(SpeedFrame, 1, THEME.Border)
+
+local MusicSpeedMinusBtn = Instance.new("TextButton")
+MusicSpeedMinusBtn.Size = UDim2.new(0, 25, 1, 0)
+MusicSpeedMinusBtn.BackgroundColor3 = THEME.ButtonBg
+MusicSpeedMinusBtn.Text = "-"
+MusicSpeedMinusBtn.TextColor3 = THEME.TextDark
+MusicSpeedMinusBtn.Font = Enum.Font.FredokaOne
+MusicSpeedMinusBtn.Parent = SpeedFrame
+CreateCorner(MusicSpeedMinusBtn, 6)
+
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size = UDim2.new(1, -54, 1, 0)
+SpeedLabel.Position = UDim2.new(0, 27, 0, 0)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "Tốc độ: " .. string.format("%.1f", _G.MusicSpeed)
+SpeedLabel.TextColor3 = THEME.TextDark
+SpeedLabel.TextSize = 10
+SpeedLabel.Font = Enum.Font.FredokaOne
+SpeedLabel.Parent = SpeedFrame
+
+local MusicSpeedPlusBtn = Instance.new("TextButton")
+MusicSpeedPlusBtn.Size = UDim2.new(0, 25, 1, 0)
+MusicSpeedPlusBtn.Position = UDim2.new(1, -25, 0, 0)
+MusicSpeedPlusBtn.BackgroundColor3 = THEME.ButtonBg
+MusicSpeedPlusBtn.Text = "+"
+MusicSpeedPlusBtn.TextColor3 = THEME.TextDark
+MusicSpeedPlusBtn.Font = Enum.Font.FredokaOne
+MusicSpeedPlusBtn.Parent = SpeedFrame
+CreateCorner(MusicSpeedPlusBtn, 6)
+
+MusicSpeedMinusBtn.MouseButton1Click:Connect(function()
+    _G.MusicSpeed = math.clamp(_G.MusicSpeed - 0.1, 0.5, 2.0)
+    SpeedLabel.Text = "Tốc độ: " .. string.format("%.1f", _G.MusicSpeed)
+    SaveSettings()
+end)
+
+MusicSpeedPlusBtn.MouseButton1Click:Connect(function()
+    _G.MusicSpeed = math.clamp(_G.MusicSpeed + 0.1, 0.5, 2.0)
+    SpeedLabel.Text = "Tốc độ: " .. string.format("%.1f", _G.MusicSpeed)
+    SaveSettings()
+end)
+
+print("🌸 LightMenuUI Loaded Successfully! 🌸")
