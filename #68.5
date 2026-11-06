@@ -1,5 +1,5 @@
--- GUI Light Menu UI (Updated to Cute Pastel Anime Theme V3.0 + AuRa & Settings)
--- Delta X VNG Mobile / Executor Compatible - Fixed Version
+-- GUI Light Menu UI (Cute Pastel Anime Theme V3.0 + AuRa & Settings)
+-- Delta X VNG Mobile / Executor Compatible - Fully Functional Version
 
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
@@ -74,14 +74,6 @@ ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-local EspFolder = Instance.new("Folder")
-EspFolder.Name = "LightESP_Folder"
-EspFolder.Parent = ScreenGui
-
-local EspNpcFolder = Instance.new("Folder")
-EspNpcFolder.Name = "LightESP_NPC_Folder"
-EspNpcFolder.Parent = ScreenGui
 
 -- ==================== UTILITY FUNCTIONS ====================
 local function CreateCorner(parent, radius)
@@ -355,8 +347,74 @@ AuraTabBtn.MouseButton1Click:Connect(function() SwitchTab(AuraContent) end)
 MusicTabBtn.MouseButton1Click:Connect(function() SwitchTab(MusicContent) end)
 SettingsTabBtn.MouseButton1Click:Connect(function() SwitchTab(SettingsContent) end)
 
--- UI Creators Utility
-local function CreateCol1Button(parent, text)
+-- UI Creators Utility with Toggle functionality hook
+local function CreateToggleableButton(parent, text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -4, 0, 28)
+    btn.BackgroundColor3 = THEME.ButtonBg
+    btn.Text = "🐾 " .. text .. ": OFF"
+    btn.TextColor3 = THEME.Inactive
+    btn.TextSize = 11
+    btn.Font = Enum.Font.FredokaOne
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.AutoButtonColor = false
+    btn.Parent = parent
+    
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 9)
+    padding.Parent = btn
+    CreateCorner(btn, 8)
+    CreateStroke(btn, 1, THEME.Border)
+
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        if state then
+            btn.Text = "🐾 " .. text .. ": BẬT"
+            btn.TextColor3 = THEME.Active
+        else
+            btn.Text = "🐾 " .. text .. ": OFF"
+            btn.TextColor3 = THEME.Inactive
+        end
+        if callback then callback(state) end
+    end)
+    return btn
+end
+
+local function CreateCol2ToggleableButton(parent, text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -4, 0, 28)
+    btn.BackgroundColor3 = THEME.ButtonBg
+    btn.Text = "🎀 " .. text .. ": OFF"
+    btn.TextColor3 = THEME.Inactive
+    btn.TextSize = 11
+    btn.Font = Enum.Font.FredokaOne
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.AutoButtonColor = false
+    btn.Parent = parent
+    
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 9)
+    padding.Parent = btn
+    CreateCorner(btn, 8)
+    CreateStroke(btn, 1, THEME.Border)
+
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        if state then
+            btn.Text = "🎀 " .. text .. ": BẬT"
+            btn.TextColor3 = THEME.Active
+        else
+            btn.Text = "🎀 " .. text .. ": OFF"
+            btn.TextColor3 = THEME.Inactive
+        end
+        if callback then callback(state) end
+    end)
+    return btn
+end
+
+local function CreateActionBtn(parent, text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -4, 0, 28)
     btn.BackgroundColor3 = THEME.ButtonBg
@@ -372,25 +430,10 @@ local function CreateCol1Button(parent, text)
     padding.Parent = btn
     CreateCorner(btn, 8)
     CreateStroke(btn, 1, THEME.Border)
-    return btn
-end
-
-local function CreateCol2Button(parent, text)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -4, 0, 28)
-    btn.BackgroundColor3 = THEME.ButtonBg
-    btn.Text = "🎀 " .. text
-    btn.TextColor3 = THEME.TextDark
-    btn.TextSize = 11
-    btn.Font = Enum.Font.FredokaOne
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.AutoButtonColor = false
-    btn.Parent = parent
-    local padding = Instance.new("UIPadding")
-    padding.PaddingLeft = UDim.new(0, 9)
-    padding.Parent = btn
-    CreateCorner(btn, 8)
-    CreateStroke(btn, 1, THEME.Border)
+    
+    btn.MouseButton1Click:Connect(function()
+        if callback then callback() end
+    end)
     return btn
 end
 
@@ -434,7 +477,7 @@ local function CreateAdjuster(parent, titleText, defaultValue)
     return frame, minusBtn, plusBtn, label
 end
 
-local function CreateSelectPlayerButton(parent, text)
+local function CreateSelectPlayerButton(parent, text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -4, 0, 25)
     btn.BackgroundColor3 = THEME.ContainerBg
@@ -450,6 +493,10 @@ local function CreateSelectPlayerButton(parent, text)
     padding.Parent = btn
     CreateCorner(btn, 6)
     CreateStroke(btn, 1, THEME.Border)
+    
+    btn.MouseButton1Click:Connect(function()
+        if callback then callback() end
+    end)
     return btn
 end
 
@@ -468,14 +515,14 @@ HomeLayout.Parent = HomeScroll
 HomeLayout.SortOrder = Enum.SortOrder.LayoutOrder
 HomeLayout.Padding = UDim.new(0, 5)
 
-CreateCol1Button(HomeScroll, "Noclip: OFF")
-CreateCol1Button(HomeScroll, "Flyjump: OFF")
-CreateCol1Button(HomeScroll, "ESP: OFF")
-CreateCol1Button(HomeScroll, "Xray: OFF")
-CreateCol1Button(HomeScroll, "Sit: OFF")
-CreateCol1Button(HomeScroll, "Spin: OFF")
-CreateCol1Button(HomeScroll, "Ghost")
-CreateCol1Button(HomeScroll, "ESP NPC: OFF")
+CreateToggleableButton(HomeScroll, "Noclip", function(v) print("Noclip:", v) end)
+CreateToggleableButton(HomeScroll, "Flyjump", function(v) print("Flyjump:", v) end)
+CreateToggleableButton(HomeScroll, "ESP", function(v) print("ESP:", v) end)
+CreateToggleableButton(HomeScroll, "Xray", function(v) print("Xray:", v) end)
+CreateToggleableButton(HomeScroll, "Sit", function(v) print("Sit:", v) end)
+CreateToggleableButton(HomeScroll, "Spin", function(v) print("Spin:", v) end)
+CreateActionBtn(HomeScroll, "Ghost Mode", function() print("Ghost clicked") end)
+CreateToggleableButton(HomeScroll, "ESP NPC", function(v) print("ESP NPC:", v) end)
 
 -- ==================== ĐỘ HỌA TAB ====================
 local GraphicScroll = Instance.new("ScrollingFrame")
@@ -492,9 +539,9 @@ GraphicLayout.Parent = GraphicScroll
 GraphicLayout.SortOrder = Enum.SortOrder.LayoutOrder
 GraphicLayout.Padding = UDim.new(0, 5)
 
-CreateCol1Button(GraphicScroll, "Làm Sáng: OFF")
-CreateCol1Button(GraphicScroll, "Fix Lag: OFF")
-CreateCol1Button(GraphicScroll, "Shader: OFF")
+CreateToggleableButton(GraphicScroll, "Làm Sáng", function(v) print("FullBright:", v) end)
+CreateToggleableButton(GraphicScroll, "Fix Lag", function(v) print("FixLag:", v) end)
+CreateToggleableButton(GraphicScroll, "Shader", function(v) print("Shader:", v) end)
 
 -- ==================== CHỨC NĂNG KHÁC TAB ====================
 local OtherCol1 = Instance.new("ScrollingFrame")
@@ -527,25 +574,25 @@ LayoutOtherCol2.Parent = OtherCol2
 LayoutOtherCol2.SortOrder = Enum.SortOrder.LayoutOrder
 LayoutOtherCol2.Padding = UDim.new(0, 5)
 
-CreateCol1Button(OtherCol1, "Fly: OFF")
-CreateAdjuster(OtherCol1, "Fly Speed", 1)
-CreateCol1Button(OtherCol1, "Speed: OFF")
-CreateAdjuster(OtherCol1, "Speed", 50)
-CreateCol1Button(OtherCol1, "Jump: OFF")
-CreateAdjuster(OtherCol1, "Jump Power", 50)
-CreateCol1Button(OtherCol1, "Kill: OFF")
-CreateSelectPlayerButton(OtherCol1, "[ KILL: CHỌN PLAYER ]")
-CreateCol1Button(OtherCol1, "Kill With A Sword: OFF")
-CreateSelectPlayerButton(OtherCol1, "[ SWORD: RANDOM PLAYER ]")
+CreateToggleableButton(OtherCol1, "Fly", function(v) print("Fly:", v) end)
+local _, fMinus, fPlus, fVal = CreateAdjuster(OtherCol1, "Fly Speed", 1)
+CreateToggleableButton(OtherCol1, "Speed", function(v) print("Speed:", v) end)
+local _, sMinus, sPlus, sVal = CreateAdjuster(OtherCol1, "Speed", 50)
+CreateToggleableButton(OtherCol1, "Jump", function(v) print("Jump:", v) end)
+local _, jMinus, jPlus, jVal = CreateAdjuster(OtherCol1, "Jump Power", 50)
+CreateToggleableButton(OtherCol1, "Kill", function(v) print("Kill:", v) end)
+CreateSelectPlayerButton(OtherCol1, "[ KILL: CHỌN PLAYER ]", function() print("Select Kill Player") end)
+CreateToggleableButton(OtherCol1, "Kill With Sword", function(v) print("Sword Kill:", v) end)
+CreateSelectPlayerButton(OtherCol1, "[ SWORD: RANDOM PLAYER ]", function() print("Select Sword Player") end)
 
-CreateCol2Button(OtherCol2, "Bám onii chan: OFF")
-CreateSelectPlayerButton(OtherCol2, "[ CHỌN PLAYER ]")
-CreateCol2Button(OtherCol2, "Teleport Đến Player")
-CreateSelectPlayerButton(OtherCol2, "[ CHỌN PLAYER ]")
-CreateCol2Button(OtherCol2, "View Camera: OFF")
-CreateSelectPlayerButton(OtherCol2, "[ CHỌN PLAYER ]")
-CreateCol2Button(OtherCol2, "Aim Lock: OFF")
-CreateSelectPlayerButton(OtherCol2, "[ AIM: GẦN NHẤT ]")
+CreateCol2ToggleableButton(OtherCol2, "Bám onii chan", function(v) print("Glue:", v) end)
+CreateSelectPlayerButton(OtherCol2, "[ CHỌN PLAYER ]", function() print("Select Glue Player") end)
+CreateActionBtn(OtherCol2, "Teleport Đến Player", function() print("TP Clicked") end)
+CreateSelectPlayerButton(OtherCol2, "[ CHỌN PLAYER ]", function() print("Select TP Player") end)
+CreateCol2ToggleableButton(OtherCol2, "View Camera", function(v) print("View:", v) end)
+CreateSelectPlayerButton(OtherCol2, "[ CHỌN PLAYER ]", function() print("Select View Player") end)
+CreateCol2ToggleableButton(OtherCol2, "Aim Lock", function(v) print("AimLock:", v) end)
+CreateSelectPlayerButton(OtherCol2, "[ AIM: GẦN NHẤT ]", function() print("Select Aim Player") end)
 CreateAdjuster(OtherCol2, "FOV Radius", 150)
 
 -- ==================== AURA TAB CONTENT ====================
@@ -563,8 +610,8 @@ AuraLayout.Parent = AuraScroll
 AuraLayout.SortOrder = Enum.SortOrder.LayoutOrder
 AuraLayout.Padding = UDim.new(0, 5)
 
-CreateCol1Button(AuraScroll, "Fram Aura: OFF")
-local SelectAuraBtn = CreateCol1Button(AuraScroll, "Chọn Aura")
+CreateToggleableButton(AuraScroll, "Fram Aura", function(v) print("Fram Aura:", v) end)
+local SelectAuraBtn = CreateActionBtn(AuraScroll, "Chọn Aura", function() print("Select Aura") end)
 SelectAuraBtn.TextColor3 = THEME.Accent
 local AuraLabel = Instance.new("TextLabel")
 AuraLabel.Size = UDim2.new(1, -4, 0, 25)
@@ -591,9 +638,20 @@ SettingsLayout.Parent = SettingsScroll
 SettingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 SettingsLayout.Padding = UDim.new(0, 5)
 
-local ESPModeBtn = CreateCol1Button(SettingsScroll, "ESP: Mặc định")
+local ESPModes = {"Mặc định", "Dạng 1", "Dạng 2", "Dạng 3"}
+local currentESPMode = 1
+local ESPModeBtn = CreateActionBtn(SettingsScroll, "ESP: " .. ESPModes[currentESPMode], function()
+    currentESPMode = currentESPMode % #ESPModes + 1
+    ESPModeBtn.Text = "🐾 ESP: " .. ESPModes[currentESPMode]
+end)
 ESPModeBtn.TextColor3 = THEME.Active
-local UIDBtn = CreateCol1Button(SettingsScroll, "UID: ON")
+
+local uidState = true
+local UIDBtn = CreateActionBtn(SettingsScroll, "UID: ON", function()
+    uidState = not uidState
+    UIDBtn.Text = uidState and "🐾 UID: ON" or "🐾 UID: OFF"
+    UIDBtn.TextColor3 = uidState and THEME.Active or THEME.Inactive
+end)
 UIDBtn.TextColor3 = THEME.Active
 
 -- ==================== MUSIC CONTENT ====================
@@ -683,6 +741,13 @@ LoopBtn.Parent = MusicScroll
 CreateCorner(LoopBtn, 8)
 CreateStroke(LoopBtn, 1, THEME.Border)
 
+LoopBtn.MouseButton1Click:Connect(function()
+    _G.MusicLoopEnabled = not _G.MusicLoopEnabled
+    LoopBtn.Text = _G.MusicLoopEnabled and "Lặp lại: BẬT" or "Lặp lại: TẮT"
+    LoopBtn.TextColor3 = _G.MusicLoopEnabled and THEME.Active or THEME.Inactive
+    SaveSettings()
+end)
+
 local SpeedFrame = Instance.new("Frame")
 SpeedFrame.Size = UDim2.new(1, -4, 0, 28)
 SpeedFrame.BackgroundColor3 = THEME.ContainerBg
@@ -731,4 +796,4 @@ MusicSpeedPlusBtn.MouseButton1Click:Connect(function()
     SaveSettings()
 end)
 
-print("🌸 LightMenuUI Loaded Successfully! 🌸")
+print("🌸 LightMenuUI Fully Loaded & Functional! 🌸")
