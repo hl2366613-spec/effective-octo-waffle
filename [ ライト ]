@@ -1,5 +1,5 @@
 -- GUI Light Menu UI (Updated to Cute Pastel Anime Theme V3.5)
--- Full Features: ESP 4 Modes, Settings, Intro, Music
+-- Full Features: ESP 4 Modes (Highlight & Chams), Settings, Intro, Music
 -- Delta X VNG Mobile / Executor Compatible
 
 local CoreGui = game:GetService("CoreGui")
@@ -646,7 +646,7 @@ ESPModeBtn.Font = Enum.Font.FredokaOne
 ESPModeBtn.TextSize = 10
 CreateCorner(ESPModeBtn, 6)
 
-local espModeNames = {"Mặc định", "Dạng 1", "Dạng 2", "Dạng 3"}
+local espModeNames = {"Mặc định", "Dạng 1 (Viền)", "Dạng 2", "Dạng 3 (Trắng)"}
 local function UpdateESPModeText()
     ESPModeBtn.Text = espModeNames[_G.ESPMode]
 end
@@ -825,7 +825,10 @@ local isSpinning = false
 local ghostState = false
 local savedGhostCFrame = nil
 
--- Hàm Update ESP (Đã thêm 4 chế độ)
+-- Bộ lưu trữ màu gốc cho tính năng Chams (Dạng 3)
+local originalColors = {}
+
+-- Hàm dọn dẹp ESP và Chams
 local function ClearESP()
     for _, item in pairs(espObjects) do
         if item.Text then item.Text:Destroy() end
@@ -835,9 +838,18 @@ local function ClearESP()
         if item.BoxLeft then item.BoxLeft:Destroy() end
         if item.BoxRight then item.BoxRight:Destroy() end
         if item.HPBar then item.HPBar:Destroy() end
+        if item.Highlight then item.Highlight:Destroy() end
     end
     espObjects = {}
     EspFolder:ClearAllChildren()
+    
+    -- Khôi phục màu gốc của nhân vật (Chams)
+    for part, color in pairs(originalColors) do
+        if part and part.Parent then
+            part.Color = color
+        end
+    end
+    originalColors = {}
 end
 
 local function CreateBoxLine(folder)
@@ -852,6 +864,14 @@ local function UpdateESP()
     if not espEnabled then ClearESP() return end
     local Camera = Workspace.CurrentCamera
     if not Camera then return end
+
+    -- Nếu đổi sang dạng khác không phải dạng 3, phải khôi phục màu nhân vật
+    if _G.ESPMode ~= 4 and next(originalColors) ~= nil then
+        for part, color in pairs(originalColors) do
+            if part and part.Parent then part.Color = color end
+        end
+        originalColors = {}
+    end
 
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
@@ -870,8 +890,17 @@ local function UpdateESP()
                 hpBar.BorderSizePixel = 0
                 hpBar.Visible = false
 
+                local highlight = Instance.new("Highlight", EspFolder)
+                highlight.Name = player.Name .. "_Highlight"
+                highlight.FillColor = Color3.fromRGB(255, 255, 255)
+                highlight.FillTransparency = 0.5
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Visible = false
+
                 espObjects[player] = { 
-                    Text = textLabel, Line = lineFrame, HPBar = hpBar,
+                    Text = textLabel, Line = lineFrame, HPBar = hpBar, Highlight = highlight,
                     BoxTop = CreateBoxLine(EspFolder), BoxBottom = CreateBoxLine(EspFolder),
                     BoxLeft = CreateBoxLine(EspFolder), BoxRight = CreateBoxLine(EspFolder)
                 }
@@ -891,6 +920,10 @@ local function UpdateESP()
                     local dist = math.floor((myChar.HumanoidRootPart.Position - hrp.Position).Magnitude)
                     local hp = math.floor((hum.Health / math.max(hum.MaxHealth, 1)) * 100)
                     
+                    -- Reset mặc định
+                    data.Highlight.Visible = false
+                    data.Highlight.Adornee = nil
+
                     -- Dạng 1 (Mặc định): Box + Tên + Máu
                     if _G.ESPMode == 1 then
                         data.Text.Visible = true
@@ -912,7 +945,7 @@ local function UpdateESP()
                         data.BoxLeft.Visible, data.BoxLeft.Position, data.BoxLeft.Size, data.BoxLeft.BackgroundColor3 = true, UDim2.new(0, boxX, 0, boxY), UDim2.new(0, 1.5, 0, height), THEME.Accent
                         data.BoxRight.Visible, data.BoxRight.Position, data.BoxRight.Size, data.BoxRight.BackgroundColor3 = true, UDim2.new(0, boxX + width, 0, boxY), UDim2.new(0, 1.5, 0, height), THEME.Accent
                     
-                    -- Dạng 2: Box + Thanh Máu bên cạnh + Tên
+                    -- Dạng 2 (Viền trắng): Highlight trắng + Box + Máu
                     elseif _G.ESPMode == 2 then
                         data.Text.Visible = true
                         data.Text.Position = UDim2.new(0, screenPos.X - 100, 0, screenPos.Y - 50)
@@ -920,6 +953,10 @@ local function UpdateESP()
                         data.Text.TextColor3 = Color3.fromRGB(255, 255, 255)
                         data.Line.Visible = false
                         data.HPBar.Visible = true
+                        
+                        -- Hiển thị viền trắng Highlight
+                        data.Highlight.Visible = true
+                        data.Highlight.Adornee = char
                         
                         local headPos = head and head.Position or (hrp.Position + Vector3.new(0, 2, 0))
                         local headScreen = Camera:WorldToViewportPoint(headPos + Vector3.new(0, 0.5, 0))
@@ -947,20 +984,32 @@ local function UpdateESP()
                         data.HPBar.Visible = false
                         data.BoxTop.Visible, data.BoxBottom.Visible, data.BoxLeft.Visible, data.BoxRight.Visible = false, false, false, false
                     
-                    -- Dạng 4: Icon + Tên
+                    -- Dạng 4 (Trắng toàn thân): Chams Trắng + Tên + Máu + Khoảng cách
                     elseif _G.ESPMode == 4 then
                         data.Text.Visible = true
-                        data.Text.Position = UDim2.new(0, screenPos.X - 100, 0, screenPos.Y - 20)
-                        data.Text.Text = "🔴 " .. player.DisplayName
-                        data.Text.TextColor3 = Color3.fromRGB(255, 0, 0)
+                        data.Text.Position = UDim2.new(0, screenPos.X - 100, 0, screenPos.Y - 35)
+                        data.Text.Text = string.format("%s\nMáu: %d%% | %dm", player.DisplayName, hp, dist)
+                        data.Text.TextColor3 = Color3.fromRGB(255, 255, 255)
                         data.Line.Visible = false
                         data.HPBar.Visible = false
                         data.BoxTop.Visible, data.BoxBottom.Visible, data.BoxLeft.Visible, data.BoxRight.Visible = false, false, false, false
+
+                        -- Sơn trắng toàn bộ nhân vật (Chams)
+                        for _, part in ipairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                                if not originalColors[part] then
+                                    originalColors[part] = part.Color
+                                end
+                                part.Color = Color3.fromRGB(255, 255, 255) -- Sơn trắng
+                                part.Material = Enum.Material.SmoothPlastic -- Bỏ texture
+                            end
+                        end
                     end
                 else
                     data.Text.Visible = false
                     data.Line.Visible = false
                     data.HPBar.Visible = false
+                    data.Highlight.Visible = false
                     data.BoxTop.Visible, data.BoxBottom.Visible, data.BoxLeft.Visible, data.BoxRight.Visible = false, false, false, false
                 end
             end
@@ -975,7 +1024,6 @@ OpenBtn.MouseButton1Click:Connect(function()
     if not MainFrame.Visible then SubFrame.Visible = false end
 end)
 
--- Kết nối các nút bấm cơ bản
 NoclipBtn.MouseButton1Click:Connect(function()
     noclipEnabled = not noclipEnabled
     NoclipBtn.Text = noclipEnabled and "🐾 Noclip: ON" or "🐾 Noclip: OFF"
